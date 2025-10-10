@@ -1,4 +1,5 @@
 from typing import Sequence, Union
+from rhesis.backend.app.models.guid import GUID
 
 import sqlalchemy as sa
 from alembic import op
@@ -17,19 +18,19 @@ def upgrade() -> None:
         "comment",
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column("emojis", sa.JSON(), nullable=True),
-        sa.Column("entity_id", rhesis.backend.app.models.guid.GUID(), nullable=False),
+        sa.Column("entity_id", GUID(), nullable=False),
         sa.Column("entity_type", sa.String(), nullable=False),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
         sa.Column("nano_id", sa.String(), nullable=True),
         sa.Column("created_at", sa.TIMESTAMP(), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.TIMESTAMP(), server_default=sa.text("now()"), nullable=False),
-        sa.Column("organization_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("user_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("organization_id", GUID(), nullable=True),
+        sa.Column("user_id", GUID(), nullable=True),
         sa.ForeignKeyConstraint(
             ["organization_id"],
             ["organization.id"],

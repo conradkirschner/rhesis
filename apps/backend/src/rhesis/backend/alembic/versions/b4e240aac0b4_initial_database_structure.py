@@ -2,6 +2,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from rhesis.backend.app.models.guid import GUID
 
 import rhesis.backend
 
@@ -20,7 +21,7 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -44,7 +45,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -60,7 +61,7 @@ def upgrade() -> None:
         sa.Column("entity_type", sa.String(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -78,7 +79,7 @@ def upgrade() -> None:
         sa.Column("is_superuser", sa.Boolean(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -92,10 +93,10 @@ def upgrade() -> None:
         "behavior",
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -112,12 +113,12 @@ def upgrade() -> None:
         "category",
         sa.Column("name", sa.String(), nullable=True),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("parent_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("parent_id", GUID(), nullable=True),
         sa.Column("entity_type", sa.String(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -138,10 +139,10 @@ def upgrade() -> None:
         "demographic",
         sa.Column("name", sa.String(), nullable=True),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("dimension_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("dimension_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -165,10 +166,10 @@ def upgrade() -> None:
         sa.Column("token", sa.String(), nullable=True),
         sa.Column("user", sa.String(), nullable=True),
         sa.Column("is_operational", sa.Boolean(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -185,11 +186,11 @@ def upgrade() -> None:
         "risk",
         sa.Column("name", sa.String(), nullable=True),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("parent_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("parent_id", GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -210,18 +211,18 @@ def upgrade() -> None:
         "subscription",
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("user_id", rhesis.backend.app.models.guid.GUID(), nullable=False),
+        sa.Column("user_id", GUID(), nullable=False),
         sa.Column(
             "plan", sa.Enum("FREE", "BASIC", "PREMIUM", name="subscriptionplan"), nullable=False
         ),
         sa.Column("start_date", sa.Date(), nullable=False),
         sa.Column("end_date", sa.Date(), nullable=True),
         sa.Column("is_active", sa.Boolean(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=True),
         sa.Column("tags", sa.ARRAY(sa.String()), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -240,11 +241,11 @@ def upgrade() -> None:
     op.create_index(op.f("ix_subscription_id"), "subscription", ["id"], unique=True)
     op.create_table(
         "test_run",
-        sa.Column("user_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("user_id", GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -265,10 +266,10 @@ def upgrade() -> None:
         "test_set",
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -286,12 +287,12 @@ def upgrade() -> None:
         "topic",
         sa.Column("name", sa.String(), nullable=True),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("parent_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("parent_id", GUID(), nullable=True),
         sa.Column("entity_type", sa.String(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -314,10 +315,10 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("industry", sa.String(), nullable=True),
         sa.Column("is_active", sa.Boolean(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -333,17 +334,17 @@ def upgrade() -> None:
     op.create_table(
         "prompt_template",
         sa.Column("content", sa.Text(), nullable=False),
-        sa.Column("category_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("topic_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("parent_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("category_id", GUID(), nullable=True),
+        sa.Column("topic_id", GUID(), nullable=True),
+        sa.Column("parent_id", GUID(), nullable=True),
         sa.Column("language_code", sa.String(), nullable=True),
         sa.Column("is_summary", sa.Boolean(), nullable=True),
-        sa.Column("source_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("user_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("source_id", GUID(), nullable=True),
+        sa.Column("user_id", GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -381,10 +382,10 @@ def upgrade() -> None:
         "response_pattern",
         sa.Column("text", sa.Text(), nullable=False),
         sa.Column("response_type", sa.String(), nullable=True),
-        sa.Column("behavior_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("behavior_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -399,8 +400,8 @@ def upgrade() -> None:
     op.create_index(op.f("ix_response_pattern_id"), "response_pattern", ["id"], unique=True)
     op.create_table(
         "risk_use_case",
-        sa.Column("risk_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("use_case_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("risk_id", GUID(), nullable=True),
+        sa.Column("use_case_id", GUID(), nullable=True),
         sa.ForeignKeyConstraint(
             ["risk_id"],
             ["risk.id"],
@@ -415,29 +416,29 @@ def upgrade() -> None:
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column(
             "demographic_id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             nullable=True,
             comment="The demographic for this prompt",
         ),
-        sa.Column("category_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("attack_category_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("topic_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("category_id", GUID(), nullable=True),
+        sa.Column("attack_category_id", GUID(), nullable=True),
+        sa.Column("topic_id", GUID(), nullable=True),
         sa.Column(
             "language_code",
             sa.String(),
             nullable=False,
             comment="Standardized language code with IETF language tag",
         ),
-        sa.Column("behavior_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("parent_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("prompt_template_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("behavior_id", GUID(), nullable=True),
+        sa.Column("parent_id", GUID(), nullable=True),
+        sa.Column("prompt_template_id", GUID(), nullable=True),
         sa.Column("expected_response", sa.Text(), nullable=True),
-        sa.Column("source_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("user_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("source_id", GUID(), nullable=True),
+        sa.Column("user_id", GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -489,8 +490,8 @@ def upgrade() -> None:
     op.create_index(op.f("ix_prompt_id"), "prompt", ["id"], unique=True)
     op.create_table(
         "prompt_test_set",
-        sa.Column("prompt_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("test_set_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("prompt_id", GUID(), nullable=True),
+        sa.Column("test_set_id", GUID(), nullable=True),
         sa.ForeignKeyConstraint(
             ["prompt_id"],
             ["prompt.id"],
@@ -502,8 +503,8 @@ def upgrade() -> None:
     )
     op.create_table(
         "prompt_use_case",
-        sa.Column("prompt_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("use_case_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("prompt_id", GUID(), nullable=True),
+        sa.Column("use_case_id", GUID(), nullable=True),
         sa.ForeignKeyConstraint(
             ["prompt_id"],
             ["prompt.id"],
@@ -515,17 +516,17 @@ def upgrade() -> None:
     )
     op.create_table(
         "test_configuration",
-        sa.Column("endpoint_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("category_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("topic_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("prompt_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("use_case_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("test_set_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("user_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("endpoint_id", GUID(), nullable=True),
+        sa.Column("category_id", GUID(), nullable=True),
+        sa.Column("topic_id", GUID(), nullable=True),
+        sa.Column("prompt_id", GUID(), nullable=True),
+        sa.Column("use_case_id", GUID(), nullable=True),
+        sa.Column("test_set_id", GUID(), nullable=True),
+        sa.Column("user_id", GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -568,8 +569,8 @@ def upgrade() -> None:
     op.create_index(op.f("ix_test_configuration_id"), "test_configuration", ["id"], unique=True)
     op.create_table(
         "test_configuration_test_run",
-        sa.Column("test_configuration_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("test_run_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("test_configuration_id", GUID(), nullable=True),
+        sa.Column("test_run_id", GUID(), nullable=True),
         sa.ForeignKeyConstraint(
             ["test_configuration_id"],
             ["test_configuration.id"],
@@ -581,12 +582,12 @@ def upgrade() -> None:
     )
     op.create_table(
         "test_result",
-        sa.Column("test_configuration_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("test_run_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("test_configuration_id", GUID(), nullable=True),
+        sa.Column("test_run_id", GUID(), nullable=True),
         sa.Column("test_metrics", sa.Text(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),

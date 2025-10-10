@@ -1,6 +1,7 @@
 from alembic import op
 import sqlalchemy as sa
 from typing import Union, Sequence
+from rhesis.backend.app.models.guid import GUID
 
 
 
@@ -21,16 +22,16 @@ def upgrade() -> None:
     sa.Column('endpoint', sa.String(), nullable=False),
     sa.Column('key', sa.String(), nullable=False),
     sa.Column('request_headers', sa.JSON(), nullable=True),
-    sa.Column('provider_type_id', rhesis.backend.app.models.guid.GUID(), nullable=True),
-    sa.Column('status_id', rhesis.backend.app.models.guid.GUID(), nullable=True),
-    sa.Column('owner_id', rhesis.backend.app.models.guid.GUID(), nullable=True),
-    sa.Column('assignee_id', rhesis.backend.app.models.guid.GUID(), nullable=True),
-    sa.Column('id', rhesis.backend.app.models.guid.GUID(), server_default=sa.text('gen_random_uuid()'), nullable=False),
+    sa.Column('provider_type_id', GUID(), nullable=True),
+    sa.Column('status_id', GUID(), nullable=True),
+    sa.Column('owner_id', GUID(), nullable=True),
+    sa.Column('assignee_id', GUID(), nullable=True),
+    sa.Column('id', GUID(), server_default=sa.text('gen_random_uuid()'), nullable=False),
     sa.Column('nano_id', sa.String(), nullable=True),
     sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('organization_id', rhesis.backend.app.models.guid.GUID(), nullable=True),
-    sa.Column('user_id', rhesis.backend.app.models.guid.GUID(), nullable=True),
+    sa.Column('organization_id', GUID(), nullable=True),
+    sa.Column('user_id', GUID(), nullable=True),
     sa.ForeignKeyConstraint(['assignee_id'], ['user.id'], ),
     sa.ForeignKeyConstraint(['organization_id'], ['organization.id'], ),
     sa.ForeignKeyConstraint(['owner_id'], ['user.id'], ),

@@ -3,6 +3,7 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
+from rhesis.backend.app.models.guid import GUID
 
 
 # revision identifiers, used by Alembic.
@@ -18,24 +19,24 @@ def upgrade() -> None:
         "task",
         sa.Column("title", sa.String(), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("assignee_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("status_id", rhesis.backend.app.models.guid.GUID(), nullable=False),
-        sa.Column("priority_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("entity_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("assignee_id", GUID(), nullable=True),
+        sa.Column("status_id", GUID(), nullable=False),
+        sa.Column("priority_id", GUID(), nullable=True),
+        sa.Column("entity_id", GUID(), nullable=True),
         sa.Column("entity_type", sa.String(), nullable=True),
         sa.Column("completed_at", sa.DateTime(), nullable=True),
         sa.Column("task_metadata", postgresql.JSON(astext_type=sa.Text()), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
         sa.Column("nano_id", sa.String(), nullable=True),
         sa.Column("created_at", sa.TIMESTAMP(), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.TIMESTAMP(), server_default=sa.text("now()"), nullable=False),
-        sa.Column("organization_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
-        sa.Column("user_id", rhesis.backend.app.models.guid.GUID(), nullable=True),
+        sa.Column("organization_id", GUID(), nullable=True),
+        sa.Column("user_id", GUID(), nullable=True),
         sa.ForeignKeyConstraint(
             ["assignee_id"],
             ["user.id"],

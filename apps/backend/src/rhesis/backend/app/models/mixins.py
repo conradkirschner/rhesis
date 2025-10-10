@@ -1,7 +1,9 @@
 from sqlalchemy import Column, ForeignKey, and_
 from sqlalchemy.orm import declared_attr, relationship
-from typing import Union, List, Dict, TypedDict
+from typing import Union, List, Dict
+from typing_extensions import TypedDict
 from pydantic import UUID4  # typing-only ok in models
+from collections.abc import Sized
 
 from .guid import GUID
 

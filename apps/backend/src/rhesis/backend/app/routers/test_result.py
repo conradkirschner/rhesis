@@ -12,6 +12,7 @@ from rhesis.backend.app.dependencies import get_tenant_context, get_tenant_db_se
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
 from rhesis.backend.app.utils.schema_factory import create_detailed_schema
+from rhesis.backend.app.services.stats import get_test_result_stats
 
 TestResultDetailSchema = create_detailed_schema(schemas.TestResult, models.TestResult)
 
@@ -212,8 +213,7 @@ def generate_test_result_stats(
         tags=tags,
         # Date range filters
         start_date=start_date,
-        end_date=end_date,
-        top=top,
+        end_date=end_date
     )
 
 

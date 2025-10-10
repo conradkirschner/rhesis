@@ -3,6 +3,7 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
+from rhesis.backend.app.models.guid import GUID
 
 from rhesis.backend.alembic.utils.template_loader import load_type_lookup_template
 
@@ -34,7 +35,7 @@ def upgrade() -> None:
 
     op.add_column("source", sa.Column("content", sa.Text(), nullable=True))
     op.add_column(
-        "source", sa.Column("source_type_id", rhesis.backend.app.models.guid.GUID(), nullable=True)
+        "source", sa.Column("source_type_id", GUID(), nullable=True)
     )
     op.add_column(
         "source",
@@ -43,7 +44,7 @@ def upgrade() -> None:
     op.create_foreign_key(None, "source", "type_lookup", ["source_type_id"], ["id"])
     op.drop_column("source", "entity_type")
     op.add_column(
-        "test", sa.Column("source_id", rhesis.backend.app.models.guid.GUID(), nullable=True)
+        "test", sa.Column("source_id", GUID(), nullable=True)
     )
     op.create_foreign_key(None, "test", "source", ["source_id"], ["id"])
     # ### end Alembic commands ###

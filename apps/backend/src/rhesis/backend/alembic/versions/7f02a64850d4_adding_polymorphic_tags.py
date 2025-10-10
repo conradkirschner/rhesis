@@ -3,6 +3,7 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
+from rhesis.backend.app.models.guid import GUID
 
 import rhesis.backend
 
@@ -21,7 +22,7 @@ def upgrade() -> None:
         sa.Column("icon_unicode", sa.String(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -32,12 +33,12 @@ def upgrade() -> None:
     op.create_index(op.f("ix_tag_id"), "tag", ["id"], unique=True)
     op.create_table(
         "tagged_item",
-        sa.Column("tag_id", rhesis.backend.app.models.guid.GUID(), nullable=False),
-        sa.Column("entity_id", rhesis.backend.app.models.guid.GUID(), nullable=False),
+        sa.Column("tag_id", GUID(), nullable=False),
+        sa.Column("entity_id", GUID(), nullable=False),
         sa.Column("entity_type", sa.String(), nullable=False),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),

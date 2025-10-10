@@ -1,4 +1,5 @@
 from typing import Sequence, Union
+from rhesis.backend.app.models.guid import GUID
 
 import sqlalchemy as sa
 from alembic import op
@@ -31,7 +32,7 @@ def upgrade() -> None:
         sa.Column("is_domain_verified", sa.Boolean(), nullable=True),
         sa.Column(
             "id",
-            rhesis.backend.app.models.guid.GUID(),
+            GUID(),
             server_default=sa.text("gen_random_uuid()"),
             nullable=False,
         ),
@@ -42,7 +43,7 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_organization_id"), "organization", ["id"], unique=True)
     op.add_column(
-        "test_set", sa.Column("organization_id", rhesis.backend.app.models.guid.GUID(), nullable=True)
+        "test_set", sa.Column("organization_id", GUID(), nullable=True)
     )
     op.add_column("test_set", sa.Column("visibility", sa.Text(), nullable=True))
     op.create_foreign_key(None, "test_set", "organization", ["organization_id"], ["id"])
