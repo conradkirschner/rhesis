@@ -2,7 +2,7 @@ import base64
 import os
 import secrets
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Optional, Tuple, Literal
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -19,6 +19,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 UNAUTHORIZED_MESSAGE = "Authentication required"
 ALGORITHM = "HS256"
 
+AuthMethod = Literal["session", "bearer", "jwt"]
 
 class AuthenticationMethod:
     SESSION = "session"

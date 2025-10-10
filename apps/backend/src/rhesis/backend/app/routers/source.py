@@ -15,7 +15,8 @@ router = APIRouter(
     prefix="/sources",
     tags=["sources"],
     responses={404: {"description": "Not found"}},
-    dependencies=[Depends(require_current_user_or_token)])
+    dependencies=[Depends(require_current_user_or_token)]
+)
 
 
 @router.post("/", response_model=schemas.Source)
@@ -26,7 +27,8 @@ def create_source(
     source: schemas.SourceCreate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.Source:
     """
     Create source with optimized approach - no session variables needed.
 
@@ -53,20 +55,23 @@ def read_sources(
     filter: str | None = Query(None, alias="$filter", description="OData filter expression"),
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> list[schemas.Source]:
     """Get all sources with their related objects"""
     organization_id, user_id = tenant_context
     return crud.get_sources(
-        db=db, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order, filter=filter, organization_id=organization_id, user_id=user_id
+        db=db, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order, filter=filter,
+        organization_id=organization_id, user_id=user_id
     )
 
 
-@router.get("/{source_id}")
+@router.get("/{source_id}", response_model=schemas.Source)
 def read_source(
     source_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.Source:
     """
     Get source with optimized approach - no session variables needed.
 
@@ -83,12 +88,13 @@ def read_source(
     return db_source
 
 
-@router.delete("/{source_id}")
+@router.delete("/{source_id}", response_model=schemas.Source)
 def delete_source(
     source_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.Source:
     """
     Delete source with optimized approach - no session variables needed.
 
@@ -111,7 +117,8 @@ def update_source(
     source: schemas.SourceUpdate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.Source:
     """
     Update source with optimized approach - no session variables needed.
 
@@ -122,7 +129,9 @@ def update_source(
     - Direct tenant context injection
     """
     organization_id, user_id = tenant_context
-    db_source = crud.update_source(db, source_id=source_id, source=source, organization_id=organization_id, user_id=user_id)
+    db_source = crud.update_source(
+        db, source_id=source_id, source=source, organization_id=organization_id, user_id=user_id
+    )
     if db_source is None:
         raise HTTPException(status_code=404, detail="Source not found")
     return db_source

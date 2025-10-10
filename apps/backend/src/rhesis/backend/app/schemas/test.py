@@ -1,10 +1,11 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 
 from rhesis.backend.app.schemas import Base
 from rhesis.backend.app.schemas.user import UserReference
+from rhesis.backend.app.schemas.json_value import Json
 
 
 # Base models for related entities
@@ -87,7 +88,7 @@ class TestBase(Base):
     user_id: Optional[UUID4] = None
     assignee_id: Optional[UUID4] = None
     owner_id: Optional[UUID4] = None
-    test_configuration: Optional[Dict] = None
+    test_configuration: Optional[dict[str, Json]] = None
     parent_id: Optional[UUID4] = None
     topic_id: Optional[UUID4] = None
     behavior_id: Optional[UUID4] = None
@@ -95,7 +96,7 @@ class TestBase(Base):
     status_id: Optional[UUID4] = None
     source_id: Optional[UUID4] = None
     organization_id: Optional[UUID4] = None
-    test_metadata: Optional[Dict[str, Any]] = None
+    test_metadata: Optional[Dict[str, Json]] = None
 
 
 class TestCreate(TestBase):
@@ -145,7 +146,7 @@ class TestBulkCreate(BaseModel):
     behavior: str
     category: str
     topic: str
-    test_configuration: Optional[Dict[str, Any]] = None
+    test_configuration: Optional[Dict[str, Json]] = None
     assignee_id: Optional[UUID4] = None
     owner_id: Optional[UUID4] = None
     status: Optional[str] = None
@@ -184,8 +185,8 @@ class TestBulkResponse(BaseModel):
     category_id: UUID4
     status_id: UUID4
     organization_id: UUID4
-    test_configuration: Optional[Dict[str, Any]] = None
-    prompt: Optional[Dict[str, Any]] = None
+    test_configuration: Optional[Dict[str, Json]] = None
+    prompt: Optional[Dict[str, Json]] = None
 
     model_config = ConfigDict(from_attributes=True)
 

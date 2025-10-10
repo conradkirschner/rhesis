@@ -4,6 +4,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from rhesis.backend.app import crud, models, schemas
 from rhesis.backend.app.auth.user_utils import require_current_user_or_token
@@ -20,7 +21,13 @@ router = APIRouter(
     prefix="/models",
     tags=["models"],
     responses={404: {"description": "Not found"}},
-    dependencies=[Depends(require_current_user_or_token)])
+    dependencies=[Depends(require_current_user_or_token)],
+)
+
+
+class TestConnectionResponse(BaseModel):
+    status: str
+    message: str
 
 
 @router.post("/", response_model=schemas.Model)
@@ -31,7 +38,8 @@ def create_model(
     model: schemas.ModelCreate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Model:
     """
     Create model with super optimized approach - no session variables needed.
 
@@ -56,20 +64,29 @@ def read_models(
     filter: str | None = Query(None, alias="$filter", description="OData filter expression"),
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> List[ModelDetailSchema]:
     """Get all models with their related objects"""
     organization_id, user_id = tenant_context
     return crud.get_models(
-        db=db, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order, filter=filter, organization_id=organization_id, user_id=user_id
+        db=db,
+        skip=skip,
+        limit=limit,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        filter=filter,
+        organization_id=organization_id,
+        user_id=user_id,
     )
 
 
 @router.get("/{model_id}", response_model=ModelDetailSchema)
 def read_model(
-    model_id: uuid.UUID, 
+    model_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> ModelDetailSchema:
     """Get a specific model by ID"""
     organization_id, user_id = tenant_context
     db_model = crud.get_model(db, model_id=model_id, organization_id=organization_id)
@@ -84,7 +101,8 @@ def update_model(
     model: schemas.ModelUpdate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Model:
     """
     Update model with optimized approach - no session variables needed.
 
@@ -105,10 +123,11 @@ def update_model(
 
 @router.delete("/{model_id}", response_model=schemas.Model)
 def delete_model(
-    model_id: uuid.UUID, 
+    model_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Model:
     """Delete a model"""
     organization_id, user_id = tenant_context
     db_model = crud.delete_model(db, model_id=model_id, organization_id=organization_id, user_id=user_id)
@@ -117,12 +136,13 @@ def delete_model(
     return db_model
 
 
-@router.post("/{model_id}/test", response_model=dict)
+@router.post("/{model_id}/test", response_model=TestConnectionResponse)
 async def test_model_connection(
-    model_id: uuid.UUID, 
+    model_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> TestConnectionResponse:
     """Test the connection to the model's endpoint"""
     organization_id, user_id = tenant_context
     db_model = crud.get_model(db, model_id=model_id, organization_id=organization_id)
@@ -133,6 +153,6 @@ async def test_model_connection(
         # Here you would implement the actual connection test logic
         # This could include making a test request to the model's endpoint
         # For now, we'll just return a success message
-        return {"status": "success", "message": "Connection test successful"}
+        return TestConnectionResponse(status="success", message="Connection test successful")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

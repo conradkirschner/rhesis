@@ -16,7 +16,8 @@ router = APIRouter(
     prefix="/tags",
     tags=["tags"],
     responses={404: {"description": "Not found"}},
-    dependencies=[Depends(require_current_user_or_token)])
+    dependencies=[Depends(require_current_user_or_token)],
+)
 
 
 @router.post("/", response_model=schemas.Tag)
@@ -27,7 +28,8 @@ def create_tag(
     tag: schemas.TagCreate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Tag:
     """
     Create tag with optimized approach - no session variables needed.
 
@@ -52,20 +54,29 @@ def read_tags(
     filter: str | None = Query(None, alias="$filter", description="OData filter expression"),
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> list[schemas.Tag]:
     """Get all tags with their related objects"""
     organization_id, user_id = tenant_context
     return crud.get_tags(
-        db=db, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order, filter=filter, organization_id=organization_id, user_id=user_id
+        db=db,
+        skip=skip,
+        limit=limit,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        filter=filter,
+        organization_id=organization_id,
+        user_id=user_id,
     )
 
 
-@router.get("/{tag_id}")
+@router.get("/{tag_id}", response_model=schemas.Tag)
 def read_tag(
     tag_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Tag:
     """
     Get tag with optimized approach - no session variables needed.
 
@@ -82,12 +93,13 @@ def read_tag(
     return db_tag
 
 
-@router.delete("/{tag_id}")
+@router.delete("/{tag_id}", response_model=schemas.Tag)
 def delete_tag(
     tag_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Tag:
     """
     Delete tag with optimized approach - no session variables needed.
 
@@ -110,7 +122,8 @@ def update_tag(
     tag: schemas.TagUpdate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Tag:
     """
     Update tag with optimized approach - no session variables needed.
 
@@ -136,10 +149,11 @@ def assign_tag_to_entity(
     tag: schemas.TagCreate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Tag:
     """Assign a tag to a specific entity"""
     organization_id, user_id = tenant_context
-    
+
     # Set the user_id and organization_id from the current user
     if not tag.user_id:
         tag.user_id = current_user.id
@@ -147,22 +161,30 @@ def assign_tag_to_entity(
         tag.organization_id = current_user.organization_id
 
     try:
-        return crud.assign_tag(db=db, tag=tag, entity_id=entity_id, entity_type=entity_type, organization_id=organization_id, user_id=user_id)
+        return crud.assign_tag(
+            db=db,
+            tag=tag,
+            entity_id=entity_id,
+            entity_type=entity_type,
+            organization_id=organization_id,
+            user_id=user_id,
+        )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.delete("/{entity_type}/{entity_id}/{tag_id}")
+@router.delete("/{entity_type}/{entity_id}/{tag_id}", response_model=dict[str, str])
 def remove_tag_from_entity(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     tag_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> dict[str, str]:
     """Remove a tag from a specific entity"""
     organization_id, user_id = tenant_context
-    
+
     try:
         success = crud.remove_tag(
             db=db, tag_id=tag_id, entity_id=entity_id, entity_type=entity_type, organization_id=organization_id

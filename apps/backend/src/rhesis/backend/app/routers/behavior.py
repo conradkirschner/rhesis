@@ -35,7 +35,7 @@ def create_behavior(
     behavior: schemas.BehaviorCreate,
     db: Session = Depends(get_tenant_db_session),  # ← Uses drop-in replacement with automatic session variables
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)) -> BehaviorWithMetricsSchema:
     """Create behavior with automatic session variables for RLS."""
     organization_id, user_id = tenant_context
 
@@ -55,7 +55,7 @@ def read_behaviors(
     filter: str | None = Query(None, alias="$filter", description="OData filter expression"),
     db: Session = Depends(get_tenant_db_session),  # ← Uses drop-in replacement
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)) -> List[BehaviorWithMetricsSchema]:
     """Get all behaviors with automatic session variables for RLS."""
     organization_id, user_id = tenant_context
 
@@ -77,7 +77,7 @@ def read_behavior(
     behavior_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)) -> BehaviorWithMetricsSchema:
     """Get behavior by ID with automatic session variables for RLS."""
     organization_id, user_id = tenant_context
     db_behavior = crud.get_behavior(db, behavior_id=behavior_id, organization_id=organization_id, user_id=user_id)
@@ -91,7 +91,7 @@ def delete_behavior(
     behavior_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)) -> BehaviorWithMetricsSchema:
     """Delete behavior with automatic session variables for RLS."""
     organization_id, user_id = tenant_context
     db_behavior = crud.delete_behavior(db, behavior_id=behavior_id, organization_id=organization_id, user_id=user_id)
@@ -109,7 +109,7 @@ def update_behavior(
     behavior: schemas.BehaviorUpdate,
     db: Session = Depends(get_tenant_db_session),  # ← Uses drop-in replacement
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)) -> BehaviorWithMetricsSchema:
     """Update behavior with automatic session variables for RLS."""
     organization_id, user_id = tenant_context
     db_behavior = crud.update_behavior(
@@ -138,7 +138,7 @@ def read_behavior_metrics(
     current_user: User = Depends(require_current_user_or_token),
     organization_id: str = None,  # For with_count_header decorator
     user_id: str = None,  # For with_count_header decorator
-):
+) -> List[MetricDetailSchema]:
     """Get all metrics associated with a behavior"""
     try:
         organization_id, user_id = tenant_context  # SECURITY: Get tenant context
@@ -161,7 +161,7 @@ def add_metric_to_behavior(
     behavior_id: uuid.UUID,
     metric_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)) -> dict[str, str]:
     """Add a metric to a behavior"""
     try:
         added = crud.add_behavior_to_metric(
@@ -182,7 +182,7 @@ def remove_metric_from_behavior(
     behavior_id: uuid.UUID,
     metric_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)) -> dict[str, str]:
     """Remove a metric from a behavior"""
     try:
         removed = crud.remove_behavior_from_metric(

@@ -20,7 +20,8 @@ router = APIRouter(
     prefix="/statuses",
     tags=["statuses"],
     responses={404: {"description": "Not found"}},
-    dependencies=[Depends(require_current_user_or_token)])
+    dependencies=[Depends(require_current_user_or_token)]
+)
 
 
 @router.post("/", response_model=StatusDetailSchema)
@@ -31,7 +32,8 @@ def create_status(
     status: schemas.StatusCreate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> StatusDetailSchema:
     """
     Create status with optimized approach - no session variables needed.
 
@@ -59,22 +61,25 @@ def read_statuses(
     entity_type: str | None = Query(None, description="Filter statuses by entity type"),
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> list[StatusDetailSchema]:
     """Get all statuses with their related objects"""
     organization_id, user_id = tenant_context
     filter = combine_entity_type_filter(filter, entity_type)
 
     return crud.get_statuses(
-        db=db, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order, filter=filter, organization_id=organization_id, user_id=user_id
+        db=db, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order,
+        filter=filter, organization_id=organization_id, user_id=user_id
     )
 
 
-@router.get("/{status_id}")
+@router.get("/{status_id}", response_model=schemas.Status)
 def read_status(
     status_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.Status:
     """
     Get status with optimized approach - no session variables needed.
 
@@ -91,12 +96,13 @@ def read_status(
     return db_status
 
 
-@router.delete("/{status_id}")
+@router.delete("/{status_id}", response_model=schemas.Status)
 def delete_status(
     status_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.Status:
     """
     Delete status with optimized approach - no session variables needed.
 
@@ -119,7 +125,8 @@ def update_status(
     status: schemas.StatusUpdate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.Status:
     """
     Update status with optimized approach - no session variables needed.
 
@@ -130,7 +137,9 @@ def update_status(
     - Direct tenant context injection
     """
     organization_id, user_id = tenant_context
-    db_status = crud.update_status(db, status_id=status_id, status=status, organization_id=organization_id, user_id=user_id)
+    db_status = crud.update_status(
+        db, status_id=status_id, status=status, organization_id=organization_id, user_id=user_id
+    )
     if db_status is None:
         raise HTTPException(status_code=404, detail="Status not found")
     return db_status

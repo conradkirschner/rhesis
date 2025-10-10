@@ -46,6 +46,7 @@ from .stats import (
     TestRunStatsResponse,
     TestRunSummary,
     TimelineData,
+    TestStats
 )
 from .status import Status, StatusBase, StatusCreate, StatusUpdate
 from .tag import Tag, TagBase, TagCreate, TagUpdate

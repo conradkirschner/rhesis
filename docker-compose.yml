@@ -74,7 +74,7 @@ services:
       POSTGRES_USER: ${SQLALCHEMY_DB_USER:-rhesis-user}
       POSTGRES_PASSWORD: ${SQLALCHEMY_DB_PASS:-your-secured-password}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_rhesis:/var/lib/postgresql/data
       - ./apps/backend/src/rhesis/backend/alembic/create_user.sql:/docker-entrypoint-initdb.d/01-create-user.sql
     ports:
       - "5432:5432"
@@ -122,7 +122,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./apps/backend/src:/app/src
+     # - ./apps/backend/src:/app/src
       - ./sdk:/app/sdk
     networks:
       - rhesis-network
@@ -221,7 +221,7 @@ services:
       start_period: 60s
 
 volumes:
-  postgres_data:
+  postgres_data_rhesis:
     driver: local
   redis_data:
     driver: local

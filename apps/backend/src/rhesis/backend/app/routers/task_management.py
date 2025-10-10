@@ -24,14 +24,16 @@ router = APIRouter(
     prefix="/tasks",
     tags=["tasks"],
     responses={404: {"description": "Not found"}},
-    dependencies=[Depends(require_current_user_or_token)])
+    dependencies=[Depends(require_current_user_or_token)],
+)
 
 
 @router.post("/", response_model=schemas.Task)
 def create_task(
     task: schemas.TaskCreate,
     db: Session = Depends(get_tenant_db_session),
-    current_user=Depends(require_current_user_or_token)):
+    current_user=Depends(require_current_user_or_token),
+) -> schemas.Task:
     """Create a new task"""
     try:
         # Validate organization-level constraints
@@ -41,7 +43,8 @@ def create_task(
             db=db,
             task=task,
             organization_id=str(current_user.organization_id),
-            user_id=str(current_user.id))
+            user_id=str(current_user.id),
+        )
 
         # Send email notification if task has an assignee
         if created_task.assignee_id:
@@ -75,7 +78,8 @@ def list_tasks(
     filter: str | None = Query(None, alias="$filter", description="OData filter expression"),
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    response: Response = None):
+    response: Response = None,
+) -> list[TaskDetailSchema]:
     """List tasks with filtering, sorting, and comment counts"""
     try:
         organization_id, user_id = tenant_context
@@ -90,9 +94,10 @@ def list_tasks(
 
 @router.get("/{task_id}", response_model=TaskDetailSchema)
 def get_task(
-    task_id: uuid.UUID, 
+    task_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
-    tenant_context=Depends(get_tenant_context)):
+    tenant_context=Depends(get_tenant_context),
+) -> TaskDetailSchema:
     """Get a single task by ID"""
     organization_id, user_id = tenant_context
     task = crud.get_task(db=db, task_id=task_id, organization_id=organization_id, user_id=user_id)
@@ -112,7 +117,8 @@ def get_tasks_by_entity(
     sort_order: str = "desc",
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    response: Response = None):
+    response: Response = None,
+) -> list[TaskDetailSchema]:
     """Get tasks by entity type and entity ID"""
     try:
         organization_id, user_id = tenant_context
@@ -127,7 +133,8 @@ def get_tasks_by_entity(
             sort_order=sort_order,
             filter=filter_expr,
             organization_id=organization_id,
-            user_id=user_id)
+            user_id=user_id,
+        )
     except Exception as e:
         logger.error(f"Error getting tasks by entity {entity_type}/{entity_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -138,12 +145,13 @@ def update_task(
     task_id: uuid.UUID,
     task: schemas.TaskUpdate,
     db: Session = Depends(get_tenant_db_session),
-    current_user=Depends(require_current_user_or_token)):
+    current_user=Depends(require_current_user_or_token),
+) -> schemas.Task:
     """Update a task"""
     try:
         organization_id = str(current_user.organization_id)
         user_id = str(current_user.id)
-        
+
         # Get the current task to check for assignee changes
         current_task = crud.get_task(db=db, task_id=task_id, organization_id=organization_id, user_id=user_id)
         if current_task is None:
@@ -181,9 +189,10 @@ def update_task(
 
 @router.delete("/{task_id}")
 def delete_task(
-    task_id: uuid.UUID, 
+    task_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
-    tenant_context=Depends(get_tenant_context)):
+    tenant_context=Depends(get_tenant_context),
+) -> dict[str, str]:
     """Delete a task"""
     try:
         organization_id, user_id = tenant_context

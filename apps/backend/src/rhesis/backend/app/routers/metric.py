@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from rhesis.backend.app import crud, models, schemas
 from rhesis.backend.app.auth.user_utils import require_current_user_or_token
@@ -22,7 +23,13 @@ BehaviorDetailSchema = create_detailed_schema(schemas.Behavior, models.Behavior)
 router = APIRouter(
     prefix="/metrics",
     tags=["metrics"],
-    responses={404: {"description": "Not found"}})
+    responses={404: {"description": "Not found"}},
+)
+
+# Simple action response for association endpoints
+class ActionResponse(BaseModel):
+    status: str
+    message: str
 
 
 @router.post("/", response_model=schemas.Metric)
@@ -33,7 +40,8 @@ def create_metric(
     metric: schemas.MetricCreate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Metric:
     """
     Create metric with super optimized approach - no session variables needed.
 
@@ -60,11 +68,19 @@ def read_metrics(
     filter: str | None = Query(None, alias="$filter", description="OData filter expression"),
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> List[MetricDetailSchema]:
     """Get all metrics with their related objects"""
     organization_id, user_id = tenant_context
     metrics = crud.get_metrics(
-        db, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order, filter=filter, organization_id=organization_id, user_id=user_id
+        db,
+        skip=skip,
+        limit=limit,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        filter=filter,
+        organization_id=organization_id,
+        user_id=user_id,
     )
     return metrics
 
@@ -74,7 +90,8 @@ def read_metric(
     metric_id: UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> MetricDetailSchema:
     """Get a specific metric by ID with its related objects"""
     organization_id, user_id = tenant_context
     db_metric = crud.get_metric(db, metric_id=metric_id, organization_id=organization_id)
@@ -92,7 +109,8 @@ def update_metric(
     metric: schemas.MetricUpdate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Metric:
     """Update a metric"""
     organization_id, user_id = tenant_context
     db_metric = crud.get_metric(db, metric_id=metric_id, organization_id=organization_id)
@@ -113,7 +131,8 @@ def delete_metric(
     metric_id: UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Metric:
     """Delete a metric"""
     organization_id, user_id = tenant_context
     db_metric = crud.get_metric(db, metric_id=metric_id, organization_id=organization_id)
@@ -127,13 +146,14 @@ def delete_metric(
     return crud.delete_metric(db=db, metric_id=metric_id, organization_id=organization_id, user_id=user_id)
 
 
-@router.post("/{metric_id}/behaviors/{behavior_id}")
+@router.post("/{metric_id}/behaviors/{behavior_id}", response_model=ActionResponse)
 def add_behavior_to_metric(
     metric_id: UUID,
     behavior_id: UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> ActionResponse:
     """Add a behavior to a metric"""
     organization_id, user_id = tenant_context
     # Check if the metric exists and user has permission
@@ -150,21 +170,23 @@ def add_behavior_to_metric(
             metric_id=metric_id,
             behavior_id=behavior_id,
             user_id=current_user.id,
-            organization_id=organization_id)
+            organization_id=organization_id,
+        )
         if added:
-            return {"status": "success", "message": "Behavior added to metric"}
-        return {"status": "success", "message": "Behavior was already associated with metric"}
+            return ActionResponse(status="success", message="Behavior added to metric")
+        return ActionResponse(status="success", message="Behavior was already associated with metric")
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.delete("/{metric_id}/behaviors/{behavior_id}")
+@router.delete("/{metric_id}/behaviors/{behavior_id}", response_model=ActionResponse)
 def remove_behavior_from_metric(
     metric_id: UUID,
     behavior_id: UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> ActionResponse:
     """Remove a behavior from a metric"""
     organization_id, user_id = tenant_context
     # Check if the metric exists and user has permission
@@ -177,13 +199,11 @@ def remove_behavior_from_metric(
 
     try:
         removed = crud.remove_behavior_from_metric(
-            db=db,
-            metric_id=metric_id,
-            behavior_id=behavior_id,
-            organization_id=organization_id)
+            db=db, metric_id=metric_id, behavior_id=behavior_id, organization_id=organization_id
+        )
         if removed:
-            return {"status": "success", "message": "Behavior removed from metric"}
-        return {"status": "success", "message": "Behavior was not associated with metric"}
+            return ActionResponse(status="success", message="Behavior removed from metric")
+        return ActionResponse(status="success", message="Behavior was not associated with metric")
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -203,7 +223,7 @@ def read_metric_behaviors(
     current_user: User = Depends(require_current_user_or_token),
     organization_id: str = None,  # For with_count_header decorator
     user_id: str = None,  # For with_count_header decorator
-):
+) -> List[BehaviorDetailSchema]:
     """Get all behaviors associated with a metric"""
     try:
         organization_id, user_id = tenant_context  # SECURITY: Get tenant context
@@ -215,7 +235,8 @@ def read_metric_behaviors(
             limit=limit,
             sort_by=sort_by,
             sort_order=sort_order,
-            filter=filter)
+            filter=filter,
+        )
         return behaviors
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

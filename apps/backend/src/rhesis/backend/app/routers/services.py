@@ -1,13 +1,14 @@
 from pathlib import Path
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse, PlainTextResponse, Response
 from sqlalchemy.orm import Session
 
 from rhesis.backend.app.auth.user_utils import require_current_user_or_token
-from rhesis.backend.app.database import get_db
 from rhesis.backend.app.dependencies import get_tenant_context, get_tenant_db_session
 from rhesis.backend.app.models.user import User
+from rhesis.backend.app.schemas.json_value import Json
 from rhesis.backend.app.schemas.services import (
     ChatRequest,
     DocumentUploadResponse,
@@ -25,12 +26,12 @@ from rhesis.backend.app.services.document_handler import DocumentHandler
 from rhesis.backend.app.services.gemini_client import (
     create_chat_completion,
     get_chat_response,
-    get_json_response)
+    get_json_response,
+)
 from rhesis.backend.app.services.generation import generate_tests
 from rhesis.backend.app.services.github import read_repo_contents
 from rhesis.backend.app.services.test_config_generator import TestConfigGeneratorService
 
-# Use rhesis logger
 from rhesis.backend.logging import logger
 from rhesis.sdk.services.extractor import DocumentExtractor
 from rhesis.sdk.types import Document
@@ -39,19 +40,14 @@ router = APIRouter(
     prefix="/services",
     tags=["services"],
     responses={404: {"description": "Not found"}},
-    dependencies=[Depends(require_current_user_or_token)])
+    dependencies=[Depends(require_current_user_or_token)],
+)
 
 
-@router.get("/github/contents")
+@router.get("/github/contents", response_model=str)
 async def get_github_contents(repo_url: str):
     """
     Get the contents of a GitHub repository.
-
-    Args:
-        repo_url: The URL of the GitHub repository to read
-
-    Returns:
-        str: The contents of the repository
     """
     logger.info(f"Getting GitHub contents for {repo_url}")
     try:
@@ -62,41 +58,59 @@ async def get_github_contents(repo_url: str):
         raise HTTPException(status_code=400, detail="Failed to retrieve repository contents")
 
 
-@router.post("/openai/json")
+# ----- OpenAI JSON -----
+@router.post(
+    "/openai/json",
+    response_model=Json,
+    responses={
+        200: {
+            "content": {
+                "text/event-stream": {
+                    "schema": {"type": "string", "example": "data: {\"key\":\"value\"}\\n\\n"}
+                }
+            }
+        }
+    },
+)
 async def get_ai_json_response(prompt_request: PromptRequest):
     """
-    Get a JSON response from OpenAI API.
-
-    Args:
-        prompt_request: The request containing the prompt to send to OpenAI
-
-    Returns:
-        dict: The JSON response from OpenAI
+    Get a JSON response from the LLM (SSE if `stream=True`).
     """
     try:
         if prompt_request.stream:
-
             async def generate():
                 async for chunk in get_json_response(prompt_request.prompt, stream=True):
                     yield f"data: {chunk}\n\n"
 
             return StreamingResponse(generate(), media_type="text/event-stream")
 
-        return get_json_response(prompt_request.prompt)
+        result = get_json_response(prompt_request.prompt)
+        # Ensure JSON content
+        return JSONResponse(content=result)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/openai/chat")
+# ----- OpenAI Chat (structured JSON OR text) -----
+@router.post(
+    "/openai/chat",
+    # Document both shapes: TextResponse OR arbitrary JSON; plus SSE alternative
+    response_model=TextResponse | Json,
+    responses={
+        200: {
+            "content": {
+                "text/event-stream": {
+                    "schema": {"type": "string", "example": "data: {\"choices\":[...] }\\n\\n"}
+                }
+            }
+        }
+    },
+)
 async def get_ai_chat_response(chat_request: ChatRequest):
     """
-    Get a response from OpenAI API using a chat messages array.
-
-    Args:
-        chat_request: The request containing the messages array and response format
-
-    Returns:
-        dict: The response from OpenAI (JSON or text based on response_format)
+    Chat endpoint:
+      - SSE stream when `stream=True`
+      - JSON shape (LLM-structured) OR TextResponse when not streaming
     """
     try:
         if chat_request.stream:
@@ -104,27 +118,43 @@ async def get_ai_chat_response(chat_request: ChatRequest):
                 get_chat_response(
                     messages=[msg.dict() for msg in chat_request.messages],
                     response_format=chat_request.response_format,
-                    stream=True),
-                media_type="text/event-stream")
+                    stream=True,
+                ),
+                media_type="text/event-stream",
+            )
 
-        return get_chat_response(
+        result = get_chat_response(
             messages=[msg.dict() for msg in chat_request.messages],
-            response_format=chat_request.response_format)
+            response_format=chat_request.response_format,
+            stream=False,
+        )
+
+        # If the model returned structured JSON, pass it through;
+        # otherwise wrap it in a TextResponse for a stable schema.
+        if isinstance(result, (dict, list)):
+            return JSONResponse(content=result)
+        return TextResponse(text=str(result))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/chat/completions")
-async def create_chat_completion_endpoint(request: dict):
+# ----- OpenAI-compatible Chat Completions -----
+@router.post(
+    "/chat/completions",
+    response_model=Json,
+    responses={
+        200: {
+            "content": {
+                "text/event-stream": {
+                    "schema": {"type": "string", "example": "data: {\"id\":\"cmpl_...\"}\\n\\n"}
+                }
+            }
+        }
+    },
+)
+async def create_chat_completion_endpoint(request: Dict[str, Json]):
     """
-    OpenAI-compatible chat completions endpoint.
-    Accepts requests in the standard OpenAI chat completion format.
-
-    Args:
-        request: The complete chat completion request body matching OpenAI's format
-
-    Returns:
-        dict: The unmodified OpenAI API response
+    OpenAI-compatible Chat Completions API (SSE if `stream=True`).
     """
     try:
         response = create_chat_completion(request)
@@ -132,21 +162,20 @@ async def create_chat_completion_endpoint(request: dict):
         if request.get("stream", False):
             return StreamingResponse(response, media_type="text/event-stream")
 
-        return response
+        # Ensure JSON response
+        return JSONResponse(content=response if isinstance(response, (dict, list)) else {"data": response})
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/generate/content")
+# ----- Generate Content (either JSON if schema provided, else text) -----
+@router.post(
+    "/generate/content",
+    response_model=TextResponse | Json,
+)
 async def generate_content_endpoint(request: GenerateContentRequest):
     """
-    Generate text using LLM with optional OpenAI schema validation.
-
-    Args:
-        request: Contains prompt and optional OpenAI schema for structured output
-
-    Returns:
-        str or dict: Raw text if no schema, validated dict if schema provided
+    Generate text using the LLM; if `schema_` is provided, returns validated JSON.
     """
     try:
         from rhesis.sdk.models.providers.gemini import GeminiLLM
@@ -155,35 +184,24 @@ async def generate_content_endpoint(request: GenerateContentRequest):
         schema = request.schema_
 
         model = GeminiLLM()
-        response = model.generate(prompt, schema=schema)
+        result = model.generate(prompt, schema=schema)
 
-        return response
+        if isinstance(result, (dict, list)):
+            return JSONResponse(content=result)
+        return TextResponse(text=str(result))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# ----- Generate Tests -----
 @router.post("/generate/tests", response_model=GenerateTestsResponse)
 async def generate_tests_endpoint(
     request: GenerateTestsRequest,
     db: Session = Depends(get_tenant_db_session),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+):
     """
     Generate test cases using the prompt synthesizer.
-
-    Args:
-        request: The request containing the prompt, number of tests, and optional documents
-            - Each document may contain:
-                - `name` (str): Identifier for the document.
-                - `description` (str): Short description of its purpose.
-                - `path` (str): Path to the uploaded document file.
-                - `content` (str, optional): Raw content of the document.
-                ⚠️ If both `path` and `content` are provided in a document, `content` will override
-                 `path`: the file at `path` will not be read or used.
-        db: Database session
-        current_user: Current authenticated user
-
-    Returns:
-        GenerateTestsResponse: The generated test cases
     """
     try:
         prompt = request.prompt
@@ -193,129 +211,101 @@ async def generate_tests_endpoint(
         if not prompt:
             raise HTTPException(status_code=400, detail="prompt is required")
 
-        # Convert Pydantic models to Document objects
         documents_sdk = [Document(**doc.dict()) for doc in documents] if documents else None
 
         test_cases = await generate_tests(db, current_user, prompt, num_tests, documents_sdk)
-        return {"tests": test_cases}
+        return GenerateTestsResponse(tests=test_cases)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/generate/text", response_model=TextResponse)
+# ----- Generate Text (always TextResponse when not streaming) -----
+@router.post(
+    "/generate/text",
+    response_model=TextResponse,
+    responses={
+        200: {
+            "content": {
+                "text/event-stream": {
+                    "schema": {"type": "string", "example": "data: partial token\\n\\n"}
+                }
+            }
+        }
+    },
+)
 async def generate_text(prompt_request: PromptRequest):
     """
-    Generate raw text from an arbitrary prompt.
-
-    Args:
-        prompt_request: The request containing the prompt and stream flag
-
-    Returns:
-        TextResponse: The raw text response from the model
+    Generate raw text from a prompt:
+      - SSE stream when `stream=True`
+      - TextResponse JSON otherwise
     """
     try:
-        # Create a simple message array with the prompt
         messages = [{"role": "user", "content": prompt_request.prompt}]
 
         if prompt_request.stream:
-            # Handle streaming response
             async def generate():
                 response_stream = get_chat_response(
                     messages=messages,
-                    response_format="text",  # Explicitly request text format
-                    stream=True)
-
+                    response_format="text",
+                    stream=True,
+                )
                 async for chunk in response_stream:
                     if chunk["choices"][0]["delta"]["content"]:
                         yield f"data: {chunk['choices'][0]['delta']['content']}\n\n"
 
             return StreamingResponse(generate(), media_type="text/event-stream")
 
-        # Non-streaming response
-        response = get_chat_response(
+        result = get_chat_response(
             messages=messages,
-            response_format="text",  # Explicitly request text format
-            stream=False)
+            response_format="text",
+            stream=False,
+        )
 
-        return TextResponse(text=response)
+        return TextResponse(text=str(result))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# ----- Documents: upload -----
 @router.post("/documents/upload", response_model=DocumentUploadResponse)
 async def upload_document(
     document: UploadFile = File(...),
-    tenant_context=Depends(get_tenant_context)
+    tenant_context=Depends(get_tenant_context),
 ):
     """
     Upload a document to persistent storage.
-
-    The document will be saved to the configured storage backend (GCS or local filesystem)
-    with a multi-tenant path structure.
-    Maximum document size is 5MB.
-
-    Args:
-        document: The document to upload (multipart/form-data)
-        tenant_context: Tenant context containing organization_id and user_id
-
-    Returns:
-        DocumentUploadResponse: Contains the full path to the uploaded document
     """
     organization_id, user_id = tenant_context
     handler = DocumentHandler()
 
-    # Use user_id as source_id for now (can be changed to a proper source ID later)
-    path, metadata = await handler.save_document(document, organization_id, user_id)
-    return {"path": path}
+    path, _metadata = await handler.save_document(document, organization_id, user_id)
+    return DocumentUploadResponse(path=path)
 
 
+# ----- Documents: extract -----
 @router.post("/documents/extract", response_model=ExtractDocumentResponse)
-async def extract_document_content(request: ExtractDocumentRequest) -> ExtractDocumentResponse:
+async def extract_document_content(request: ExtractDocumentRequest):
     """
     Extract text content from an uploaded document.
-
-    Uses the SDK's DocumentExtractor to extract text from various document formats:
-    - PDF (.pdf)
-    - Microsoft Office formats (.docx, .xlsx, .pptx)
-    - Markdown (.md)
-    - AsciiDoc (.adoc)
-    - HTML/XHTML (.html, .xhtml)
-    - CSV (.csv)
-    - Plain text (.txt)
-    - And more...
-
-    Args:
-        request: ExtractDocumentRequest containing the path to the uploaded document
-
-    Returns:
-        ExtractDocumentResponse containing the extracted text content and detected format
     """
     try:
-        # Initialize extractor
         extractor = DocumentExtractor()
-
-        # Get file extension to determine format
         file_extension = Path(request.path).suffix.lower()
 
-        # Check if format is supported
         if file_extension not in extractor.supported_extensions:
             raise HTTPException(
                 status_code=400,
                 detail=f"Unsupported file format: {file_extension}. "
-                f"Supported formats: {', '.join(extractor.supported_extensions)}")
+                f"Supported formats: {', '.join(extractor.supported_extensions)}",
+            )
 
-        # Prepare document for extraction
         document = Document(name="document", description="Uploaded document", path=request.path)
-
-        # Extract content
         extracted_texts = extractor.extract([document])
-
-        # Get the extracted content (there's only one document)
         content = next(iter(extracted_texts.values()))
 
         return ExtractDocumentResponse(
             content=content,
-            format=file_extension.lstrip("."),  # Remove the leading dot
+            format=file_extension.lstrip("."),
         )
 
     except FileNotFoundError:
@@ -326,21 +316,11 @@ async def extract_document_content(request: ExtractDocumentRequest) -> ExtractDo
         raise HTTPException(status_code=400, detail=f"Failed to extract document content: {str(e)}")
 
 
+# ----- Generate Test Config -----
 @router.post("/generate/test_config", response_model=TestConfigResponse)
 async def generate_test_config(request: TestConfigRequest):
     """
     Generate test configuration JSON based on user description.
-
-    This endpoint analyzes a user-provided description and generates a configuration
-    JSON containing relevant behaviors, topics, test categories, and test scenarios
-    from predefined lists.
-
-    Args:
-        request: Contains prompt (description) for test configuration generation
-
-    Returns:
-        TestConfigResponse: JSON containing selected behaviors, topics, test categories,
-            and scenarios
     """
     try:
         logger.info(f"Test config generation request for prompt: {request.prompt[:100]}...")
@@ -348,8 +328,8 @@ async def generate_test_config(request: TestConfigRequest):
         result = service.generate_config(request.prompt)
         logger.info("Test config generation successful")
         return result
-    except ValueError as e:
-        logger.warning(f"Invalid request for test config generation: {str(e)}")
+    except ValueError:
+        logger.warning("Invalid request for test config generation")
         raise HTTPException(status_code=400, detail="Invalid request parameters")
     except RuntimeError as e:
         logger.error(f"Test config generation failed: {str(e)}", exc_info=True)

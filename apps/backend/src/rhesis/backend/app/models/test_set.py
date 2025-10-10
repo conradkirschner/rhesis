@@ -3,10 +3,12 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Session, relationship
 
+from typing import List, Optional
+
 from rhesis.backend.app.models.guid import GUID
 
 from .base import Base
-from .mixins import CommentsMixin, CountsMixin, TagsMixin, TasksMixin
+from .mixins import CommentsMixin, CountsMixin, TagsMixin, TasksMixin, AttributesDict
 from .test import test_test_set_association
 
 """

@@ -19,7 +19,8 @@ router = APIRouter(
     prefix="/projects",
     tags=["projects"],
     responses={404: {"description": "Not found"}},
-    dependencies=[Depends(require_current_user_or_token)])
+    dependencies=[Depends(require_current_user_or_token)]
+)
 
 
 @router.post("/", response_model=schemas.Project)
@@ -30,7 +31,8 @@ async def create_project(
     project: schemas.ProjectCreate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.Project:
     """
     Create project with optimized approach - no session variables needed.
 
@@ -66,20 +68,23 @@ async def read_projects(
     filter: str | None = Query(None, alias="$filter", description="OData filter expression"),
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> list[ProjectDetailSchema]:
     """Get all projects with their related objects"""
     organization_id, user_id = tenant_context
     return crud.get_projects(
-        db=db, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order, filter=filter, organization_id=organization_id, user_id=user_id
+        db=db, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order, filter=filter,
+        organization_id=organization_id, user_id=user_id
     )
 
 
-@router.get("/{project_id}")
+@router.get("/{project_id}", response_model=ProjectDetailSchema)
 def read_project(
     project_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> ProjectDetailSchema:
     """
     Get project with optimized approach - no session variables needed.
 
@@ -102,7 +107,8 @@ def update_project(
     project: schemas.ProjectUpdate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.Project:
     """
     Update project with optimized approach - no session variables needed.
 
@@ -124,12 +130,13 @@ def update_project(
     return crud.update_project(db, project_id=project_id, project=project, organization_id=organization_id, user_id=user_id)
 
 
-@router.delete("/{project_id}")
+@router.delete("/{project_id}", response_model=schemas.Project)
 def delete_project(
     project_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.Project:
     """
     Delete project with optimized approach - no session variables needed.
 

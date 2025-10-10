@@ -1,8 +1,9 @@
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from pydantic import UUID4, field_validator
 
 from rhesis.backend.app.schemas import Base
+from rhesis.backend.app.schemas.json_value import Json
 
 
 # Base schema for Source
@@ -14,7 +15,7 @@ class SourceBase(Base):
     url: Optional[str] = None  # Optional URL as string with basic validation
     citation: Optional[str] = None  # Optional citation for papers or books
     language_code: Optional[str] = None  # Optional language code (BCP 47 format)
-    source_metadata: Optional[Dict[str, Any]] = None  # File metadata as JSON object
+    source_metadata: Optional[dict[str, Json]] = None  # File metadata as JSON object
     user_id: Optional[UUID4] = None
     organization_id: Optional[UUID4] = None
 

@@ -15,18 +15,21 @@ router = APIRouter(
     prefix="/prompt_templates",
     tags=["prompt_templates"],
     responses={404: {"description": "Not found"}},
-    dependencies=[Depends(require_current_user_or_token)])
+    dependencies=[Depends(require_current_user_or_token)]
+)
 
 
 @handle_database_exceptions(
     entity_name="prompt_template",
-    custom_unique_message="prompt_template.py with this name already exists")
+    custom_unique_message="prompt_template.py with this name already exists"
+)
 @router.post("/", response_model=schemas.PromptTemplate)
 def create_prompt_template(
     template: schemas.PromptTemplateCreate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.PromptTemplate:
     """
     Create prompt template with optimized approach - no session variables needed.
 
@@ -53,11 +56,13 @@ def read_prompt_templates(
     filter: str | None = Query(None, alias="$filter", description="OData filter expression"),
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> list[schemas.PromptTemplate]:
     """Get all prompt templates with their related objects"""
     organization_id, user_id = tenant_context
     return crud.get_prompt_templates(
-        db=db, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order, filter=filter, organization_id=organization_id, user_id=user_id
+        db=db, skip=skip, limit=limit, sort_by=sort_by, sort_order=sort_order, filter=filter,
+        organization_id=organization_id, user_id=user_id
     )
 
 
@@ -66,9 +71,12 @@ def read_prompt_template(
     prompt_template_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.PromptTemplate:
     organization_id, user_id = tenant_context
-    db_template = crud.get_prompt_template(db, prompt_template_id=prompt_template_id, organization_id=organization_id, user_id=user_id)
+    db_template = crud.get_prompt_template(
+        db, prompt_template_id=prompt_template_id, organization_id=organization_id, user_id=user_id
+    )
     if db_template is None:
         raise HTTPException(status_code=404, detail="Prompt Template not found")
     return db_template
@@ -79,9 +87,12 @@ def delete_prompt_template(
     prompt_template_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.PromptTemplate:
     organization_id, user_id = tenant_context
-    db_prompt_template = crud.delete_prompt_template(db, prompt_template_id=prompt_template_id, organization_id=organization_id, user_id=user_id)
+    db_prompt_template = crud.delete_prompt_template(
+        db, prompt_template_id=prompt_template_id, organization_id=organization_id, user_id=user_id
+    )
     if db_prompt_template is None:
         raise HTTPException(status_code=404, detail="Prompt Template not found")
     return db_prompt_template
@@ -93,10 +104,12 @@ def update_prompt_template(
     prompt_template: schemas.PromptTemplateUpdate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)
+) -> schemas.PromptTemplate:
     organization_id, user_id = tenant_context
     db_prompt_template = crud.update_prompt_template(
-        db, prompt_template_id=prompt_template_id, prompt_template=prompt_template, organization_id=organization_id, user_id=user_id
+        db, prompt_template_id=prompt_template_id, prompt_template=prompt_template,
+        organization_id=organization_id, user_id=user_id
     )
     if db_prompt_template is None:
         raise HTTPException(status_code=404, detail="Prompt Template not found")

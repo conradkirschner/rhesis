@@ -18,7 +18,7 @@ class ModelBase(Base):
     model_name: str
     endpoint: str
     key: str
-    request_headers: Optional[Dict] = None
+    request_headers: Optional[Dict[str, str]] = None
     organization_id: Optional[UUID4] = None
     user_id: Optional[UUID4] = None
 

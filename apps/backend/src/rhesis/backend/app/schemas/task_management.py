@@ -7,6 +7,7 @@ from .base import Base
 from .status import Status
 from .type_lookup import TypeLookup
 from .user import User
+from rhesis.backend.app.schemas.json_value import Json
 
 
 class TaskBase(BaseModel):
@@ -20,7 +21,7 @@ class TaskBase(BaseModel):
     entity_id: Optional[UUID4] = None
     entity_type: Optional[str] = None
     completed_at: Optional[datetime] = None
-    task_metadata: Optional[Dict] = None
+    task_metadata: Optional[dict[str, Json]] = None
 
 
 class TaskCreate(BaseModel):
@@ -34,7 +35,7 @@ class TaskCreate(BaseModel):
     entity_id: Optional[UUID4] = None
     entity_type: Optional[str] = None
     completed_at: Optional[datetime] = None
-    task_metadata: Optional[Dict] = None
+    task_metadata: Optional[dict[str, Json]] = None
 
 
 class TaskUpdate(BaseModel):
@@ -48,7 +49,7 @@ class TaskUpdate(BaseModel):
     entity_id: Optional[UUID4] = None
     entity_type: Optional[str] = None
     completed_at: Optional[datetime] = None
-    task_metadata: Optional[Dict] = None
+    task_metadata: Optional[dict[str, Json]] = None
 
 
 class Task(Base):
@@ -63,7 +64,7 @@ class Task(Base):
     entity_id: Optional[UUID4] = None
     entity_type: Optional[str] = None
     completed_at: Optional[datetime] = None
-    task_metadata: Optional[Dict] = None
+    task_metadata: Optional[dict[str, Json]] = None
     comment_count: Optional[int] = 0
 
     # User relationships

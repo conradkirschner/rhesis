@@ -1,9 +1,10 @@
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional, Literal
 
 from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 
 from rhesis.backend.app.schemas import Base
 from rhesis.backend.app.schemas.tag import Tag
+from rhesis.backend.app.schemas.json_value import Json
 
 
 # TestSet schemas
@@ -15,7 +16,7 @@ class TestSetBase(Base):
     status_id: Optional[UUID4] = None
     tags: Optional[List[Tag]] = []
     license_type_id: Optional[UUID4] = None
-    attributes: Optional[dict] = None
+    attributes: Optional[dict[str, Json]] = None
     user_id: Optional[UUID4] = None
     owner_id: Optional[UUID4] = None
     assignee_id: Optional[UUID4] = None
@@ -51,12 +52,12 @@ class TestData(BaseModel):
     behavior: str
     category: str
     topic: str
-    test_configuration: Optional[Dict[str, Any]] = None
+    test_configuration: Optional[dict[str, Json]] = None
     assignee_id: Optional[UUID4] = None
     owner_id: Optional[UUID4] = None
     status: Optional[str] = None
     priority: Optional[int] = None
-    metadata: Dict[str, Any] = {}
+    metadata: Dict[str, Json] = {}
 
     @field_validator("assignee_id", "owner_id")
     @classmethod
@@ -83,7 +84,7 @@ class TestSetBulkCreate(BaseModel):
     assignee_id: Optional[UUID4] = None
     priority: Optional[int] = None
     tests: List[TestData]
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[dict[str, Json]] = None
 
     @field_validator("owner_id", "assignee_id")
     @classmethod
@@ -112,7 +113,7 @@ class TestSetBulkResponse(BaseModel):
     user_id: Optional[UUID4] = None
     organization_id: Optional[UUID4] = None
     visibility: Optional[str] = None
-    attributes: Optional[Dict[str, Any]] = None
+    attributes: Optional[dict[str, Json]] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -125,7 +126,7 @@ class TestSetBulkAssociateResponse(BaseModel):
     success: bool
     total_tests: int
     message: str
-    metadata: Dict[str, Any] = {
+    metadata: Dict[str, Json] = {
         "new_associations": None,
         "existing_associations": None,
         "invalid_associations": None,
@@ -150,7 +151,7 @@ class TestSetBulkDisassociateResponse(BaseModel):
 class TestSetExecutionRequest(BaseModel):
     """Request model for test set execution with flexible execution options."""
 
-    execution_options: Optional[Dict[str, Any]] = None
+    execution_options: Literal["Parallel", "Sequential"] = "Parallel"
 
     @field_validator("execution_options")
     @classmethod

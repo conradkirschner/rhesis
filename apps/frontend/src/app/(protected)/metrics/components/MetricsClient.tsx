@@ -1,27 +1,27 @@
 'use client';
 
 import * as React from 'react';
-import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import ViewQuiltIcon from '@mui/icons-material/ViewQuilt';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotifications } from '@/components/common/NotificationContext';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
-import { BehaviorClient } from '@/utils/api-client/behavior-client';
-import { MetricsClient } from '@/utils/api-client/metrics-client';
-import { MetricDetail } from '@/utils/api-client/interfaces/metric';
-import type {
-  Behavior as ApiBehavior,
-  BehaviorWithMetrics,
-} from '@/utils/api-client/interfaces/behavior';
-import type { TypeLookup as MetricType } from '@/utils/api-client/interfaces/type-lookup';
-import type { UUID } from 'crypto';
+
+/** Hey API client + React Query helpers (generated) */
+import { client } from '@/api-client/client.gen';
+import {
+  readBehaviorsBehaviorsGetOptions,
+  readMetricsMetricsGetOptions,
+} from '@/api-client/@tanstack/react-query.gen';
+import type { Behavior, Metric, TypeLookup } from '@/api-client/types.gen';
 
 import SelectedMetricsTab from './SelectedMetricsTab';
 import MetricsDirectoryTab from './MetricsDirectoryTab';
+import type { UUID } from 'crypto';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -31,18 +31,17 @@ interface TabPanelProps {
 
 function CustomTabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
-
   return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`metrics-tabpanel-${index}`}
-      aria-labelledby={`metrics-tab-${index}`}
-      {...other}
-      style={{ height: '100%' }}
-    >
-      {value === index && <Box sx={{ height: '100%' }}>{children}</Box>}
-    </div>
+      <div
+          role="tabpanel"
+          hidden={value !== index}
+          id={`metrics-tabpanel-${index}`}
+          aria-labelledby={`metrics-tab-${index}`}
+          {...other}
+          style={{ height: '100%' }}
+      >
+        {value === index && <Box sx={{ height: '100%' }}>{children}</Box>}
+      </div>
   );
 }
 
@@ -53,13 +52,13 @@ function a11yProps(index: number) {
   };
 }
 
+/** Local filter state */
 interface FilterState {
   search: string;
   backend: string[];
   type: string[];
   scoreType: string[];
 }
-
 const initialFilterState: FilterState = {
   search: '',
   backend: [],
@@ -72,7 +71,6 @@ interface FilterOptions {
   type: { type_value: string; description: string }[];
   scoreType: { value: string; label: string }[];
 }
-
 const initialFilterOptions: FilterOptions = {
   backend: [],
   type: [],
@@ -82,9 +80,10 @@ const initialFilterOptions: FilterOptions = {
   ],
 };
 
+/** Derived map for Selected tab */
 interface BehaviorMetrics {
   [behaviorId: string]: {
-    metrics: MetricDetail[] | any[];
+    metrics: Metric[];
     isLoading: boolean;
     error: string | null;
   };
@@ -95,317 +94,243 @@ interface MetricsClientProps {
   organizationId: UUID;
 }
 
+/** Helpers to normalize API results without casts */
+function isObject(x: unknown): x is Record<string, unknown> {
+  return typeof x === 'object' && x !== null;
+}
+function extractArray<T>(x: { data?: unknown } | unknown): T[] {
+  if (Array.isArray(x)) return x as T[];
+  if (isObject(x) && Array.isArray(x.data)) return x.data as T[];
+  return [];
+}
+function hasMetricsField(
+    b: unknown
+): b is Behavior & { metrics?: Array<Pick<Metric, 'id'>> } {
+  return isObject(b) && 'metrics' in b;
+}
+
 export default function MetricsClientComponent({
-  sessionToken,
-  organizationId,
-}: MetricsClientProps) {
+                                                 sessionToken,
+                                                 organizationId,
+                                               }: MetricsClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const notifications = useNotifications();
+  const queryClient = useQueryClient();
 
-  // Initialize tab value from URL parameter
+  // init tab from URL
   const initialTab = React.useMemo(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'selected') return 1;
-    return 0; // Default to Metrics Directory
+    return tab === 'selected' ? 1 : 0;
   }, [searchParams]);
-
   const [value, setValue] = React.useState(initialTab);
 
-  // Data state
-  const [behaviors, setBehaviors] = React.useState<ApiBehavior[]>([]);
+  // UI state (keep shapes used by child components)
+  const [behaviors, setBehaviors] = React.useState<Behavior[]>([]);
   const [behaviorsWithMetrics, setBehaviorsWithMetrics] = React.useState<
-    BehaviorWithMetrics[]
+      (Behavior & { metrics?: Array<Pick<Metric, 'id'>> })[]
   >([]);
-  const [metrics, setMetrics] = React.useState<MetricDetail[]>([]);
-
-  // Separate loading states for each tab
+  const [metrics, setMetrics] = React.useState<Metric[]>([]);
   const [isLoadingSelectedMetrics, setIsLoadingSelectedMetrics] =
-    React.useState(true);
+      React.useState(true);
   const [isLoadingMetricsDirectory, setIsLoadingMetricsDirectory] =
-    React.useState(true);
+      React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  // Filter state
   const [filters, setFilters] = React.useState<FilterState>(initialFilterState);
   const [filterOptions, setFilterOptions] =
-    React.useState<FilterOptions>(initialFilterOptions);
+      React.useState<FilterOptions>(initialFilterOptions);
   const [behaviorMetrics, setBehaviorMetrics] = React.useState<BehaviorMetrics>(
-    {}
+      {}
   );
 
-  // Refresh key for manual refresh
-  const [refreshKey, setRefreshKey] = React.useState(0);
-
-  // Use ref to track the actual session token value to prevent unnecessary re-fetches
-  const lastSessionTokenRef = React.useRef<string | null>(null);
-  const hasFetchedRef = React.useRef(false);
-
-  // Fetch behaviors, metrics, and filter options - using same pattern as test runs
+  /** Inject bearer token into Hey API client */
   React.useEffect(() => {
-    const fetchData = async () => {
-      if (!sessionToken) return;
+    const headers = new Headers();
+    if (sessionToken) headers.set('Authorization', `Bearer ${sessionToken}`);
+    client.setConfig({ headers });
+    // Token change => invalidate generated keys (don't mutate queryKey)
+    queryClient.invalidateQueries({ queryKey: readBehaviorsBehaviorsGetOptions({}).queryKey });
+    queryClient.invalidateQueries({ queryKey: readMetricsMetricsGetOptions({}).queryKey });
+  }, [sessionToken, queryClient]);
 
-      // Check if this is a real session token change or just a session object recreation
-      const isTokenChange = lastSessionTokenRef.current !== sessionToken;
-      const isRefresh = refreshKey > 0;
-      const isFirstLoad = !hasFetchedRef.current;
+  /** Generated options (no queryKey tampering) */
+  const behaviorsOpts = readBehaviorsBehaviorsGetOptions({
+    query: { skip: 0, limit: 100, sort_by: 'created_at', sort_order: 'desc' },
+  });
+  const metricsOpts = readMetricsMetricsGetOptions({
+    query: { skip: 0, limit: 100, sort_by: 'created_at', sort_order: 'desc' },
+  });
 
-      if (!isTokenChange && !isRefresh && !isFirstLoad) {
-        console.log(
-          '[DEBUG] [DEBUG] Skipping fetchData - session token unchanged, no refresh, not first load'
-        );
-        return;
-      }
+  /** Queries */
+  const behaviorsQuery = useQuery({
+    ...behaviorsOpts,
+    enabled: !!sessionToken,
+    staleTime: 60_000,
+    select: (data) => {
+      const arr = extractArray<unknown>(data);
+      // Keep only items that look like Behavior (structural) and include optional metrics
+      const maybe = arr.filter(isObject) as Behavior[];
+      return maybe as Array<Behavior & { metrics?: Array<Pick<Metric, 'id'>> }>;
+    },
+  });
 
-      console.log('[DEBUG] [DEBUG] Metrics client fetchData started', {
-        isTokenChange,
-        isRefresh,
-        isFirstLoad,
-        tokenChanged: lastSessionTokenRef.current !== sessionToken,
+  const metricsQuery = useQuery({
+    ...metricsOpts,
+    enabled: !!sessionToken,
+    staleTime: 60_000,
+    select: (data) => extractArray<Metric>(data),
+  });
+
+  /** Build derived state on query changes */
+  React.useEffect(() => {
+    setIsLoadingSelectedMetrics(behaviorsQuery.isPending);
+    setIsLoadingMetricsDirectory(metricsQuery.isPending);
+
+    if (behaviorsQuery.isError || metricsQuery.isError) {
+      const message =
+          (behaviorsQuery.error as Error | undefined)?.message ??
+          (metricsQuery.error as Error | undefined)?.message ??
+          'Failed to load metrics data';
+      setError(message);
+      notifications.show('Failed to load metrics data', {
+        severity: 'error',
+        autoHideDuration: 4000,
+      });
+      return;
+    }
+
+    if (behaviorsQuery.isSuccess && metricsQuery.isSuccess) {
+      const behaviorsWithMetricsData = behaviorsQuery.data ?? [];
+      const metricsData = metricsQuery.data ?? [];
+
+      // Add behavior IDs onto each metric for compatibility with UI
+      const metricsWithBehaviors: Metric[] = metricsData.map((m) => {
+        const bIds = behaviorsWithMetricsData
+            .filter((b) => hasMetricsField(b) && (b.metrics ?? []).some((bm) => bm.id === m.id))
+            .map((b) => b.id ?? '')
+            .filter((id): id is string => !!id);
+        // augment structurally; TS keeps Metric props and ignores extra field in consumers that expect it
+        return { ...m, behaviors: bIds } as Metric & { behaviors: string[] };
       });
 
-      // Update refs
-      lastSessionTokenRef.current = sessionToken;
-      hasFetchedRef.current = true;
+      setBehaviorsWithMetrics(behaviorsWithMetricsData);
+      setBehaviors(behaviorsWithMetricsData as Behavior[]);
+      setMetrics(metricsWithBehaviors);
 
-      try {
-        console.log(
-          '[DEBUG] [DEBUG] Setting loading state and clearing errors'
-        );
-        setIsLoadingSelectedMetrics(true);
-        setIsLoadingMetricsDirectory(true);
-        setError(null);
+      // Initialize per-behavior metrics cache
+      const init: BehaviorMetrics = {};
+      behaviorsWithMetricsData.forEach((b) => {
+        init[b.id ?? ''] = {
+          metrics: (hasMetricsField(b) ? (b.metrics ?? []) : []) as Metric[],
+          isLoading: false,
+          error: null,
+        };
+      });
+      setBehaviorMetrics(init);
 
-        console.log(
-          '[DEBUG] [DEBUG] Creating API clients with session token:',
-          !!sessionToken
-        );
-        const behaviorClient = new BehaviorClient(sessionToken);
-        const metricsClient = new MetricsClient(sessionToken);
+      // Build filter options from metrics
+      const uniqueBackend = new Map<string, { type_value: string }>();
+      const uniqueMetric = new Map<string, { type_value: string; description: string }>();
 
-        console.log(
-          '[DEBUG] [DEBUG] Fetching behaviors with metrics and all metrics...'
-        );
-        const [behaviorsWithMetricsData, allMetricsData] = await Promise.all([
-          behaviorClient.getBehaviorsWithMetrics({
-            skip: 0,
-            limit: 100,
-            sort_by: 'created_at',
-            sort_order: 'desc',
-          }),
-          metricsClient.getMetrics({
-            skip: 0,
-            limit: 100,
-            sort_by: 'created_at',
-            sort_order: 'desc',
-          }),
-        ]);
+      metricsWithBehaviors.forEach((metric) => {
+        const btVal = (metric as { backend_type?: TypeLookup }).backend_type?.type_value ?? null;
+        if (btVal) {
+          const pretty = btVal.charAt(0).toUpperCase() + btVal.slice(1);
+          uniqueBackend.set(btVal, { type_value: pretty });
+        }
+        const mt = (metric as { metric_type?: TypeLookup }).metric_type;
+        if (mt?.type_value) {
+          uniqueMetric.set(mt.type_value, {
+            type_value: mt.type_value,
+            description: mt.description ?? '',
+          });
+        }
+      });
 
-        console.log('[DEBUG] [DEBUG] API calls completed. Processing data...');
+      setFilterOptions((prev) => ({
+        ...prev,
+        backend: Array.from(uniqueBackend.values()),
+        type: Array.from(uniqueMetric.values()),
+      }));
 
-        // Extract behaviors from the optimized response
-        const behaviorsData = behaviorsWithMetricsData;
-
-        // Use all metrics from the dedicated metrics endpoint
-        const metricsData = allMetricsData.data || [];
-
-        // Add behavior IDs to each metric for compatibility
-        const metricsWithBehaviors = metricsData.map(metric => {
-          const behaviorIds = behaviorsWithMetricsData
-            .filter(behavior => behavior.metrics?.some(m => m.id === metric.id))
-            .map(behavior => behavior.id);
-
-          return {
-            ...metric,
-            behaviors: behaviorIds,
-          };
-        });
-
-        console.log(
-          '[SUCCESS] [DEBUG] Metrics processing completed - found',
-          metricsWithBehaviors.length,
-          'unique metrics'
-        );
-
-        // Set the data
-        setBehaviorsWithMetrics(behaviorsWithMetricsData);
-        setBehaviors(behaviorsData);
-        setMetrics(metricsWithBehaviors as MetricDetail[]);
-
-        // Initialize behavior metrics state
-        const initialBehaviorMetrics: BehaviorMetrics = {};
-        behaviorsWithMetricsData.forEach(behavior => {
-          initialBehaviorMetrics[behavior.id] = {
-            metrics: behavior.metrics || [],
-            isLoading: false,
-            error: null,
-          };
-        });
-        setBehaviorMetrics(initialBehaviorMetrics);
-
-        // Extract backend types and metric types from the metrics in the response
-        const uniqueBackendTypes = new Map<string, { type_value: string }>();
-        const uniqueMetricTypes = new Map<
-          string,
-          { type_value: string; description: string }
-        >();
-
-        metricsWithBehaviors.forEach(metric => {
-          // Extract backend types from metric.backend_type
-          if (metric.backend_type) {
-            const backendTypeValue =
-              metric.backend_type.type_value.charAt(0).toUpperCase() +
-              metric.backend_type.type_value.slice(1);
-            uniqueBackendTypes.set(metric.backend_type.type_value, {
-              type_value: backendTypeValue,
-            });
-          }
-
-          // Extract metric types from metric.metric_type
-          if (metric.metric_type) {
-            uniqueMetricTypes.set(metric.metric_type.type_value, {
-              type_value: metric.metric_type.type_value,
-              description: metric.metric_type.description || '',
-            });
-          }
-        });
-
-        const backendTypes = Array.from(uniqueBackendTypes.values());
-        const metricTypes = Array.from(uniqueMetricTypes.values());
-
-        setFilterOptions(prev => ({
-          ...prev,
-          backend: backendTypes,
-          type: metricTypes,
-        }));
-
-        console.log(
-          '[SUCCESS] [DEBUG] Extracted filter options from metrics:',
-          {
-            backendTypes: backendTypes.length,
-            metricTypes: metricTypes.length,
-          }
-        );
-
-        console.log(
-          '[SUCCESS] [DEBUG] All data processing completed successfully'
-        );
-      } catch (err) {
-        console.error('[ERROR] [DEBUG] Error in fetchData:', err);
-        const errorMessage =
-          err instanceof Error ? err.message : 'An error occurred';
-        setError(errorMessage);
-        notifications.show('Failed to load metrics data', {
-          severity: 'error',
-          autoHideDuration: 4000,
-        });
-      } finally {
-        console.log('[COMPLETE] [DEBUG] Setting loading to false');
-        setIsLoadingSelectedMetrics(false);
-        setIsLoadingMetricsDirectory(false);
-      }
-    };
-
-    fetchData();
-  }, [sessionToken, refreshKey, notifications]);
-
-  // Debug log for useEffect triggers
-  React.useEffect(() => {
-    console.log('[DEBUG] [DEBUG] MetricsClient useEffect triggered', {
-      sessionToken: !!sessionToken,
-      refreshKey,
-      lastToken: !!lastSessionTokenRef.current,
-      hasFetched: hasFetchedRef.current,
-    });
-  }, [sessionToken, refreshKey]);
+      setError(null);
+    }
+  }, [
+    behaviorsQuery.isPending,
+    metricsQuery.isPending,
+    behaviorsQuery.isError,
+    metricsQuery.isError,
+    behaviorsQuery.error,
+    metricsQuery.error,
+    behaviorsQuery.isSuccess,
+    metricsQuery.isSuccess,
+    behaviorsQuery.data,
+    metricsQuery.data,
+    notifications,
+  ]);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
-    // Update URL to reflect tab change
     const params = new URLSearchParams(searchParams.toString());
-    if (newValue === 1) {
-      params.set('tab', 'selected');
-    } else {
-      params.delete('tab');
-    }
+    if (newValue === 1) params.set('tab', 'selected');
+    else params.delete('tab');
     router.replace(`/metrics?${params.toString()}`, { scroll: false });
   };
 
-  // Refresh data function - trigger re-render by updating a key
+  /** Manual refresh via invalidation, keeping generated keys intact */
   const handleRefresh = React.useCallback(() => {
-    setRefreshKey(prev => prev + 1);
-  }, []);
+    queryClient.invalidateQueries({ queryKey: behaviorsOpts.queryKey });
+    queryClient.invalidateQueries({ queryKey: metricsOpts.queryKey });
+  }, [queryClient, behaviorsOpts.queryKey, metricsOpts.queryKey]);
 
   return (
-    <ErrorBoundary>
-      <Box
-        sx={{
-          width: '100%',
-          minHeight: '100%',
-        }}
-      >
-        <Box
-          sx={{
-            borderBottom: 1,
-            borderColor: 'divider',
-            mb: 2,
-            bgcolor: 'background.paper',
-          }}
-        >
-          <Tabs value={value} onChange={handleChange} aria-label="metrics tabs">
-            <Tab
-              icon={<ViewQuiltIcon />}
-              iconPosition="start"
-              label="Metrics Directory"
-              {...a11yProps(0)}
-            />
-            <Tab
-              icon={<ChecklistIcon />}
-              iconPosition="start"
-              label="Selected Metrics"
-              {...a11yProps(1)}
-            />
-          </Tabs>
-        </Box>
+      <ErrorBoundary>
+        <Box sx={{ width: '100%', minHeight: '100%' }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2, bgcolor: 'background.paper' }}>
+            <Tabs value={value} onChange={handleChange} aria-label="metrics tabs">
+              <Tab icon={<ViewQuiltIcon />} iconPosition="start" label="Metrics Directory" {...a11yProps(0)} />
+              <Tab icon={<ChecklistIcon />} iconPosition="start" label="Selected Metrics" {...a11yProps(1)} />
+            </Tabs>
+          </Box>
 
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
-          <CustomTabPanel value={value} index={0}>
-            <MetricsDirectoryTab
-              sessionToken={sessionToken}
-              organizationId={organizationId}
-              behaviors={behaviors}
-              metrics={metrics}
-              filters={filters}
-              filterOptions={filterOptions}
-              isLoading={isLoadingMetricsDirectory}
-              error={error}
-              onRefresh={handleRefresh}
-              setFilters={setFilters}
-              setMetrics={setMetrics}
-              setBehaviorMetrics={setBehaviorMetrics}
-              setBehaviorsWithMetrics={setBehaviorsWithMetrics}
-              onTabChange={() => setValue(1)} // Function to switch to Selected Metrics tab
-            />
-          </CustomTabPanel>
+          <Box sx={{ flex: 1, overflow: 'auto' }}>
+            <CustomTabPanel value={value} index={0}>
+              <MetricsDirectoryTab
+                  sessionToken={sessionToken}
+                  organizationId={organizationId}
+                  behaviors={behaviors}
+                  metrics={metrics}
+                  filters={filters}
+                  filterOptions={filterOptions}
+                  isLoading={isLoadingMetricsDirectory}
+                  error={error}
+                  onRefresh={handleRefresh}
+                  setFilters={setFilters}
+                  setMetrics={setMetrics}
+                  setBehaviorMetrics={setBehaviorMetrics}
+                  setBehaviorsWithMetrics={setBehaviorsWithMetrics}
+                  onTabChange={() => setValue(1)}
+              />
+            </CustomTabPanel>
 
-          <CustomTabPanel value={value} index={1}>
-            <SelectedMetricsTab
-              sessionToken={sessionToken}
-              organizationId={organizationId}
-              behaviorsWithMetrics={behaviorsWithMetrics}
-              behaviorMetrics={behaviorMetrics}
-              isLoading={isLoadingSelectedMetrics}
-              error={error}
-              onRefresh={handleRefresh}
-              setBehaviors={setBehaviors}
-              setBehaviorsWithMetrics={setBehaviorsWithMetrics}
-              setBehaviorMetrics={setBehaviorMetrics}
-              onTabChange={() => setValue(0)} // Switch to Metrics Directory tab
-            />
-          </CustomTabPanel>
+            <CustomTabPanel value={value} index={1}>
+              <SelectedMetricsTab
+                  sessionToken={sessionToken}
+                  organizationId={organizationId}
+                  behaviorsWithMetrics={behaviorsWithMetrics}
+                  behaviorMetrics={behaviorMetrics}
+                  isLoading={isLoadingSelectedMetrics}
+                  error={error}
+                  onRefresh={handleRefresh}
+                  setBehaviors={setBehaviors}
+                  setBehaviorsWithMetrics={setBehaviorsWithMetrics}
+                  setBehaviorMetrics={setBehaviorMetrics}
+                  onTabChange={() => setValue(0)}
+              />
+            </CustomTabPanel>
+          </Box>
         </Box>
-      </Box>
-    </ErrorBoundary>
+      </ErrorBoundary>
   );
 }

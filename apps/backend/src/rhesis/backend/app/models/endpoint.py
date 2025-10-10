@@ -8,6 +8,7 @@ from .enums import (
     EndpointEnvironment,
     EndpointResponseFormat,
 )
+
 from .guid import GUID
 from .mixins import TagsMixin
 from rhesis.backend.app.utils.encryption import EncryptedString

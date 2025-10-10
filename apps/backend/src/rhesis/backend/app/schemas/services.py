@@ -1,8 +1,9 @@
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 from rhesis.backend.app.schemas.documents import Document
+from rhesis.backend.app.schemas.json_value import Json
 
 
 class PromptRequest(BaseModel):
@@ -26,7 +27,7 @@ class ChatRequest(BaseModel):
 
 
 class GenerateTestsRequest(BaseModel):
-    prompt: dict
+    prompt: Dict[str, Json]
     num_tests: int = 5
     documents: Optional[List[Document]] = None
 
@@ -38,7 +39,7 @@ class TestPrompt(BaseModel):
 
 class TestMetadata(BaseModel):
     generated_by: str
-    additional_info: Optional[Dict[str, Any]] = None
+    additional_info: Optional[dict[str, Json]] = None
 
 
 class Test(BaseModel):
@@ -68,7 +69,7 @@ class ExtractDocumentResponse(BaseModel):
 
 class GenerateContentRequest(BaseModel):
     prompt: str
-    schema_: Optional[Dict[str, Any]] = Field(None, alias="schema")
+    schema_: Optional[dict[str, Json]] = Field(None, alias="schema")
 
 
 class TestConfigRequest(BaseModel):

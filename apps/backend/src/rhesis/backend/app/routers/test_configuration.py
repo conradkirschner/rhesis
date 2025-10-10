@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from rhesis.backend.app import crud, models, schemas
@@ -30,6 +31,15 @@ router = APIRouter(
 )
 
 
+class ExecuteTestConfigurationResponse(BaseModel):
+    test_configuration_id: UUID
+    task_id: str
+    status: str
+    endpoint_id: UUID
+    test_set_id: Optional[UUID] = None
+    user_id: UUID
+
+
 @router.post("/", response_model=schemas.TestConfiguration)
 @handle_database_exceptions(
     entity_name="test configuration",
@@ -40,7 +50,7 @@ def create_test_configuration(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-):
+) -> schemas.TestConfiguration:
     """
     Create test configuration with optimized approach - no session variables needed.
 
@@ -80,7 +90,7 @@ def read_test_configurations(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-):
+) -> List[TestConfigurationDetailSchema]:
     """Get all test configurations with their related objects"""
     organization_id, user_id = tenant_context
     test_configurations = crud.get_test_configurations(
@@ -95,7 +105,7 @@ def read_test_configuration(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-):
+) -> TestConfigurationDetailSchema:
     """Get a specific test configuration by ID with its related objects"""
     organization_id, user_id = tenant_context
     db_test_configuration = crud.get_test_configuration(
@@ -116,7 +126,7 @@ def update_test_configuration(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-):
+) -> schemas.TestConfiguration:
     """
     Update test_configuration with optimized approach - no session variables needed.
 
@@ -157,7 +167,7 @@ def delete_test_configuration(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-):
+) -> schemas.TestConfiguration:
     """Delete a test configuration"""
     organization_id, user_id = tenant_context
     db_test_configuration = crud.get_test_configuration(
@@ -183,13 +193,13 @@ def delete_test_configuration(
     )
 
 
-@router.post("/{test_configuration_id}/execute")
+@router.post("/{test_configuration_id}/execute", response_model=ExecuteTestConfigurationResponse)
 def execute_test_configuration_endpoint(
     test_configuration_id: UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-):
+) -> ExecuteTestConfigurationResponse:
     """
     Execute a test configuration by running its test set.
     """
@@ -215,13 +225,11 @@ def execute_test_configuration_endpoint(
         execute_test_configuration, str(test_configuration_id), current_user=current_user
     )
 
-    return {
-        "test_configuration_id": str(test_configuration_id),
-        "task_id": task.id,
-        "status": "submitted",
-        "endpoint_id": str(db_test_configuration.endpoint_id),
-        "test_set_id": str(db_test_configuration.test_set_id)
-        if db_test_configuration.test_set_id
-        else None,
-        "user_id": str(db_test_configuration.user_id),
-    }
+    return ExecuteTestConfigurationResponse(
+        test_configuration_id=test_configuration_id,
+        task_id=task.id,
+        status="submitted",
+        endpoint_id=db_test_configuration.endpoint_id,
+        test_set_id=db_test_configuration.test_set_id if db_test_configuration.test_set_id else None,
+        user_id=db_test_configuration.user_id,
+    )

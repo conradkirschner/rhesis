@@ -32,7 +32,7 @@ def create_category(
     category: schemas.CategoryCreate,
     db: Session = Depends(get_tenant_db_session),  # ← ONLY CHANGE: get_tenant_db_session instead of get_db_session
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)) -> schemas.Category:
     """
     Create category with optimized approach supporting both RLS and explicit parameters.
 
@@ -60,7 +60,7 @@ def read_categories(
     entity_type: str | None = Query(None, description="Filter categories by entity type"),
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)) -> list[CategoryDetailSchema]:
     """Get all categories with their related objects"""
     organization_id, user_id = tenant_context
     filter = combine_entity_type_filter(filter, entity_type)
@@ -75,7 +75,7 @@ def read_category(
     category_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)) -> CategoryDetailSchema:
     """
     Get category with optimized approach - no session variables needed.
 
@@ -104,7 +104,7 @@ def update_category(
     category: schemas.CategoryUpdate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)) -> CategoryDetailSchema:
     """
     Update category with optimized approach - no session variables needed.
 
@@ -131,7 +131,7 @@ def delete_category(
     category_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token)) -> schemas.Category:
     """
     Delete category with optimized approach - no session variables needed.
 

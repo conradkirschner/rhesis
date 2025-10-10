@@ -1,6 +1,7 @@
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, RootModel
+from rhesis.backend.app.schemas.json_value import Json
 
 
 class TaskList(BaseModel):
@@ -12,7 +13,7 @@ class TaskList(BaseModel):
 class TaskPayload(RootModel):
     """Generic payload for task submission."""
 
-    root: Dict[str, Any] = Field(..., description="Task parameters")
+    root: Dict[str, Json] = Field(..., description="Task parameters")
 
 
 class TaskResponse(BaseModel):
@@ -26,7 +27,7 @@ class TaskStatus(BaseModel):
 
     task_id: str
     status: str
-    result: Optional[Any] = None
+    result: Optional[Json] = None
     error: Optional[str] = None
 
 
@@ -39,15 +40,15 @@ class TaskRevoke(BaseModel):
 class WorkerInfo(BaseModel):
     """Information about Celery workers."""
 
-    active: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
-    scheduled: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
-    reserved: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
+    active: Dict[str, List[Dict[str, Json]]] = Field(default_factory=dict)
+    scheduled: Dict[str, List[Dict[str, Json]]] = Field(default_factory=dict)
+    reserved: Dict[str, List[Dict[str, Json]]] = Field(default_factory=dict)
 
 
 class WorkerStats(BaseModel):
     """Statistics about Celery workers."""
 
-    stats: Dict[str, Any] = Field(default_factory=dict)
+    stats: Dict[str, Json] = Field(default_factory=dict)
     registered_tasks: Dict[str, List[str]] = Field(default_factory=dict)
     total_tasks: int
 
@@ -55,12 +56,12 @@ class WorkerStats(BaseModel):
 class WorkerStatus(BaseModel):
     """Detailed status of Celery workers."""
 
-    active: Dict[str, Any] = Field(default_factory=dict)
-    reserved: Dict[str, Any] = Field(default_factory=dict)
-    registered_tasks: Dict[str, Any] = Field(default_factory=dict)
-    stats: Dict[str, Any] = Field(default_factory=dict)
+    active: Dict[str, Json] = Field(default_factory=dict)
+    reserved: Dict[str, Json] = Field(default_factory=dict)
+    registered_tasks: Dict[str, Json] = Field(default_factory=dict)
+    stats: Dict[str, Json] = Field(default_factory=dict)
     total_tasks: int
-    ping: Dict[str, Any] = Field(default_factory=dict)
+    ping: Dict[str, Json] = Field(default_factory=dict)
 
 
 class HealthCheck(BaseModel):

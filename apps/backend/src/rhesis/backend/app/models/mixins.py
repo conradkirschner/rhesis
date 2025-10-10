@@ -1,8 +1,18 @@
 from sqlalchemy import Column, ForeignKey, and_
 from sqlalchemy.orm import declared_attr, relationship
+from typing import Union, List, Dict, TypedDict
+from pydantic import UUID4  # typing-only ok in models
 
 from .guid import GUID
 
+JSONScalar = Union[str, int, float, bool, None]
+AttributesDict = Dict[str, Union[JSONScalar, List[JSONScalar], Dict[str, JSONScalar]]]
+
+class TestSetAttributesDict(TypedDict, total=False):
+    categories: List[UUID4]
+    topics: List[UUID4]
+    behaviors: List[UUID4]
+    use_cases: List[UUID4]
 
 class TagsMixin:
     @declared_attr
@@ -86,35 +96,34 @@ class TasksMixin:
             uselist=True,
         )
 
+class CountsDict(TypedDict, total=False):
+    comments: int
+    tasks: int
 
 class CountsMixin:
     """Mixin that provides count properties for comments and tasks"""
 
     @property
-    def comments_count(self):
+    def comments_count(self) -> int:
         """Get the count of comments for this entity"""
-        return len(self.comments) if hasattr(self, "comments") and self.comments else 0
+        comments = getattr(self, "comments", None)
+        return len(comments) if comments is not None and isinstance(comments, Sized) else 0
 
     @property
-    def tasks_count(self):
+    def tasks_count(self) -> int:
         """Get the count of tasks for this entity"""
-        return len(self.tasks) if hasattr(self, "tasks") and self.tasks else 0
+        tasks = getattr(self, "tasks", None)
+        return len(tasks) if tasks is not None and isinstance(tasks, Sized) else 0
 
     @property
-    def counts(self):
+    def counts(self) -> CountsDict:
         """Get the counts of comments and tasks for this entity"""
-        counts = {}
-
-        # Add comment count if the model has comments relationship
+        counts: CountsDict = {}
         if hasattr(self, "comments"):
             counts["comments"] = self.comments_count
-
-        # Add task count if the model has tasks relationship
         if hasattr(self, "tasks"):
             counts["tasks"] = self.tasks_count
-
         return counts
-
 
 class OrganizationMixin:
     """Mixin for organization-level multi-tenancy"""

@@ -3,26 +3,75 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jose import JWTError
 from sqlalchemy.orm import Session
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, Response
+from pydantic import BaseModel
 
+from rhesis.backend.app.schemas.user import User
 from rhesis.backend.app.auth.oauth import extract_user_data, get_auth0_user_info, oauth
 from rhesis.backend.app.auth.token_utils import (
     create_session_token,
     get_secret_key,
-    verify_jwt_token)
+    verify_jwt_token,
+)
 from rhesis.backend.app.auth.url_utils import build_redirect_url
 from rhesis.backend.app.auth.user_utils import find_or_create_user
 from rhesis.backend.app.database import get_db
 from rhesis.backend.app.dependencies import get_tenant_context, get_db_session, get_tenant_db_session
 from rhesis.backend.logging import logger
 
-router = APIRouter(
-    prefix="/auth",
-    tags=["authentication"])
+router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
-@router.get("/login")
-async def login(request: Request, connection: str = None, return_to: str = "/home"):
+class VerifyAuthResponse(BaseModel):
+    authenticated: bool
+    user: User
+    return_to: str
+
+
+class LogoutResponse(BaseModel):
+    success: bool
+    message: str
+
+
+@router.get(
+    "/login",
+    status_code=307,                         # 307 Temporary Redirect
+    response_class=RedirectResponse,         # tell FastAPI it's a redirect
+    responses={
+        307: {
+            "description": "Redirect to Auth0 login",
+            "headers": {
+                "Location": {
+                    "description": "Auth0 authorization URL",
+                    "schema": {"type": "string", "format": "uri"},
+                }
+            },
+        },
+        400: {
+            "description": "Login error",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {"detail": {"type": "string"}},
+                    }
+                }
+            },
+        },
+        500: {
+            "description": "Server misconfiguration (e.g. AUTH0_DOMAIN missing)",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {"detail": {"type": "string"}},
+                    }
+                }
+            },
+        },
+    },
+)
+async def login(request: Request, connection: str = None, return_to: str = "/home") -> Response:
     """Redirect users to Auth0 login page"""
     # Store the origin in session for callback
     origin = request.headers.get("origin") or request.headers.get("referer")
@@ -69,8 +118,34 @@ async def login(request: Request, connection: str = None, return_to: str = "/hom
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/callback")
-async def auth_callback(request: Request, db: Session = Depends(get_db_session)):
+@router.get(
+    "/callback",
+    status_code=307,                         # make OpenAPI show redirect, not 200 any
+    response_class=RedirectResponse,
+    responses={
+        307: {
+            "description": "Redirect back to frontend with session token",
+            "headers": {
+                "Location": {
+                    "description": "Frontend URL including session token in query string",
+                    "schema": {"type": "string", "format": "uri"},
+                }
+            },
+        },
+        400: {
+            "description": "Callback error",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {"detail": {"type": "string"}},
+                    }
+                }
+            },
+        },
+    },
+)
+async def auth_callback(request: Request, db: Session = Depends(get_db_session)) -> RedirectResponse:
     """Handle the Auth0 callback after successful authentication"""
     try:
         # Step 1: Get token and user info from Auth0
@@ -96,14 +171,29 @@ async def auth_callback(request: Request, db: Session = Depends(get_db_session))
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/logout")
+@router.get(
+    "/logout",
+    response_model=LogoutResponse,           # 200 JSON shape (when not redirecting)
+    responses={
+        307: {
+            "description": "Redirect to frontend root after logout",
+            "headers": {
+                "Location": {
+                    "description": "Frontend URL",
+                    "schema": {"type": "string", "format": "uri"},
+                }
+            },
+        }
+    },
+)
 async def logout(
     request: Request,
     post_logout: bool = False,
-    session_token: str = None):
+    session_token: str = None,
+) -> Response:
     """Log out the user and clear their session"""
     from fastapi.responses import JSONResponse
-    
+
     # Clear session data
     request.session.clear()
 
@@ -118,20 +208,17 @@ async def logout(
             if user_id:
                 logger.info(f"Logout called for user {user_id} via JWT token")
                 # Here you could add additional cleanup if needed
-                # For example, invalidating refresh tokens, clearing user-specific cache, etc.
 
         except JWTError as e:
             logger.warning(f"Invalid session token provided during logout: {str(e)}")
-            # Continue with logout even if token is invalid
         except Exception as e:
             logger.error(f"Error processing session token during logout: {str(e)}")
-            # Continue with logout even if there's an error
 
     # Create response with cookie clearing headers
     accept_header = request.headers.get("accept", "")
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
     frontend_env = os.getenv("FRONTEND_ENV", "development")
-    
+
     # Check if this is an API call (from frontend middleware)
     if "application/json" in accept_header or "api" in request.url.path:
         response = JSONResponse(
@@ -141,9 +228,8 @@ async def logout(
         # Redirect to frontend home page
         return_to_url = frontend_url + "/"
         response = RedirectResponse(url=return_to_url)
-    
+
     # Clear all authentication-related cookies on the server side
-    # This ensures logout works even if client-side cookie clearing fails
     cookies_to_clear = [
         "next-auth.session-token",
         "next-auth.csrf-token",
@@ -155,7 +241,7 @@ async def logout(
         "__Secure-next-auth.session-token",
         "session",
     ]
-    
+
     for cookie_name in cookies_to_clear:
         # Clear cookie with default settings
         response.set_cookie(
@@ -167,11 +253,11 @@ async def logout(
             httponly=True,
             samesite="lax"
         )
-        
+
         # For staging and production, also clear with domain settings
         if frontend_env in ["staging", "production"]:
             domain = "rhesis.ai" if frontend_env == "production" else "stg.rhesis.ai"
-            
+
             response.set_cookie(
                 key=cookie_name,
                 value="",
@@ -195,26 +281,26 @@ async def logout(
                 secure=True,
                 samesite="lax"
             )
-    
+
     logger.info("Logout completed, cookies cleared")
     return response
 
 
-@router.get("/verify")
+@router.get("/verify", response_model=VerifyAuthResponse)
 async def verify_auth(
     request: Request,
     session_token: str,
     return_to: str = "/home",
-    secret_key: str = Depends(get_secret_key)):
+    secret_key: str = Depends(get_secret_key),
+) -> VerifyAuthResponse:
     """Verify JWT session token and return user info"""
     logger.info(f"Verify request received. Token: {session_token[:8]}...")
 
     try:
         # Use the shared verification function
         payload = verify_jwt_token(session_token, secret_key)
-
         # Return the user info from the token
-        return {"authenticated": True, "user": payload["user"], "return_to": return_to}
+        return VerifyAuthResponse(authenticated=True, user=payload["user"], return_to=return_to)
 
     except JWTError as e:
         logger.error(f"JWT verification failed: {str(e)}")
@@ -230,26 +316,63 @@ async def verify_auth(
         )
 
 
-@router.get("/demo")
-async def demo_redirect(request: Request):
+@router.get(
+    "/demo",
+    status_code=307,
+    response_class=RedirectResponse,
+    responses={
+        307: {
+            "description": "Redirect to Auth0 login with demo user pre-filled",
+            "headers": {
+                "Location": {
+                    "description": "Auth0 authorization URL",
+                    "schema": {"type": "string", "format": "uri"},
+                }
+            },
+        },
+        400: {
+            "description": "Demo redirect error",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {"detail": {"type": "string"}},
+                    }
+                }
+            },
+        },
+        500: {
+            "description": "Server misconfiguration (e.g. AUTH0_DOMAIN missing)",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {"detail": {"type": "string"}},
+                    }
+                }
+            },
+        },
+    },
+)
+async def demo_redirect(request: Request) -> Response:
     """Redirect to Auth0 login with demo user pre-filled"""
     try:
         logger.info("Demo redirect requested")
-        
+
         # Demo user email
         DEMO_EMAIL = os.getenv("DEMO_USER_EMAIL", "demo@rhesis.ai")
-        
+
         # Store the origin in session for callback
         origin = request.headers.get("origin") or request.headers.get("referer")
         if origin:
             request.session["original_frontend"] = origin
-        
+
         base_url = str(request.base_url).rstrip("/")
         callback_url = f"{base_url}/auth/callback"
-        
+
         # Store return_to in session - demo users go to dashboard
         request.session["return_to"] = "/dashboard"
-        
+
         # Only rewrite http to https if not localhost
         if (
             callback_url.startswith("http://")
@@ -257,10 +380,10 @@ async def demo_redirect(request: Request):
             and "127.0.0.1" not in callback_url
         ):
             callback_url = "https://" + callback_url[7:]
-        
+
         if not os.getenv("AUTH0_DOMAIN"):
             raise HTTPException(status_code=500, detail="AUTH0_DOMAIN not configured")
-        
+
         # Auth0 authorization parameters with login_hint for demo user
         auth_params = {
             "redirect_uri": callback_url,
@@ -268,13 +391,13 @@ async def demo_redirect(request: Request):
             "login_hint": DEMO_EMAIL,  # Pre-fills the email field
             "prompt": "login",  # Always show login screen
         }
-        
+
         # Use the existing OAuth redirect but with demo-specific parameters
         response = await oauth.auth0.authorize_redirect(request, **auth_params)
-        
+
         logger.info(f"Demo redirect created with login_hint: {DEMO_EMAIL}")
         return response
-        
+
     except Exception as e:
         logger.error(f"Demo redirect error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=400, detail=f"Demo redirect failed: {str(e)}")

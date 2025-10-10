@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel
+from rhesis.backend.app.schemas.json_value import Json
 
 
 # Legacy schemas for backward compatibility
@@ -20,7 +21,7 @@ class HistoricalStats(BaseModel):
 class EntityStats(BaseModel):
     total: int
     stats: Dict[str, DimensionStats]
-    metadata: Optional[Dict] = None
+    metadata: Optional[dict[str, Json]] = None
     history: Optional[HistoricalStats] = None
 
 
@@ -276,3 +277,52 @@ TestRunStatsResponse = Union[
 
 # Backward compatibility alias
 TestResultStats = TestResultStatsAll
+
+
+# used for response typing
+# =========================
+# Individual Test Stats (per-test)
+# =========================
+
+class TestStatsOverallSummary(BaseModel):
+    total_test_runs: int
+    total_executions: int
+    passed: int
+    failed: int
+    pass_rate: float
+    avg_execution_time_ms: float
+
+
+class TestStatsMetricResult(BaseModel):
+    is_successful: bool
+    score: Optional[float] = None
+    reason: Optional[str] = None
+
+
+class TestStatsRecentRun(BaseModel):
+    test_run_id: str
+    test_run_name: Optional[str] = None
+    created_at: Optional[str] = None
+    overall_passed: bool
+    execution_time_ms: Optional[float] = None
+    metrics: Dict[str, TestStatsMetricResult]
+
+
+class TestStatsMetadata(BaseModel):
+    generated_at: str
+    test_id: str
+    organization_id: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    period: str
+    recent_runs_limit: Optional[int] = None
+    available_metrics: List[str] = []
+
+
+class TestStats(BaseModel):
+    """Schema matching get_individual_test_stats(...) output."""
+    overall_summary: TestStatsOverallSummary
+    # Reuse existing MetricStats for the per-metric breakdown values
+    metric_breakdown: Dict[str, MetricStats]
+    recent_runs: List[TestStatsRecentRun]
+    metadata: TestStatsMetadata

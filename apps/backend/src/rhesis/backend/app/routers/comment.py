@@ -21,7 +21,8 @@ router = APIRouter(
     prefix="/comments",
     tags=["comments"],
     responses={404: {"description": "Not found"}},
-    dependencies=[Depends(require_current_user_or_token)])
+    dependencies=[Depends(require_current_user_or_token)]
+)
 
 """
 # Comment API Documentation
@@ -71,7 +72,8 @@ def create_comment(
     comment: schemas.CommentCreate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Comment:
     """
     Create comment with optimized approach - no session variables needed.
 
@@ -96,7 +98,8 @@ def read_comments(
     filter: str | None = Query(None, alias="$filter", description="OData filter expression"),
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> List[CommentDetailSchema]:
     """
     Get all comments with filtering and pagination - optimized approach.
 
@@ -114,7 +117,8 @@ def read_comments(
         sort_order=sort_order,
         filter=filter,
         organization_id=organization_id,
-        user_id=user_id)
+        user_id=user_id,
+    )
     return comments
 
 
@@ -123,7 +127,8 @@ def read_comment(
     comment_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> CommentDetailSchema:
     """
     Get comment with optimized approach - no session variables needed.
 
@@ -149,7 +154,8 @@ def update_comment(
     comment: schemas.CommentUpdate,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Comment:
     """
     Update comment with optimized approach - no session variables needed.
 
@@ -186,7 +192,8 @@ def delete_comment(
     comment_id: uuid.UUID,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Comment:
     """
     Delete comment with optimized approach - no session variables needed.
 
@@ -224,7 +231,8 @@ def read_comments_by_entity(
     sort_order: str = "desc",
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> List[CommentDetailSchema]:
     """
     Get all comments for a specific entity - optimized approach.
 
@@ -244,7 +252,8 @@ def read_comments_by_entity(
         valid_entity_types = [e.value for e in EntityType]
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid entity_type. Must be one of: {', '.join(valid_entity_types)}")
+            detail=f"Invalid entity_type. Must be one of: {', '.join(valid_entity_types)}"
+        )
 
     comments = crud.get_comments_by_entity(
         db=db,
@@ -255,7 +264,8 @@ def read_comments_by_entity(
         skip=skip,
         limit=limit,
         sort_by=sort_by,
-        sort_order=sort_order)
+        sort_order=sort_order,
+    )
     return comments
 
 
@@ -265,7 +275,8 @@ def add_emoji_reaction(
     emoji: str,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Comment:
     """
     ## Emoji Reactions Structure
 
@@ -317,7 +328,8 @@ def add_emoji_reaction(
         user_id=current_user.id,
         user_name=current_user.given_name or current_user.email,
         organization_id=organization_id,
-        user_id_param=user_id)
+        user_id_param=user_id,
+    )
 
     if updated_comment is None:
         raise HTTPException(status_code=400, detail="Failed to add emoji reaction")
@@ -331,7 +343,8 @@ def remove_emoji_reaction(
     emoji: str,
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)):
+    current_user: User = Depends(require_current_user_or_token),
+) -> schemas.Comment:
     """
     Remove an emoji reaction from a comment - optimized approach.
 
@@ -350,8 +363,12 @@ def remove_emoji_reaction(
 
     # Remove emoji reaction
     updated_comment = crud.remove_emoji_reaction(
-        db=db, comment_id=comment_id, emoji=emoji, user_id=current_user.id,
-        organization_id=organization_id, user_id_param=user_id
+        db=db,
+        comment_id=comment_id,
+        emoji=emoji,
+        user_id=current_user.id,
+        organization_id=organization_id,
+        user_id_param=user_id,
     )
 
     if updated_comment is None:

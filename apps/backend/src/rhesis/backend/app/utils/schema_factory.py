@@ -6,6 +6,9 @@ from rhesis.backend.app.schemas.base import Base
 from rhesis.backend.app.schemas.tag import TagRead
 from rhesis.backend.app.schemas.test_set import TestSet
 from rhesis.backend.app.utils.model_utils import get_model_relationships
+from rhesis.backend.app.models.mixins import CountsDict, AttributesDict, TestSetAttributesDict
+from rhesis.backend.app.schemas.auth import AuthConfig
+
 
 
 def create_detailed_schema(
@@ -67,7 +70,7 @@ def create_detailed_schema(
         ("family_name", Optional[str], None),
         ("given_name", Optional[str], None),
         ("picture", Optional[str], None),
-        ("counts", Optional[Dict[str, Any]], None),
+        ("counts", Optional[CountsDict], None),
         # Model-specific fields
         ("model_name", Optional[str], None),
         ("endpoint", Optional[str], None),  # Regular field for Model, relationship for others
@@ -76,12 +79,34 @@ def create_detailed_schema(
         ("user_id", Optional[UUID4], None),
         ("organization_id", Optional[UUID4], None),
         ("status_id", Optional[UUID4], None),
-        ("attributes", Optional[Dict[str, Any]], None),
+        ("attributes", Optional[TestSetAttributesDict], None),
         ("tags", Optional[List[TagRead]], None),
         ("icon", Optional[str], None),
         ("endpoint_id", Optional[UUID4], None),
         ("project_id", Optional[UUID4], None),
     ]
+
+    # Attributes
+    for field_name, field_type, default_value in common_fields:
+        if field_name == "attributes":
+            if hasattr(model, "attributes") and field_name not in relationship_names:
+                if model.__name__ == "TestSet":
+                    fields["attributes"] = (Optional[TestSetAttributesDict], default_value)
+                else:
+                    fields["attributes"] = (Optional[AttributesDict], default_value)
+            continue
+
+        if hasattr(model, field_name) and field_name not in relationship_names:
+            fields[field_name] = (field_type, default_value)
+
+    # Auth
+    for field_name, field_type, default_value in common_fields:
+        if hasattr(model, field_name) and field_name not in relationship_names:
+            fields[field_name] = (field_type, default_value)
+
+    if hasattr(model, "auth") and "auth" not in relationship_names:
+        # only add if not already set by common_fields
+        fields["auth"] = (Optional[AuthConfig], None)
 
     # Apply common fields to top-level schema if they exist in the model
     # BUT skip any fields that are also relationships - we'll handle those separately

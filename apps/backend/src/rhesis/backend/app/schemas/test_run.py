@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic import UUID4
 
 from rhesis.backend.app.schemas import Base
+from rhesis.backend.app.schemas.json_value import Json
 
 
 # TestRun schemas
@@ -11,7 +12,7 @@ class TestRunBase(Base):
     user_id: Optional[UUID4]
     organization_id: Optional[UUID4] = None
     status_id: Optional[UUID4] = None
-    attributes: Optional[dict] = None
+    attributes: Optional[dict[str, Json]] = None
     test_configuration_id: UUID4
     owner_id: Optional[UUID4] = None
     assignee_id: Optional[UUID4] = None

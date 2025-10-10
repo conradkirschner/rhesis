@@ -3,6 +3,7 @@ from typing import Dict, Optional
 from pydantic import UUID4, ConfigDict
 
 from rhesis.backend.app.schemas import Base
+from rhesis.backend.app.schemas.json_value import Json
 
 
 # TestContext schemas
@@ -10,7 +11,7 @@ class TestContextBase(Base):
     test_id: UUID4
     entity_id: UUID4
     entity_type: str
-    attributes: Optional[Dict] = None
+    attributes: Optional[dict[str, Json]] = None
     organization_id: Optional[UUID4] = None
     user_id: Optional[UUID4] = None
 
