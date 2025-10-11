@@ -11,6 +11,7 @@ from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
 from rhesis.backend.app.utils.odata import combine_entity_type_filter
 from rhesis.backend.app.utils.schema_factory import create_detailed_schema
+from rhesis.backend.app.schemas.pagination import Paginated
 
 # Detailed schema for Topic listings (includes relationships as configured by the factory)
 TopicDetailSchema = create_detailed_schema(schemas.Topic, models.Topic)
@@ -42,8 +43,8 @@ def create_topic(
     return crud.create_topic(db=db, topic=topic, organization_id=organization_id, user_id=user_id)
 
 
-@router.get("/", response_model=list[TopicDetailSchema])
-@with_count_header(model=models.Topic)
+@router.get("/", response_model=Paginated[TopicDetailSchema])
+@with_count_header(model=models.Topic, to_body=True)
 def read_topics(
     response: Response,
     skip: int = 0,

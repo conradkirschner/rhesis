@@ -10,6 +10,7 @@ from rhesis.backend.app.database import get_db
 from rhesis.backend.app.dependencies import get_tenant_context, get_db_session, get_tenant_db_session
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
+from rhesis.backend.app.schemas.pagination import Paginated
 
 router = APIRouter(
     prefix="/response_patterns",
@@ -45,8 +46,8 @@ def create_response_pattern(
     )
 
 
-@router.get("/", response_model=list[schemas.ResponsePattern])
-@with_count_header(model=models.ResponsePattern)
+@router.get("/", response_model=Paginated[schemas.ResponsePattern])
+@with_count_header(model=models.ResponsePattern, to_body=True)
 def read_response_patterns(
     response: Response,
     skip: int = 0,
@@ -57,7 +58,7 @@ def read_response_patterns(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token)
-) -> list[schemas.ResponsePattern]:
+) -> Paginated[schemas.ResponsePattern]:
     """Get all response patterns with their related objects"""
     organization_id, user_id = tenant_context
     return crud.get_response_patterns(

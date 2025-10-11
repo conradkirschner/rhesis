@@ -3278,6 +3278,291 @@ export type OverallStats = {
 };
 
 /**
+ * Paginated[CategoryDetail]
+ */
+export type PaginatedCategoryDetail = {
+    /**
+     * Data
+     */
+    data: Array<CategoryDetail>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[Demographic]
+ */
+export type PaginatedDemographic = {
+    /**
+     * Data
+     */
+    data: Array<Demographic>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[Dimension]
+ */
+export type PaginatedDimension = {
+    /**
+     * Data
+     */
+    data: Array<Dimension>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[EndpointDetail]
+ */
+export type PaginatedEndpointDetail = {
+    /**
+     * Data
+     */
+    data: Array<EndpointDetail>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[ModelDetail]
+ */
+export type PaginatedModelDetail = {
+    /**
+     * Data
+     */
+    data: Array<ModelDetail>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[Organization]
+ */
+export type PaginatedOrganization = {
+    /**
+     * Data
+     */
+    data: Array<Organization>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[ProjectDetail]
+ */
+export type PaginatedProjectDetail = {
+    /**
+     * Data
+     */
+    data: Array<ProjectDetail>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[PromptTemplate]
+ */
+export type PaginatedPromptTemplate = {
+    /**
+     * Data
+     */
+    data: Array<PromptTemplate>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[Prompt]
+ */
+export type PaginatedPrompt = {
+    /**
+     * Data
+     */
+    data: Array<Prompt>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[ResponsePattern]
+ */
+export type PaginatedResponsePattern = {
+    /**
+     * Data
+     */
+    data: Array<ResponsePattern>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[Risk]
+ */
+export type PaginatedRisk = {
+    /**
+     * Data
+     */
+    data: Array<Risk>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[Source]
+ */
+export type PaginatedSource = {
+    /**
+     * Data
+     */
+    data: Array<Source>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[StatusDetail]
+ */
+export type PaginatedStatusDetail = {
+    /**
+     * Data
+     */
+    data: Array<StatusDetail>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[Tag]
+ */
+export type PaginatedTag = {
+    /**
+     * Data
+     */
+    data: Array<Tag>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[TaskDetail]
+ */
+export type PaginatedTaskDetail = {
+    /**
+     * Data
+     */
+    data: Array<TaskDetail>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[TestConfigurationDetail]
+ */
+export type PaginatedTestConfigurationDetail = {
+    /**
+     * Data
+     */
+    data: Array<TestConfigurationDetail>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[TestContext]
+ */
+export type PaginatedTestContext = {
+    /**
+     * Data
+     */
+    data: Array<TestContext>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[TestDetail]
+ */
+export type PaginatedTestDetail = {
+    /**
+     * Data
+     */
+    data: Array<TestDetail>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[TestResultDetail]
+ */
+export type PaginatedTestResultDetail = {
+    /**
+     * Data
+     */
+    data: Array<TestResultDetail>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[TestRunDetail]
+ */
+export type PaginatedTestRunDetail = {
+    /**
+     * Data
+     */
+    data: Array<TestRunDetail>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[TestSetDetail]
+ */
+export type PaginatedTestSetDetail = {
+    /**
+     * Data
+     */
+    data: Array<TestSetDetail>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[TopicDetail]
+ */
+export type PaginatedTopicDetail = {
+    /**
+     * Data
+     */
+    data: Array<TopicDetail>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[TypeLookup]
+ */
+export type PaginatedTypeLookup = {
+    /**
+     * Data
+     */
+    data: Array<TypeLookup>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[UseCase]
+ */
+export type PaginatedUseCase = {
+    /**
+     * Data
+     */
+    data: Array<UseCase>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[User]
+ */
+export type PaginatedUser = {
+    /**
+     * Data
+     */
+    data: Array<User>;
+    pagination: Pagination;
+};
+
+/**
+ * Pagination
+ */
+export type Pagination = {
+    /**
+     * Totalcount
+     */
+    totalCount: number;
+};
+
+/**
  * PermanentlyDeleteResponse
  */
 export type PermanentlyDeleteResponse = {
@@ -8679,6 +8964,50 @@ export type VerifyAuthResponse = {
 export type RhesisBackendAppConstantsEntityType = 'General' | 'Test' | 'TestSet' | 'TestRun' | 'TestResult' | 'Metric' | 'Model' | 'Prompt' | 'Behavior' | 'Category' | 'Topic' | 'Dimension' | 'Demographic' | 'Task' | 'Project' | 'Source';
 
 /**
+ * Paginated[BehaviorDetail]
+ */
+export type RhesisBackendAppSchemasPaginationPaginatedBehaviorDetail1 = {
+    /**
+     * Data
+     */
+    data: Array<RhesisBackendAppUtilsSchemaFactoryBehaviorDetail1>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[BehaviorDetail]
+ */
+export type RhesisBackendAppSchemasPaginationPaginatedBehaviorDetail2 = {
+    /**
+     * Data
+     */
+    data: Array<RhesisBackendAppUtilsSchemaFactoryBehaviorDetail2>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[MetricDetail]
+ */
+export type RhesisBackendAppSchemasPaginationPaginatedMetricDetail1 = {
+    /**
+     * Data
+     */
+    data: Array<RhesisBackendAppUtilsSchemaFactoryMetricDetail1>;
+    pagination: Pagination;
+};
+
+/**
+ * Paginated[MetricDetail]
+ */
+export type RhesisBackendAppSchemasPaginationPaginatedMetricDetail2 = {
+    /**
+     * Data
+     */
+    data: Array<RhesisBackendAppUtilsSchemaFactoryMetricDetail2>;
+    pagination: Pagination;
+};
+
+/**
  * Test
  */
 export type RhesisBackendAppSchemasServicesTest = {
@@ -9467,10 +9796,9 @@ export type ReadBehaviorsBehaviorsGetError = ReadBehaviorsBehaviorsGetErrors[key
 
 export type ReadBehaviorsBehaviorsGetResponses = {
     /**
-     * Response Read Behaviors Behaviors  Get
      * Successful Response
      */
-    200: Array<RhesisBackendAppUtilsSchemaFactoryBehaviorDetail1>;
+    200: RhesisBackendAppSchemasPaginationPaginatedBehaviorDetail1;
 };
 
 export type ReadBehaviorsBehaviorsGetResponse = ReadBehaviorsBehaviorsGetResponses[keyof ReadBehaviorsBehaviorsGetResponses];
@@ -9663,10 +9991,9 @@ export type ReadBehaviorMetricsBehaviorsBehaviorIdMetricsGetError = ReadBehavior
 
 export type ReadBehaviorMetricsBehaviorsBehaviorIdMetricsGetResponses = {
     /**
-     * Response Read Behavior Metrics Behaviors  Behavior Id  Metrics  Get
      * Successful Response
      */
-    200: Array<RhesisBackendAppUtilsSchemaFactoryMetricDetail1>;
+    200: RhesisBackendAppSchemasPaginationPaginatedMetricDetail1;
 };
 
 export type ReadBehaviorMetricsBehaviorsBehaviorIdMetricsGetResponse = ReadBehaviorMetricsBehaviorsBehaviorIdMetricsGetResponses[keyof ReadBehaviorMetricsBehaviorsBehaviorIdMetricsGetResponses];
@@ -9802,10 +10129,9 @@ export type ReadCategoriesCategoriesGetError = ReadCategoriesCategoriesGetErrors
 
 export type ReadCategoriesCategoriesGetResponses = {
     /**
-     * Response Read Categories Categories  Get
      * Successful Response
      */
-    200: Array<CategoryDetail>;
+    200: PaginatedCategoryDetail;
 };
 
 export type ReadCategoriesCategoriesGetResponse = ReadCategoriesCategoriesGetResponses[keyof ReadCategoriesCategoriesGetResponses];
@@ -10300,10 +10626,9 @@ export type ReadDemographicsDemographicsGetError = ReadDemographicsDemographicsG
 
 export type ReadDemographicsDemographicsGetResponses = {
     /**
-     * Response Read Demographics Demographics  Get
      * Successful Response
      */
-    200: Array<Demographic>;
+    200: PaginatedDemographic;
 };
 
 export type ReadDemographicsDemographicsGetResponse = ReadDemographicsDemographicsGetResponses[keyof ReadDemographicsDemographicsGetResponses];
@@ -10483,10 +10808,9 @@ export type ReadDimensionsDimensionsGetError = ReadDimensionsDimensionsGetErrors
 
 export type ReadDimensionsDimensionsGetResponses = {
     /**
-     * Response Read Dimensions Dimensions  Get
      * Successful Response
      */
-    200: Array<Dimension>;
+    200: PaginatedDimension;
 };
 
 export type ReadDimensionsDimensionsGetResponse = ReadDimensionsDimensionsGetResponses[keyof ReadDimensionsDimensionsGetResponses];
@@ -10666,10 +10990,9 @@ export type ReadEndpointsEndpointsGetError = ReadEndpointsEndpointsGetErrors[key
 
 export type ReadEndpointsEndpointsGetResponses = {
     /**
-     * Response Read Endpoints Endpoints  Get
      * Successful Response
      */
-    200: Array<EndpointDetail>;
+    200: PaginatedEndpointDetail;
 };
 
 export type ReadEndpointsEndpointsGetResponse = ReadEndpointsEndpointsGetResponses[keyof ReadEndpointsEndpointsGetResponses];
@@ -10946,10 +11269,9 @@ export type ReadMetricsMetricsGetError = ReadMetricsMetricsGetErrors[keyof ReadM
 
 export type ReadMetricsMetricsGetResponses = {
     /**
-     * Response Read Metrics Metrics  Get
      * Successful Response
      */
-    200: Array<RhesisBackendAppUtilsSchemaFactoryMetricDetail2>;
+    200: RhesisBackendAppSchemasPaginationPaginatedMetricDetail2;
 };
 
 export type ReadMetricsMetricsGetResponse = ReadMetricsMetricsGetResponses[keyof ReadMetricsMetricsGetResponses];
@@ -11218,10 +11540,9 @@ export type ReadMetricBehaviorsMetricsMetricIdBehaviorsGetError = ReadMetricBeha
 
 export type ReadMetricBehaviorsMetricsMetricIdBehaviorsGetResponses = {
     /**
-     * Response Read Metric Behaviors Metrics  Metric Id  Behaviors  Get
      * Successful Response
      */
-    200: Array<RhesisBackendAppUtilsSchemaFactoryBehaviorDetail2>;
+    200: RhesisBackendAppSchemasPaginationPaginatedBehaviorDetail2;
 };
 
 export type ReadMetricBehaviorsMetricsMetricIdBehaviorsGetResponse = ReadMetricBehaviorsMetricsMetricIdBehaviorsGetResponses[keyof ReadMetricBehaviorsMetricsMetricIdBehaviorsGetResponses];
@@ -11270,10 +11591,9 @@ export type ReadModelsModelsGetError = ReadModelsModelsGetErrors[keyof ReadModel
 
 export type ReadModelsModelsGetResponses = {
     /**
-     * Response Read Models Models  Get
      * Successful Response
      */
-    200: Array<ModelDetail>;
+    200: PaginatedModelDetail;
 };
 
 export type ReadModelsModelsGetResponse = ReadModelsModelsGetResponses[keyof ReadModelsModelsGetResponses];
@@ -11487,10 +11807,9 @@ export type ReadOrganizationsOrganizationsGetError = ReadOrganizationsOrganizati
 
 export type ReadOrganizationsOrganizationsGetResponses = {
     /**
-     * Response Read Organizations Organizations  Get
      * Successful Response
      */
-    200: Array<Organization>;
+    200: PaginatedOrganization;
 };
 
 export type ReadOrganizationsOrganizationsGetResponse = ReadOrganizationsOrganizationsGetResponses[keyof ReadOrganizationsOrganizationsGetResponses];
@@ -11738,10 +12057,9 @@ export type ReadProjectsProjectsGetError = ReadProjectsProjectsGetErrors[keyof R
 
 export type ReadProjectsProjectsGetResponses = {
     /**
-     * Response Read Projects Projects  Get
      * Successful Response
      */
-    200: Array<ProjectDetail>;
+    200: PaginatedProjectDetail;
 };
 
 export type ReadProjectsProjectsGetResponse = ReadProjectsProjectsGetResponses[keyof ReadProjectsProjectsGetResponses];
@@ -11921,10 +12239,9 @@ export type ReadPromptTemplatesPromptTemplatesGetError = ReadPromptTemplatesProm
 
 export type ReadPromptTemplatesPromptTemplatesGetResponses = {
     /**
-     * Response Read Prompt Templates Prompt Templates  Get
      * Successful Response
      */
-    200: Array<PromptTemplate>;
+    200: PaginatedPromptTemplate;
 };
 
 export type ReadPromptTemplatesPromptTemplatesGetResponse = ReadPromptTemplatesPromptTemplatesGetResponses[keyof ReadPromptTemplatesPromptTemplatesGetResponses];
@@ -12104,10 +12421,9 @@ export type ReadPromptsPromptsGetError = ReadPromptsPromptsGetErrors[keyof ReadP
 
 export type ReadPromptsPromptsGetResponses = {
     /**
-     * Response Read Prompts Prompts  Get
      * Successful Response
      */
-    200: Array<Prompt>;
+    200: PaginatedPrompt;
 };
 
 export type ReadPromptsPromptsGetResponse = ReadPromptsPromptsGetResponses[keyof ReadPromptsPromptsGetResponses];
@@ -12543,10 +12859,9 @@ export type ReadResponsePatternsResponsePatternsGetError = ReadResponsePatternsR
 
 export type ReadResponsePatternsResponsePatternsGetResponses = {
     /**
-     * Response Read Response Patterns Response Patterns  Get
      * Successful Response
      */
-    200: Array<ResponsePattern>;
+    200: PaginatedResponsePattern;
 };
 
 export type ReadResponsePatternsResponsePatternsGetResponse = ReadResponsePatternsResponsePatternsGetResponses[keyof ReadResponsePatternsResponsePatternsGetResponses];
@@ -12726,10 +13041,9 @@ export type ReadRisksRisksGetError = ReadRisksRisksGetErrors[keyof ReadRisksRisk
 
 export type ReadRisksRisksGetResponses = {
     /**
-     * Response Read Risks Risks  Get
      * Successful Response
      */
-    200: Array<Risk>;
+    200: PaginatedRisk;
 };
 
 export type ReadRisksRisksGetResponse = ReadRisksRisksGetResponses[keyof ReadRisksRisksGetResponses];
@@ -13212,10 +13526,9 @@ export type ReadSourcesSourcesGetError = ReadSourcesSourcesGetErrors[keyof ReadS
 
 export type ReadSourcesSourcesGetResponses = {
     /**
-     * Response Read Sources Sources  Get
      * Successful Response
      */
-    200: Array<Source>;
+    200: PaginatedSource;
 };
 
 export type ReadSourcesSourcesGetResponse = ReadSourcesSourcesGetResponses[keyof ReadSourcesSourcesGetResponses];
@@ -13400,10 +13713,9 @@ export type ReadStatusesStatusesGetError = ReadStatusesStatusesGetErrors[keyof R
 
 export type ReadStatusesStatusesGetResponses = {
     /**
-     * Response Read Statuses Statuses  Get
      * Successful Response
      */
-    200: Array<StatusDetail>;
+    200: PaginatedStatusDetail;
 };
 
 export type ReadStatusesStatusesGetResponse = ReadStatusesStatusesGetResponses[keyof ReadStatusesStatusesGetResponses];
@@ -13583,10 +13895,9 @@ export type ReadTagsTagsGetError = ReadTagsTagsGetErrors[keyof ReadTagsTagsGetEr
 
 export type ReadTagsTagsGetResponses = {
     /**
-     * Response Read Tags Tags  Get
      * Successful Response
      */
-    200: Array<Tag>;
+    200: PaginatedTag;
 };
 
 export type ReadTagsTagsGetResponse = ReadTagsTagsGetResponses[keyof ReadTagsTagsGetResponses];
@@ -13843,10 +14154,9 @@ export type ListTasksTasksGetError = ListTasksTasksGetErrors[keyof ListTasksTask
 
 export type ListTasksTasksGetResponses = {
     /**
-     * Response List Tasks Tasks  Get
      * Successful Response
      */
-    200: Array<TaskDetail>;
+    200: PaginatedTaskDetail;
 };
 
 export type ListTasksTasksGetResponse = ListTasksTasksGetResponses[keyof ListTasksTasksGetResponses];
@@ -14033,10 +14343,9 @@ export type GetTasksByEntityTasksEntityTypeEntityIdGetError = GetTasksByEntityTa
 
 export type GetTasksByEntityTasksEntityTypeEntityIdGetResponses = {
     /**
-     * Response Get Tasks By Entity Tasks  Entity Type   Entity Id  Get
      * Successful Response
      */
-    200: Array<TaskDetail>;
+    200: PaginatedTaskDetail;
 };
 
 export type GetTasksByEntityTasksEntityTypeEntityIdGetResponse = GetTasksByEntityTasksEntityTypeEntityIdGetResponses[keyof GetTasksByEntityTasksEntityTypeEntityIdGetResponses];
@@ -14076,10 +14385,9 @@ export type ReadTestContextsTestContextsGetError = ReadTestContextsTestContextsG
 
 export type ReadTestContextsTestContextsGetResponses = {
     /**
-     * Response Read Test Contexts Test Contexts  Get
      * Successful Response
      */
-    200: Array<TestContext>;
+    200: PaginatedTestContext;
 };
 
 export type ReadTestContextsTestContextsGetResponse = ReadTestContextsTestContextsGetResponses[keyof ReadTestContextsTestContextsGetResponses];
@@ -14259,10 +14567,9 @@ export type ReadTestConfigurationsTestConfigurationsGetError = ReadTestConfigura
 
 export type ReadTestConfigurationsTestConfigurationsGetResponses = {
     /**
-     * Response Read Test Configurations Test Configurations  Get
      * Successful Response
      */
-    200: Array<TestConfigurationDetail>;
+    200: PaginatedTestConfigurationDetail;
 };
 
 export type ReadTestConfigurationsTestConfigurationsGetResponse = ReadTestConfigurationsTestConfigurationsGetResponses[keyof ReadTestConfigurationsTestConfigurationsGetResponses];
@@ -14476,10 +14783,9 @@ export type ReadTestResultsTestResultsGetError = ReadTestResultsTestResultsGetEr
 
 export type ReadTestResultsTestResultsGetResponses = {
     /**
-     * Response Read Test Results Test Results  Get
      * Successful Response
      */
-    200: Array<TestResultDetail>;
+    200: PaginatedTestResultDetail;
 };
 
 export type ReadTestResultsTestResultsGetResponse = ReadTestResultsTestResultsGetResponses[keyof ReadTestResultsTestResultsGetResponses];
@@ -14794,10 +15100,9 @@ export type ReadTestRunsTestRunsGetError = ReadTestRunsTestRunsGetErrors[keyof R
 
 export type ReadTestRunsTestRunsGetResponses = {
     /**
-     * Response Read Test Runs Test Runs  Get
      * Successful Response
      */
-    200: Array<TestRunDetail>;
+    200: PaginatedTestRunDetail;
 };
 
 export type ReadTestRunsTestRunsGetResponse = ReadTestRunsTestRunsGetResponses[keyof ReadTestRunsTestRunsGetResponses];
@@ -15187,10 +15492,9 @@ export type ReadTestSetsTestSetsGetError = ReadTestSetsTestSetsGetErrors[keyof R
 
 export type ReadTestSetsTestSetsGetResponses = {
     /**
-     * Response Read Test Sets Test Sets  Get
      * Successful Response
      */
-    200: Array<TestSetDetail>;
+    200: PaginatedTestSetDetail;
 };
 
 export type ReadTestSetsTestSetsGetResponse = ReadTestSetsTestSetsGetResponses[keyof ReadTestSetsTestSetsGetResponses];
@@ -15722,10 +16026,9 @@ export type ReadTestsTestsGetError = ReadTestsTestsGetErrors[keyof ReadTestsTest
 
 export type ReadTestsTestsGetResponses = {
     /**
-     * Response Read Tests Tests  Get
      * Successful Response
      */
-    200: Array<TestDetail>;
+    200: PaginatedTestDetail;
 };
 
 export type ReadTestsTestsGetResponse = ReadTestsTestsGetResponses[keyof ReadTestsTestsGetResponses];
@@ -16249,10 +16552,9 @@ export type ReadTopicsTopicsGetError = ReadTopicsTopicsGetErrors[keyof ReadTopic
 
 export type ReadTopicsTopicsGetResponses = {
     /**
-     * Response Read Topics Topics  Get
      * Successful Response
      */
-    200: Array<TopicDetail>;
+    200: PaginatedTopicDetail;
 };
 
 export type ReadTopicsTopicsGetResponse = ReadTopicsTopicsGetResponses[keyof ReadTopicsTopicsGetResponses];
@@ -16432,10 +16734,9 @@ export type ReadTypeLookupsTypeLookupsGetError = ReadTypeLookupsTypeLookupsGetEr
 
 export type ReadTypeLookupsTypeLookupsGetResponses = {
     /**
-     * Response Read Type Lookups Type Lookups  Get
      * Successful Response
      */
-    200: Array<TypeLookup>;
+    200: PaginatedTypeLookup;
 };
 
 export type ReadTypeLookupsTypeLookupsGetResponse = ReadTypeLookupsTypeLookupsGetResponses[keyof ReadTypeLookupsTypeLookupsGetResponses];
@@ -16615,10 +16916,9 @@ export type ReadUseCasesUseCasesGetError = ReadUseCasesUseCasesGetErrors[keyof R
 
 export type ReadUseCasesUseCasesGetResponses = {
     /**
-     * Response Read Use Cases Use Cases  Get
      * Successful Response
      */
-    200: Array<UseCase>;
+    200: PaginatedUseCase;
 };
 
 export type ReadUseCasesUseCasesGetResponse = ReadUseCasesUseCasesGetResponses[keyof ReadUseCasesUseCasesGetResponses];
@@ -16798,10 +17098,9 @@ export type ReadUsersUsersGetError = ReadUsersUsersGetErrors[keyof ReadUsersUser
 
 export type ReadUsersUsersGetResponses = {
     /**
-     * Response Read Users Users  Get
      * Successful Response
      */
-    200: Array<User>;
+    200: PaginatedUser;
 };
 
 export type ReadUsersUsersGetResponse = ReadUsersUsersGetResponses[keyof ReadUsersUsersGetResponses];

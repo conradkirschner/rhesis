@@ -11,6 +11,7 @@ from rhesis.backend.app.dependencies import get_tenant_context, get_db_session, 
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
 from rhesis.backend.app.utils.schema_factory import create_detailed_schema
+from rhesis.backend.app.schemas.pagination import Paginated
 
 # Create the detailed schema for TestRun
 ProjectDetailSchema = create_detailed_schema(schemas.Project, models.Project)
@@ -57,8 +58,8 @@ async def create_project(
     )
 
 
-@router.get("/", response_model=list[ProjectDetailSchema])
-@with_count_header(model=models.Project)
+@router.get("/", response_model=Paginated[ProjectDetailSchema])
+@with_count_header(model=models.Project, to_body=True)
 async def read_projects(
     response: Response,
     skip: int = 0,
@@ -69,7 +70,7 @@ async def read_projects(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token)
-) -> list[ProjectDetailSchema]:
+) -> Paginated[ProjectDetailSchema]:
     """Get all projects with their related objects"""
     organization_id, user_id = tenant_context
     return crud.get_projects(

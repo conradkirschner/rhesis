@@ -1,145 +1,116 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useMemo, useState } from 'react';
 import { GridColDef, GridPaginationModel } from '@mui/x-data-grid';
-import { Box, CircularProgress, Alert, Typography } from '@mui/material';
+import { Box, CircularProgress, Alert } from '@mui/material';
 import BaseDataGrid from '@/components/common/BaseDataGrid';
-import { TestDetail } from '@/utils/api-client/interfaces/tests';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { formatDistanceToNow, parseISO, format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
 
-interface RecentActivitiesGridProps {
-  sessionToken: string;
-}
+import { readTestsTestsGetOptions } from '@/api-client/@tanstack/react-query.gen';
+import type { TestDetail } from '@/api-client/types.gen';
 
-const recentActivitiesColumns: GridColDef[] = [
+
+const recentActivitiesColumns: GridColDef<TestDetail>[] = [
   {
     field: 'behavior',
     headerName: 'Behavior',
     width: 130,
-    valueGetter: (_, row) => row.behavior?.name || 'Unspecified',
+    valueGetter: (_v, row) => row.behavior?.name ?? 'Unspecified',
   },
   {
     field: 'topic',
     headerName: 'Topic',
     width: 130,
-    valueGetter: (_, row) => row.topic?.name || 'Uncategorized',
+    valueGetter: (_v, row) => row.topic?.name ?? 'Uncategorized',
   },
   {
     field: 'timestamp',
     headerName: 'Update Time',
     width: 150,
-    valueGetter: (_, row) => {
-      return row.updated_at
-        ? format(parseISO(row.updated_at), 'yyyy-MM-dd HH:mm')
-        : '';
-    },
+    valueGetter: (_v, row) =>
+        row.updated_at ? format(parseISO(row.updated_at), 'yyyy-MM-dd HH:mm') : '',
   },
   {
     field: 'assignee',
     headerName: 'Assignee',
     flex: 1,
-    valueGetter: (_, row) => {
-      const assignee = row.assignee;
-      if (!assignee) return 'No assignee';
-
-      // Use the name field if available
-      if (assignee.name) {
-        return assignee.name;
-      }
-
-      // If we have given_name or family_name, format the full name
-      if (assignee.given_name || assignee.family_name) {
-        const fullName = [assignee.given_name, assignee.family_name]
-          .filter(Boolean)
-          .join(' ');
-        return fullName;
-      }
-
-      // Fall back to email if no name is available
-      return assignee.email || 'No contact info';
+    valueGetter: (_v, row) => {
+      const a = row.assignee;
+      if (!a) return 'No assignee';
+      if (a.name) return a.name;
+      const full = [a.given_name, a.family_name].filter(Boolean).join(' ');
+      return full || a.email || 'No contact info';
     },
   },
 ];
 
-export default function RecentActivitiesGrid({
-  sessionToken,
-}: RecentActivitiesGridProps) {
-  const [activities, setActivities] = useState<TestDetail[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState<number>(0);
-  const [paginationModel, setPaginationModel] = useState({
+export default function RecentActivitiesGrid() {
+  const [paginationModel, setPaginationModel] = useState<{ page: number; pageSize: number }>({
     page: 0,
     pageSize: 10,
   });
 
-  const fetchRecentActivities = useCallback(async () => {
-    try {
-      setLoading(true);
+  const skip = paginationModel.page * paginationModel.pageSize;
+  const limit = paginationModel.pageSize;
 
-      // Calculate skip based on pagination model
-      const skip = paginationModel.page * paginationModel.pageSize;
-      const limit = paginationModel.pageSize;
+  // Build options with the generator helper (DO NOT spread/augment when calling useQuery)
+  const queryOptions = useMemo(
+      () =>
+          readTestsTestsGetOptions({
+            query: { skip, limit, sort_by: 'updated_at', sort_order: 'desc' },
+          }),
+      [skip, limit]
+  );
 
-      const client = new ApiClientFactory(sessionToken).getTestsClient();
-      const response = await client.getTests({
-        skip,
-        limit,
-        sort_by: 'updated_at',
-        sort_order: 'desc',
-      });
-      setActivities(response.data);
-      setTotalCount(response.pagination.totalCount);
-      setError(null);
-    } catch (err) {
-      setError('Data currently unavailable');
-      setActivities([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionToken, paginationModel]);
+  // Pass the options object directly to avoid TanStack overload mismatches
+  const { data, isLoading, isFetching, error } = useQuery(queryOptions);
 
-  useEffect(() => {
-    fetchRecentActivities();
-  }, [fetchRecentActivities]);
+  // Current backend returns a plain array for 200
+  const rows: TestDetail[] = data ?? [];
+
+  // Synthetic total so DataGrid keeps server-side paging usable
+  const totalRows = rows.length < limit ? skip + rows.length : skip + rows.length + 1;
+
+  const loading = isLoading || isFetching;
 
   const handlePaginationModelChange = (newModel: GridPaginationModel) => {
     setPaginationModel(newModel);
   };
 
-  if (loading && activities.length === 0) {
+  if (loading && rows.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-        <CircularProgress />
-      </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <CircularProgress />
+        </Box>
     );
   }
 
   return (
-    <Box>
-      {error && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+      <Box>
+        {error && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {error.message}
+            </Alert>
+        )}
 
-      <BaseDataGrid
-        rows={activities}
-        columns={recentActivitiesColumns}
-        paginationModel={paginationModel}
-        onPaginationModelChange={handlePaginationModelChange}
-        loading={loading}
-        showToolbar={false}
-        density="compact"
-        serverSidePagination={true}
-        totalRows={totalCount}
-        pageSizeOptions={[10, 25, 50]}
-        linkPath="/tests"
-        linkField="id"
-        disableRowSelectionOnClick
-        disablePaperWrapper={true}
-      />
-    </Box>
+        <BaseDataGrid
+            rows={rows}
+            columns={recentActivitiesColumns}
+            getRowId={(row: TestDetail) => row.id}
+            paginationModel={paginationModel}
+            onPaginationModelChange={handlePaginationModelChange}
+            loading={loading}
+            showToolbar={false}
+            density="compact"
+            serverSidePagination
+            totalRows={totalRows}
+            pageSizeOptions={[10, 25, 50]}
+            linkPath="/tests"
+            linkField="id"
+            disableRowSelectionOnClick
+            disablePaperWrapper
+        />
+      </Box>
   );
 }

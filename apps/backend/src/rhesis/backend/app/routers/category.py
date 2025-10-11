@@ -12,6 +12,7 @@ from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
 from rhesis.backend.app.utils.odata import combine_entity_type_filter
 from rhesis.backend.app.utils.schema_factory import create_detailed_schema
+from rhesis.backend.app.schemas.pagination import Paginated
 
 # Create the detailed schema for Test
 CategoryDetailSchema = create_detailed_schema(schemas.Category, models.Category)
@@ -48,8 +49,8 @@ def create_category(
     )
 
 
-@router.get("/", response_model=list[CategoryDetailSchema])
-@with_count_header(model=models.Category)
+@router.get("/", response_model=Paginated[CategoryDetailSchema])
+@with_count_header(model=models.Category, to_body=True)
 def read_categories(
     response: Response,
     skip: int = 0,
@@ -60,7 +61,7 @@ def read_categories(
     entity_type: str | None = Query(None, description="Filter categories by entity type"),
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)) -> list[CategoryDetailSchema]:
+    current_user: User = Depends(require_current_user_or_token)) -> Paginated[CategoryDetailSchema]:
     """Get all categories with their related objects"""
     organization_id, user_id = tenant_context
     filter = combine_entity_type_filter(filter, entity_type)

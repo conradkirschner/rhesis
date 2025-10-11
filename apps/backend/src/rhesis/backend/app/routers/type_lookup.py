@@ -9,6 +9,7 @@ from rhesis.backend.app.auth.user_utils import require_current_user_or_token
 from rhesis.backend.app.dependencies import get_tenant_context, get_tenant_db_session
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
+from rhesis.backend.app.schemas.pagination import Paginated
 
 router = APIRouter(
     prefix="/type_lookups",
@@ -38,8 +39,8 @@ def create_type_lookup(
     )
 
 
-@router.get("/", response_model=list[schemas.TypeLookup])
-@with_count_header(model=models.TypeLookup)
+@router.get("/", response_model=Paginated[schemas.TypeLookup])
+@with_count_header(model=models.TypeLookup, to_body=True)
 def read_type_lookups(
     response: Response,
     skip: int = 0,

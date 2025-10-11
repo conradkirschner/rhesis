@@ -11,6 +11,7 @@ from rhesis.backend.app.models.user import User
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
 from rhesis.backend.app.utils.schema_factory import create_detailed_schema
+from rhesis.backend.app.schemas.pagination import Paginated
 
 # Create the detailed schema with metrics support and nested relationships
 BehaviorWithMetricsSchema = create_detailed_schema(
@@ -44,8 +45,8 @@ def create_behavior(
     )
 
 
-@router.get("/", response_model=List[BehaviorWithMetricsSchema])
-@with_count_header(model=models.Behavior)
+@router.get("/", response_model=Paginated[BehaviorWithMetricsSchema])
+@with_count_header(model=models.Behavior, to_body=True)
 def read_behaviors(
     response: Response,
     skip: int = 0,
@@ -55,7 +56,7 @@ def read_behaviors(
     filter: str | None = Query(None, alias="$filter", description="OData filter expression"),
     db: Session = Depends(get_tenant_db_session),  # ← Uses drop-in replacement
     tenant_context=Depends(get_tenant_context),
-    current_user: User = Depends(require_current_user_or_token)) -> List[BehaviorWithMetricsSchema]:
+    current_user: User = Depends(require_current_user_or_token)) -> Paginated[BehaviorWithMetricsSchema]:
     """Get all behaviors with automatic session variables for RLS."""
     organization_id, user_id = tenant_context
 
@@ -123,8 +124,8 @@ def update_behavior(
     return db_behavior
 
 
-@router.get("/{behavior_id}/metrics/", response_model=List[MetricDetailSchema])
-@with_count_header(model=models.Metric)
+@router.get("/{behavior_id}/metrics/", response_model=Paginated[MetricDetailSchema])
+@with_count_header(model=models.Metric, to_body=True)
 def read_behavior_metrics(
     response: Response,
     behavior_id: uuid.UUID,
@@ -138,7 +139,7 @@ def read_behavior_metrics(
     current_user: User = Depends(require_current_user_or_token),
     organization_id: str = None,  # For with_count_header decorator
     user_id: str = None,  # For with_count_header decorator
-) -> List[MetricDetailSchema]:
+) -> Paginated[MetricDetailSchema]:
     """Get all metrics associated with a behavior"""
     try:
         organization_id, user_id = tenant_context  # SECURITY: Get tenant context

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Rhesis Backend",
-    "description": "API for testing and evaluating AI models.\n\n## Version Information\n- **Version**: 0.1.0\n- **Branch**: 477-adding-pino-logger\n- **Commit**: 07133896\n\n## URL Encoding\nWhen using curl, special characters in URLs need to be URL-encoded. For example:\n- Encoded: `/tests/?%24filter=prompt_id%20eq%20'89905869-e8e9-4b2f-b362-3598cfe91968'`\n- Unencoded: `/tests/?$filter=prompt_id eq '89905869-e8e9-4b2f-b362-3598cfe91968'`\n\nThe `$` character must be encoded as `%24` when using curl.\nWeb browsers handle this automatically.\n",
+    "description": "API for testing and evaluating AI models.\n\n## Version Information\n- **Version**: 0.1.0\n- **Branch**: 477-adding-pino-logger\n- **Commit**: 0ff6bc7b\n\n## URL Encoding\nWhen using curl, special characters in URLs need to be URL-encoded. For example:\n- Encoded: `/tests/?%24filter=prompt_id%20eq%20'89905869-e8e9-4b2f-b362-3598cfe91968'`\n- Unencoded: `/tests/?$filter=prompt_id eq '89905869-e8e9-4b2f-b362-3598cfe91968'`\n\nThe `$` character must be encoded as `%24` when using curl.\nWeb browsers handle this automatically.\n",
     "version": "0.1.0"
   },
   "paths": {
@@ -429,11 +429,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/rhesis__backend__app__utils__schema_factory__BehaviorDetail__1"
-                  },
-                  "title": "Response Read Behaviors Behaviors  Get"
+                  "$ref": "#/components/schemas/rhesis__backend__app__schemas__pagination__Paginated_BehaviorDetail___1"
                 }
               }
             }
@@ -723,11 +719,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/rhesis__backend__app__utils__schema_factory__MetricDetail__1"
-                  },
-                  "title": "Response Read Behavior Metrics Behaviors  Behavior Id  Metrics  Get"
+                  "$ref": "#/components/schemas/rhesis__backend__app__schemas__pagination__Paginated_MetricDetail___1"
                 }
               }
             }
@@ -1023,11 +1015,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CategoryDetail"
-                  },
-                  "title": "Response Read Categories Categories  Get"
+                  "$ref": "#/components/schemas/Paginated_CategoryDetail_"
                 }
               }
             }
@@ -1876,11 +1864,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Demographic"
-                  },
-                  "title": "Response Read Demographics Demographics  Get"
+                  "$ref": "#/components/schemas/Paginated_Demographic_"
                 }
               }
             }
@@ -2188,11 +2172,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Dimension"
-                  },
-                  "title": "Response Read Dimensions Dimensions  Get"
+                  "$ref": "#/components/schemas/Paginated_Dimension_"
                 }
               }
             }
@@ -2499,11 +2479,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/EndpointDetail"
-                  },
-                  "title": "Response Read Endpoints Endpoints  Get"
+                  "$ref": "#/components/schemas/Paginated_EndpointDetail_"
                 }
               }
             }
@@ -2957,11 +2933,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/rhesis__backend__app__utils__schema_factory__MetricDetail__2"
-                  },
-                  "title": "Response Read Metrics Metrics  Get"
+                  "$ref": "#/components/schemas/rhesis__backend__app__schemas__pagination__Paginated_MetricDetail___2"
                 }
               }
             }
@@ -3373,11 +3345,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/rhesis__backend__app__utils__schema_factory__BehaviorDetail__2"
-                  },
-                  "title": "Response Read Metric Behaviors Metrics  Metric Id  Behaviors  Get"
+                  "$ref": "#/components/schemas/rhesis__backend__app__schemas__pagination__Paginated_BehaviorDetail___2"
                 }
               }
             }
@@ -3525,11 +3493,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ModelDetail"
-                  },
-                  "title": "Response Read Models Models  Get"
+                  "$ref": "#/components/schemas/Paginated_ModelDetail_"
                 }
               }
             }
@@ -3890,11 +3854,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Organization"
-                  },
-                  "title": "Response Read Organizations Organizations  Get"
+                  "$ref": "#/components/schemas/Paginated_Organization_"
                 }
               }
             }
@@ -4305,11 +4265,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProjectDetail"
-                  },
-                  "title": "Response Read Projects Projects  Get"
+                  "$ref": "#/components/schemas/Paginated_ProjectDetail_"
                 }
               }
             }
@@ -4619,11 +4575,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PromptTemplate"
-                  },
-                  "title": "Response Read Prompt Templates Prompt Templates  Get"
+                  "$ref": "#/components/schemas/Paginated_PromptTemplate_"
                 }
               }
             }
@@ -4930,11 +4882,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Prompt"
-                  },
-                  "title": "Response Read Prompts Prompts  Get"
+                  "$ref": "#/components/schemas/Paginated_Prompt_"
                 }
               }
             }
@@ -5739,11 +5687,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ResponsePattern"
-                  },
-                  "title": "Response Read Response Patterns Response Patterns  Get"
+                  "$ref": "#/components/schemas/Paginated_ResponsePattern_"
                 }
               }
             }
@@ -6050,11 +5994,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Risk"
-                  },
-                  "title": "Response Read Risks Risks  Get"
+                  "$ref": "#/components/schemas/Paginated_Risk_"
                 }
               }
             }
@@ -6908,11 +6848,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Source"
-                  },
-                  "title": "Response Read Sources Sources  Get"
+                  "$ref": "#/components/schemas/Paginated_Source_"
                 }
               }
             }
@@ -7240,11 +7176,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StatusDetail"
-                  },
-                  "title": "Response Read Statuses Statuses  Get"
+                  "$ref": "#/components/schemas/Paginated_StatusDetail_"
                 }
               }
             }
@@ -7554,11 +7486,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Tag"
-                  },
-                  "title": "Response Read Tags Tags  Get"
+                  "$ref": "#/components/schemas/Paginated_Tag_"
                 }
               }
             }
@@ -8012,11 +7940,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TaskDetail"
-                  },
-                  "title": "Response List Tasks Tasks  Get"
+                  "$ref": "#/components/schemas/Paginated_TaskDetail_"
                 }
               }
             }
@@ -8283,11 +8207,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TaskDetail"
-                  },
-                  "title": "Response Get Tasks By Entity Tasks  Entity Type   Entity Id  Get"
+                  "$ref": "#/components/schemas/Paginated_TaskDetail_"
                 }
               }
             }
@@ -8414,11 +8334,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TestContext"
-                  },
-                  "title": "Response Read Test Contexts Test Contexts  Get"
+                  "$ref": "#/components/schemas/Paginated_TestContext_"
                 }
               }
             }
@@ -8728,11 +8644,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TestConfigurationDetail"
-                  },
-                  "title": "Response Read Test Configurations Test Configurations  Get"
+                  "$ref": "#/components/schemas/Paginated_TestConfigurationDetail_"
                 }
               }
             }
@@ -9094,11 +9006,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TestResultDetail"
-                  },
-                  "title": "Response Read Test Results Test Results  Get"
+                  "$ref": "#/components/schemas/Paginated_TestResultDetail_"
                 }
               }
             }
@@ -9903,11 +9811,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TestRunDetail"
-                  },
-                  "title": "Response Read Test Runs Test Runs  Get"
+                  "$ref": "#/components/schemas/Paginated_TestRunDetail_"
                 }
               }
             }
@@ -10690,11 +10594,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TestSetDetail"
-                  },
-                  "title": "Response Read Test Sets Test Sets  Get"
+                  "$ref": "#/components/schemas/Paginated_TestSetDetail_"
                 }
               }
             }
@@ -11643,11 +11543,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TestDetail"
-                  },
-                  "title": "Response Read Tests Tests  Get"
+                  "$ref": "#/components/schemas/Paginated_TestDetail_"
                 }
               }
             }
@@ -12601,11 +12497,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TopicDetail"
-                  },
-                  "title": "Response Read Topics Topics  Get"
+                  "$ref": "#/components/schemas/Paginated_TopicDetail_"
                 }
               }
             }
@@ -12915,11 +12807,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TypeLookup"
-                  },
-                  "title": "Response Read Type Lookups Type Lookups  Get"
+                  "$ref": "#/components/schemas/Paginated_TypeLookup_"
                 }
               }
             }
@@ -13229,11 +13117,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UseCase"
-                  },
-                  "title": "Response Read Use Cases Use Cases  Get"
+                  "$ref": "#/components/schemas/Paginated_UseCase_"
                 }
               }
             }
@@ -13543,11 +13427,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/User"
-                  },
-                  "title": "Response Read Users Users  Get"
+                  "$ref": "#/components/schemas/Paginated_User_"
                 }
               }
             }
@@ -21657,6 +21537,519 @@
           "pass_rate"
         ],
         "title": "OverallStats"
+      },
+      "Paginated_CategoryDetail_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryDetail"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[CategoryDetail]"
+      },
+      "Paginated_Demographic_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Demographic"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[Demographic]"
+      },
+      "Paginated_Dimension_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Dimension"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[Dimension]"
+      },
+      "Paginated_EndpointDetail_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EndpointDetail"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[EndpointDetail]"
+      },
+      "Paginated_ModelDetail_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ModelDetail"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[ModelDetail]"
+      },
+      "Paginated_Organization_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Organization"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[Organization]"
+      },
+      "Paginated_ProjectDetail_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectDetail"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[ProjectDetail]"
+      },
+      "Paginated_PromptTemplate_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PromptTemplate"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[PromptTemplate]"
+      },
+      "Paginated_Prompt_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Prompt"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[Prompt]"
+      },
+      "Paginated_ResponsePattern_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ResponsePattern"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[ResponsePattern]"
+      },
+      "Paginated_Risk_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Risk"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[Risk]"
+      },
+      "Paginated_Source_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[Source]"
+      },
+      "Paginated_StatusDetail_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/StatusDetail"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[StatusDetail]"
+      },
+      "Paginated_Tag_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Tag"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[Tag]"
+      },
+      "Paginated_TaskDetail_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TaskDetail"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[TaskDetail]"
+      },
+      "Paginated_TestConfigurationDetail_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TestConfigurationDetail"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[TestConfigurationDetail]"
+      },
+      "Paginated_TestContext_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TestContext"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[TestContext]"
+      },
+      "Paginated_TestDetail_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TestDetail"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[TestDetail]"
+      },
+      "Paginated_TestResultDetail_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TestResultDetail"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[TestResultDetail]"
+      },
+      "Paginated_TestRunDetail_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TestRunDetail"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[TestRunDetail]"
+      },
+      "Paginated_TestSetDetail_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TestSetDetail"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[TestSetDetail]"
+      },
+      "Paginated_TopicDetail_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TopicDetail"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[TopicDetail]"
+      },
+      "Paginated_TypeLookup_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TypeLookup"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[TypeLookup]"
+      },
+      "Paginated_UseCase_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/UseCase"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[UseCase]"
+      },
+      "Paginated_User_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[User]"
+      },
+      "Pagination": {
+        "properties": {
+          "totalCount": {
+            "type": "integer",
+            "title": "Totalcount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "totalCount"
+        ],
+        "title": "Pagination"
       },
       "PermanentlyDeleteResponse": {
         "properties": {
@@ -34806,6 +35199,86 @@
           "Source"
         ],
         "title": "EntityType"
+      },
+      "rhesis__backend__app__schemas__pagination__Paginated_BehaviorDetail___1": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/rhesis__backend__app__utils__schema_factory__BehaviorDetail__1"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[BehaviorDetail]"
+      },
+      "rhesis__backend__app__schemas__pagination__Paginated_BehaviorDetail___2": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/rhesis__backend__app__utils__schema_factory__BehaviorDetail__2"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[BehaviorDetail]"
+      },
+      "rhesis__backend__app__schemas__pagination__Paginated_MetricDetail___1": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/rhesis__backend__app__utils__schema_factory__MetricDetail__1"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[MetricDetail]"
+      },
+      "rhesis__backend__app__schemas__pagination__Paginated_MetricDetail___2": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/rhesis__backend__app__utils__schema_factory__MetricDetail__2"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "title": "Paginated[MetricDetail]"
       },
       "rhesis__backend__app__schemas__services__Test": {
         "properties": {

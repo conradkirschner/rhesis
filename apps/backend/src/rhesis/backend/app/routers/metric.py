@@ -13,6 +13,7 @@ from rhesis.backend.app.dependencies import get_tenant_context, get_db_session, 
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
 from rhesis.backend.app.utils.schema_factory import create_detailed_schema
+from rhesis.backend.app.schemas.pagination import Paginated
 
 # Create the detailed schema for Metric with many-to-many relationships included
 MetricDetailSchema = create_detailed_schema(
@@ -57,8 +58,8 @@ def create_metric(
     )
 
 
-@router.get("/", response_model=List[MetricDetailSchema])
-@with_count_header(model=models.Metric)
+@router.get("/", response_model=Paginated[MetricDetailSchema])
+@with_count_header(model=models.Metric, to_body=True)
 def read_metrics(
     response: Response,
     skip: int = 0,
@@ -69,7 +70,7 @@ def read_metrics(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-) -> List[MetricDetailSchema]:
+) -> Paginated[MetricDetailSchema]:
     """Get all metrics with their related objects"""
     organization_id, user_id = tenant_context
     metrics = crud.get_metrics(
@@ -208,8 +209,8 @@ def remove_behavior_from_metric(
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.get("/{metric_id}/behaviors/", response_model=List[BehaviorDetailSchema])
-@with_count_header(model=models.Behavior)
+@router.get("/{metric_id}/behaviors/", response_model=Paginated[BehaviorDetailSchema])
+@with_count_header(model=models.Behavior, to_body=True)
 def read_metric_behaviors(
     response: Response,
     metric_id: UUID,
@@ -223,7 +224,7 @@ def read_metric_behaviors(
     current_user: User = Depends(require_current_user_or_token),
     organization_id: str = None,  # For with_count_header decorator
     user_id: str = None,  # For with_count_header decorator
-) -> List[BehaviorDetailSchema]:
+) -> Paginated[BehaviorDetailSchema]:
     """Get all behaviors associated with a metric"""
     try:
         organization_id, user_id = tenant_context  # SECURITY: Get tenant context

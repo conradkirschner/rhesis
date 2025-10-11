@@ -14,6 +14,7 @@ from rhesis.backend.app.services.test import bulk_create_tests
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.schema_factory import create_detailed_schema
+from rhesis.backend.app.schemas.pagination import Paginated
 
 # Create the detailed schema for Test
 TestDetailSchema = create_detailed_schema(schemas.Test, models.Test)
@@ -137,8 +138,8 @@ def generate_test_stats(
     return get_test_stats(db, current_user.organization_id, top, months)
 
 
-@router.get("/", response_model=List[TestDetailSchema])
-@with_count_header(model=models.Test)
+@router.get("/", response_model=Paginated[TestDetailSchema])
+@with_count_header(model=models.Test, to_body=True)
 def read_tests(
     response: Response,
     skip: int = 0,
@@ -149,7 +150,7 @@ def read_tests(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-) -> List[TestDetailSchema]:
+) -> Paginated[TestDetailSchema]:
     """Get all tests with their related objects"""
     organization_id, user_id = tenant_context
     tests = crud.get_tests(

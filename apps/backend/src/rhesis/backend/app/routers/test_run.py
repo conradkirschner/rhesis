@@ -18,6 +18,7 @@ from rhesis.backend.app.services.test_run import (
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
 from rhesis.backend.app.utils.schema_factory import create_detailed_schema
+from rhesis.backend.app.schemas.pagination import Paginated
 
 # Create the detailed schema for TestRun
 TestRunDetailSchema = create_detailed_schema(
@@ -77,8 +78,8 @@ def create_test_run(
     )
 
 
-@router.get("/", response_model=List[TestRunDetailSchema])
-@with_count_header(model=models.TestRun)
+@router.get("/", response_model=Paginated[TestRunDetailSchema])
+@with_count_header(model=models.TestRun, to_body=True)
 def read_test_runs(
     response: Response,
     skip: int = 0,
@@ -89,7 +90,7 @@ def read_test_runs(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-) -> List[TestRunDetailSchema]:
+) -> Paginated[TestRunDetailSchema]:
     """Get all test runs with their related objects"""
     organization_id, user_id = tenant_context
     test_runs = crud.get_test_runs(

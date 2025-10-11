@@ -33,6 +33,7 @@ from rhesis.backend.app.utils.schema_factory import create_detailed_schema
 from rhesis.backend.logging import logger
 from rhesis.backend.tasks import task_launcher
 from rhesis.backend.tasks.test_set import generate_and_save_test_set
+from rhesis.backend.app.schemas.pagination import Paginated
 
 # Create the detailed schema for TestSet and Test
 TestSetDetailSchema = create_detailed_schema(schemas.TestSet, models.TestSet)
@@ -282,8 +283,8 @@ async def create_test_set(
     return crud.create_test_set(db=db, test_set=test_set, organization_id=organization_id, user_id=user_id)
 
 
-@router.get("/", response_model=list[TestSetDetailSchema])
-@with_count_header(model=models.TestSet)
+@router.get("/", response_model=Paginated[TestSetDetailSchema])
+@with_count_header(model=models.TestSet, to_body=True)
 async def read_test_sets(
     response: Response,
     skip: int = 0,
@@ -295,7 +296,7 @@ async def read_test_sets(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-) -> list[TestSetDetailSchema]:
+) -> Paginated[TestSetDetailSchema]:
     from rhesis.backend.logging import logger
     logger.info(f"test_sets endpoint called with has_runs={has_runs}")
 

@@ -10,6 +10,7 @@ from rhesis.backend.app.auth.user_utils import require_current_user_or_token
 from rhesis.backend.app.dependencies import get_tenant_context, get_tenant_db_session
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
+from rhesis.backend.app.schemas.pagination import Paginated
 
 router = APIRouter(
     prefix="/test-contexts",
@@ -48,8 +49,8 @@ def create_test_context(
     )
 
 
-@router.get("/", response_model=List[schemas.TestContext])
-@with_count_header(model=models.TestContext)
+@router.get("/", response_model=Paginated[schemas.TestContext])
+@with_count_header(model=models.TestContext, to_body=True)
 def read_test_contexts(
     response: Response,
     skip: int = 0,

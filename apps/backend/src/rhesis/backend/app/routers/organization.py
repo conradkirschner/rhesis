@@ -15,6 +15,7 @@ from rhesis.backend.app.models.user import User
 from rhesis.backend.app.services.organization import load_initial_data, rollback_initial_data
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
+from rhesis.backend.app.schemas.pagination import Paginated
 
 router = APIRouter(
     prefix="/organizations",
@@ -43,8 +44,8 @@ async def create_organization(
     return crud.create_organization(db=db, organization=organization)
 
 
-@router.get("/", response_model=list[schemas.Organization])
-@with_count_header(model=models.Organization)
+@router.get("/", response_model=Paginated[schemas.Organization])
+@with_count_header(model=models.Organization, to_body=True)
 async def read_organizations(
     response: Response,
     skip: int = 0,
@@ -55,7 +56,7 @@ async def read_organizations(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-) -> list[schemas.Organization]:
+) -> Paginated[schemas.Organization]:
     """Get all organizations with their related objects"""
     try:
         organization_id, user_id = tenant_context

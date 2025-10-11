@@ -21,6 +21,7 @@ from rhesis.backend.app.utils.rate_limit import INVITATION_RATE_LIMIT, user_limi
 from rhesis.backend.app.utils.validation import validate_and_normalize_email
 from rhesis.backend.logging.rhesis_logger import logger
 from rhesis.backend.notifications import email_service
+from rhesis.backend.app.schemas.pagination import Paginated
 
 router = APIRouter(
     prefix="/users",
@@ -127,8 +128,8 @@ async def create_user(
     return created_user
 
 
-@router.get("/", response_model=list[schemas.User])
-@with_count_header(model=models.User)
+@router.get("/", response_model=Paginated[schemas.User])
+@with_count_header(model=models.User, to_body=True)
 async def read_users(
     response: Response,
     skip: int = 0,

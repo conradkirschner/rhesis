@@ -10,6 +10,7 @@ from rhesis.backend.app.database import get_db
 from rhesis.backend.app.dependencies import get_tenant_context, get_db_session, get_tenant_db_session
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
+from rhesis.backend.app.schemas.pagination import Paginated
 
 router = APIRouter(
     prefix="/risks",
@@ -42,8 +43,8 @@ def create_risk(
     return crud.create_risk(db=db, risk=risk, organization_id=organization_id, user_id=user_id)
 
 
-@router.get("/", response_model=list[schemas.Risk])
-@with_count_header(model=models.Risk)
+@router.get("/", response_model=Paginated[schemas.Risk])
+@with_count_header(model=models.Risk, to_body=True)
 def read_risks(
     response: Response,
     skip: int = 0,
@@ -54,7 +55,7 @@ def read_risks(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token)
-) -> list[schemas.Risk]:
+) -> Paginated[schemas.Risk]:
     """Get all risks with their related objects"""
     organization_id, user_id = tenant_context
     return crud.get_risks(

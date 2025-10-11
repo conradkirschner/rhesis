@@ -75,7 +75,7 @@ export default function DashboardPage() {
               <ScienceIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
               Updated Tests
             </Typography>
-            <RecentActivitiesGrid sessionToken={session?.session_token || ''} />
+            <RecentActivitiesGrid />
           </Paper>
         </Grid>
 
@@ -96,7 +96,7 @@ export default function DashboardPage() {
               <PlayArrowIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
               Recent Test Runs
             </Typography>
-            <LatestTestRunsGrid sessionToken={session?.session_token || ''} />
+            <LatestTestRunsGrid />
           </Paper>
         </Grid>
       </Grid>

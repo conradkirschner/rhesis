@@ -12,6 +12,7 @@ from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
 from rhesis.backend.app.utils.odata import combine_entity_type_filter
 from rhesis.backend.app.utils.schema_factory import create_detailed_schema
+from rhesis.backend.app.schemas.pagination import Paginated
 
 # Create the detailed schema for Test
 StatusDetailSchema = create_detailed_schema(schemas.Status, models.Status)
@@ -49,8 +50,8 @@ def create_status(
     )
 
 
-@router.get("/", response_model=list[StatusDetailSchema])
-@with_count_header(model=models.Status)
+@router.get("/", response_model=Paginated[StatusDetailSchema])
+@with_count_header(model=models.Status, to_body=True)
 def read_statuses(
     response: Response,
     skip: int = 0,
@@ -62,7 +63,7 @@ def read_statuses(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token)
-) -> list[StatusDetailSchema]:
+) -> Paginated[StatusDetailSchema]:
     """Get all statuses with their related objects"""
     organization_id, user_id = tenant_context
     filter = combine_entity_type_filter(filter, entity_type)

@@ -11,6 +11,7 @@ from rhesis.backend.app.dependencies import get_tenant_context, get_db_session, 
 from rhesis.backend.app.schemas.tag import EntityType
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
+from rhesis.backend.app.schemas.pagination import Paginated
 
 router = APIRouter(
     prefix="/tags",
@@ -43,8 +44,8 @@ def create_tag(
     return crud.create_tag(db=db, tag=tag, organization_id=organization_id, user_id=user_id)
 
 
-@router.get("/", response_model=list[schemas.Tag])
-@with_count_header(model=models.Tag)
+@router.get("/", response_model=Paginated[schemas.Tag])
+@with_count_header(model=models.Tag, to_body=True)
 def read_tags(
     response: Response,
     skip: int = 0,
@@ -55,7 +56,7 @@ def read_tags(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-) -> list[schemas.Tag]:
+) -> Paginated[schemas.Tag]:
     """Get all tags with their related objects"""
     organization_id, user_id = tenant_context
     return crud.get_tags(

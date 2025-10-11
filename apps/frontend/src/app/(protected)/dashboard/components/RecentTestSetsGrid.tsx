@@ -1,72 +1,53 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Typography, Box, CircularProgress, Alert } from '@mui/material';
-import { GridColDef, GridPaginationModel } from '@mui/x-data-grid';
+import {
+  GridColDef,
+  GridPaginationModel,
+  GridRenderCellParams,
+} from '@mui/x-data-grid';
 import BaseDataGrid from '@/components/common/BaseDataGrid';
-import { TestSet } from '@/utils/api-client/interfaces/test-set';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { formatDistanceToNow, parseISO, format } from 'date-fns';
-import { Organization } from '@/utils/api-client/interfaces/organization';
+import { format, parseISO } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
 
-interface RecentTestSetsGridProps {
-  sessionToken: string;
-}
+import { readTestSetsTestSetsGetOptions } from '@/api-client/@tanstack/react-query.gen';
+import type { TestSet } from '@/api-client/types.gen';
 
-export default function RecentTestSetsGrid({
-  sessionToken,
-}: RecentTestSetsGridProps) {
-  const [testSets, setTestSets] = useState<TestSet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [organizations, setOrganizations] = useState<
-    Record<string, Organization>
-  >({});
-  const [validOrgIds, setValidOrgIds] = useState<Set<string>>(new Set());
-  const [totalCount, setTotalCount] = useState<number>(0);
-  const [paginationModel, setPaginationModel] = useState({
+export default function RecentTestSetsGrid() {
+  const [paginationModel, setPaginationModel] = useState<{ page: number; pageSize: number }>({
     page: 0,
     pageSize: 10,
   });
 
-  const fetchTestSets = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const skip = paginationModel.page * paginationModel.pageSize;
+  const limit = paginationModel.pageSize;
 
-      // Calculate skip based on pagination model
-      const skip = paginationModel.page * paginationModel.pageSize;
-      const limit = paginationModel.pageSize;
+  // Build options with the generator helper (do NOT augment when calling useQuery)
+  const queryOptions = useMemo(
+      () =>
+          readTestSetsTestSetsGetOptions({
+            query: { skip, limit, sort_by: 'created_at', sort_order: 'desc' },
+          }),
+      [skip, limit]
+  );
 
-      const clientFactory = new ApiClientFactory(sessionToken);
-      const testSetsClient = clientFactory.getTestSetsClient();
-      const response = await testSetsClient.getTestSets({
-        skip,
-        limit,
-        sort_by: 'created_at',
-        sort_order: 'desc',
-      });
+  // Pass options directly to useQuery to keep the generator's queryKey/queryFn types intact
+  const { data, isLoading, isFetching, error } = useQuery(queryOptions);
 
-      setTestSets(response.data);
-      setTotalCount(response.pagination.totalCount);
-    } catch (error) {
-      console.error('Error fetching test sets:', error);
-      setError('Data currently unavailable');
-      setTestSets([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionToken, paginationModel]);
+  // Current backend returns a plain array for 200
+  const rows: TestSet[] = data ?? [];
 
-  useEffect(() => {
-    fetchTestSets();
-  }, [fetchTestSets]);
+  // Synthetic total so DataGrid keeps server-side pagination usable
+  const totalRows = rows.length < limit ? skip + rows.length : skip + rows.length + 1;
+
+  const loading = isLoading || isFetching;
 
   const handlePaginationModelChange = (newModel: GridPaginationModel) => {
     setPaginationModel(newModel);
   };
 
-  const testSetsColumns: GridColDef[] = [
+  const testSetsColumns: GridColDef<TestSet>[] = [
     {
       field: 'name',
       headerName: 'Name',
@@ -77,60 +58,61 @@ export default function RecentTestSetsGrid({
       field: 'description',
       headerName: 'Description',
       width: 220,
-      valueGetter: (_, row) =>
-        row.short_description || row.description || 'No description',
+      valueGetter: (_v, row) => row.short_description ?? row.description ?? 'No description',
     },
     {
       field: 'visibility',
       headerName: 'Visibility',
-      width: 100,
-      valueGetter: (_, row) => {
+      width: 120,
+      valueGetter: (_v, row) => {
         if (row.visibility) {
-          return (
-            row.visibility.charAt(0).toUpperCase() + row.visibility.slice(1)
-          );
+          return row.visibility.charAt(0).toUpperCase() + row.visibility.slice(1);
         }
         return row.is_published ? 'Public' : 'Private';
       },
-      renderCell: params => (
-        <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
-          <Typography variant="body2">{params.value}</Typography>
-        </Box>
+      renderCell: (params: GridRenderCellParams<TestSet, string>) => (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <Typography variant="body2">{params.value}</Typography>
+          </Box>
       ),
     },
   ];
 
-  if (loading && testSets.length === 0) {
+  if (loading && rows.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-        <CircularProgress />
-      </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
     );
   }
 
   return (
-    <Box>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-      <BaseDataGrid
-        rows={testSets}
-        columns={testSetsColumns}
-        paginationModel={paginationModel}
-        onPaginationModelChange={handlePaginationModelChange}
-        loading={loading}
-        showToolbar={false}
-        density="compact"
-        linkPath="/test-sets"
-        linkField="id"
-        serverSidePagination={true}
-        totalRows={totalCount}
-        pageSizeOptions={[10, 25, 50]}
-        disableRowSelectionOnClick
-        disablePaperWrapper={true}
-      />
-    </Box>
+      <Box>
+        {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error.message}
+            </Alert>
+        )}
+
+        <BaseDataGrid
+            rows={rows}
+            columns={testSetsColumns}
+            getRowId={(row: TestSet) =>
+             String(row.id ?? row.nano_id ?? `${row.name}`)
+            }
+            paginationModel={paginationModel}
+            onPaginationModelChange={handlePaginationModelChange}
+            loading={loading}
+            showToolbar={false}
+            density="compact"
+            linkPath="/test-sets"
+            linkField="id"
+            serverSidePagination
+            totalRows={totalRows}
+            pageSizeOptions={[10, 25, 50]}
+            disableRowSelectionOnClick
+            disablePaperWrapper
+        />
+      </Box>
   );
 }

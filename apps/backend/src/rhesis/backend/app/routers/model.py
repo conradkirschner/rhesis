@@ -13,6 +13,7 @@ from rhesis.backend.app.dependencies import get_tenant_context, get_db_session, 
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
 from rhesis.backend.app.utils.schema_factory import create_detailed_schema
+from rhesis.backend.app.schemas.pagination import Paginated
 
 # Create the detailed schema for Model
 ModelDetailSchema = create_detailed_schema(schemas.Model, models.Model)
@@ -53,8 +54,8 @@ def create_model(
     return crud.create_model(db=db, model=model, organization_id=organization_id, user_id=user_id)
 
 
-@router.get("/", response_model=List[ModelDetailSchema])
-@with_count_header(model=models.Model)
+@router.get("/", response_model=Paginated[ModelDetailSchema])
+@with_count_header(model=models.Model, to_body=True)
 def read_models(
     response: Response,
     skip: int = 0,
@@ -65,7 +66,7 @@ def read_models(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-) -> List[ModelDetailSchema]:
+) -> Paginated[ModelDetailSchema]:
     """Get all models with their related objects"""
     organization_id, user_id = tenant_context
     return crud.get_models(

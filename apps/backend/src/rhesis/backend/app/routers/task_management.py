@@ -12,6 +12,7 @@ from rhesis.backend.app.services.task_management import validate_task_organizati
 from rhesis.backend.app.services.task_notification import send_task_assignment_notification
 from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.schema_factory import create_detailed_schema
+from rhesis.backend.app.schemas.pagination import Paginated
 
 # Use rhesis logger
 from rhesis.backend.logging import logger
@@ -68,8 +69,8 @@ def create_task(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/", response_model=list[TaskDetailSchema])
-@with_count_header(model=models.Task)
+@router.get("/", response_model=Paginated[TaskDetailSchema])
+@with_count_header(model=models.Task, to_body=True)
 def list_tasks(
     skip: int = 0,
     limit: int = 100,
@@ -79,7 +80,7 @@ def list_tasks(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     response: Response = None,
-) -> list[TaskDetailSchema]:
+) -> Paginated[TaskDetailSchema]:
     """List tasks with filtering, sorting, and comment counts"""
     try:
         organization_id, user_id = tenant_context
@@ -106,8 +107,8 @@ def get_task(
     return task
 
 
-@router.get("/{entity_type}/{entity_id}", response_model=list[TaskDetailSchema])
-@with_count_header(model=models.Task)
+@router.get("/{entity_type}/{entity_id}", response_model=Paginated[TaskDetailSchema])
+@with_count_header(model=models.Task, to_body=True)
 def get_tasks_by_entity(
     entity_type: str,
     entity_id: uuid.UUID,
@@ -118,7 +119,7 @@ def get_tasks_by_entity(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     response: Response = None,
-) -> list[TaskDetailSchema]:
+) -> Paginated[TaskDetailSchema]:
     """Get tasks by entity type and entity ID"""
     try:
         organization_id, user_id = tenant_context

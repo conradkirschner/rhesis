@@ -17,6 +17,7 @@ from rhesis.backend.app.utils.decorators import with_count_header
 from rhesis.backend.app.utils.schema_factory import create_detailed_schema
 from rhesis.backend.tasks import task_launcher
 from rhesis.backend.tasks.test_configuration import execute_test_configuration
+from rhesis.backend.app.schemas.pagination import Paginated
 
 # Create the detailed schema for TestConfiguration
 TestConfigurationDetailSchema = create_detailed_schema(
@@ -78,8 +79,8 @@ def create_test_configuration(
     )
 
 
-@router.get("/", response_model=List[TestConfigurationDetailSchema])
-@with_count_header(model=models.TestConfiguration)
+@router.get("/", response_model=Paginated[TestConfigurationDetailSchema])
+@with_count_header(model=models.TestConfiguration, to_body=True)
 def read_test_configurations(
     response: Response,
     skip: int = 0,
@@ -90,7 +91,7 @@ def read_test_configurations(
     db: Session = Depends(get_tenant_db_session),
     tenant_context=Depends(get_tenant_context),
     current_user: User = Depends(require_current_user_or_token),
-) -> List[TestConfigurationDetailSchema]:
+) -> Paginated[TestConfigurationDetailSchema]:
     """Get all test configurations with their related objects"""
     organization_id, user_id = tenant_context
     test_configurations = crud.get_test_configurations(
