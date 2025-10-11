@@ -70,9 +70,7 @@ export default function DashboardCharts() {
       null;
 
   const categoryData = useMemo(() => {
-    const breakdown = (testStats as any)?.stats?.category?.breakdown as
-        | Record<string, number>
-        | undefined;
+    const breakdown = testStats?.stats?.category?.breakdown 
     if (!breakdown) return dimensionDataCategory;
     return Object.entries(breakdown)
         .map(([name, value]) => ({ name, value: Number(value) }))
@@ -80,9 +78,7 @@ export default function DashboardCharts() {
   }, [testStats]);
 
   const behaviorData = useMemo(() => {
-    const breakdown = (testStats as any)?.stats?.behavior?.breakdown as
-        | Record<string, number>
-        | undefined;
+    const breakdown = testStats?.stats?.behavior?.breakdown
     if (!breakdown) return dimensionDataBehavior;
     return Object.entries(breakdown)
         .map(([name, value]) => ({ name, value: Number(value) }))
@@ -92,7 +88,7 @@ export default function DashboardCharts() {
   const testCasesData = useMemo(() => {
     if (!testStats) return testCasesManagedData;
 
-    const monthlyCounts = (testStats as any)?.history?.monthly_counts as
+    const monthlyCounts = testStats?.history?.monthly_counts as
         | Record<string, number>
         | undefined;
 
@@ -101,25 +97,22 @@ export default function DashboardCharts() {
           monthlyCounts,
           getLastSixMonths()
       );
-      if (monthlyData.length > 0 && typeof (testStats as any).total === 'number') {
+      if (monthlyData.length > 0 && typeof (testStats).total === 'number') {
         const last = monthlyData[monthlyData.length - 1];
-        if (last.total < (testStats as any).total) {
-          last.total = (testStats as any).total;
+        if (last.total < (testStats).total) {
+          last.total = (testStats).total;
         }
       }
       return monthlyData;
     }
 
-    return [{ name: 'Current Total', total: (testStats as any).total ?? 0 }];
+    return [{ name: 'Current Total', total: (testStats).total ?? 0 }];
   }, [testStats]);
 
   const testExecutionTrendData = useMemo(() => {
-    const timeline = (testResultsStats as any)?.timeline as
-        | Array<{
-      date: string;
-      overall?: { total?: number; passed?: number; failed?: number; pass_rate?: number };
-    }>
-        | undefined;
+    if (!testResultsStats) return [];
+    const timeline = ("timeline" in testResultsStats) ? testResultsStats?.timeline: [];
+
 
     if (!timeline || timeline.length === 0) return testTrendData;
 

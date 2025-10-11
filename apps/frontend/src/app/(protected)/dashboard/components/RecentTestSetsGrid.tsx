@@ -36,10 +36,9 @@ export default function RecentTestSetsGrid() {
   const { data, isLoading, isFetching, error } = useQuery(queryOptions);
 
   // Current backend returns a plain array for 200
-  const rows: TestSet[] = data ?? [];
+  const rows: TestSet[] = data?.data ?? [];
 
-  // Synthetic total so DataGrid keeps server-side pagination usable
-  const totalRows = rows.length < limit ? skip + rows.length : skip + rows.length + 1;
+  const totalRows = data?.pagination.totalCount;
 
   const loading = isLoading || isFetching;
 

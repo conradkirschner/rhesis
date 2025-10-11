@@ -66,10 +66,9 @@ export default function RecentActivitiesGrid() {
   const { data, isLoading, isFetching, error } = useQuery(queryOptions);
 
   // Current backend returns a plain array for 200
-  const rows: TestDetail[] = data ?? [];
+  const rows: TestDetail[] = data?.data ?? [];
 
-  // Synthetic total to keep server-side pagination usable until totalCount is returned in the body
-  const totalRows = rows.length < limit ? skip + rows.length : skip + rows.length + 1;
+  const totalRows = data?.pagination.totalCount;
 
   const loading = isLoading || isFetching;
 
@@ -92,7 +91,6 @@ export default function RecentActivitiesGrid() {
               {error.message}
             </Alert>
         )}
-
         <BaseDataGrid
             rows={rows}
             columns={recentActivitiesColumns}
