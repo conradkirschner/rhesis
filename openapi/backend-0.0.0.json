@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Rhesis Backend",
-    "description": "API for testing and evaluating AI models.\n\n## Version Information\n- **Version**: 0.1.0\n- **Branch**: 477-adding-pino-logger\n- **Commit**: 0ff6bc7b\n\n## URL Encoding\nWhen using curl, special characters in URLs need to be URL-encoded. For example:\n- Encoded: `/tests/?%24filter=prompt_id%20eq%20'89905869-e8e9-4b2f-b362-3598cfe91968'`\n- Unencoded: `/tests/?$filter=prompt_id eq '89905869-e8e9-4b2f-b362-3598cfe91968'`\n\nThe `$` character must be encoded as `%24` when using curl.\nWeb browsers handle this automatically.\n",
+    "description": "API for testing and evaluating AI models.\n\n## Version Information\n- **Version**: 0.1.0\n- **Branch**: 477-adding-pino-logger\n- **Commit**: e4310119\n\n## URL Encoding\nWhen using curl, special characters in URLs need to be URL-encoded. For example:\n- Encoded: `/tests/?%24filter=prompt_id%20eq%20'89905869-e8e9-4b2f-b362-3598cfe91968'`\n- Unencoded: `/tests/?$filter=prompt_id eq '89905869-e8e9-4b2f-b362-3598cfe91968'`\n\nThe `$` character must be encoded as `%24` when using curl.\nWeb browsers handle this automatically.\n",
     "version": "0.1.0"
   },
   "paths": {
@@ -13865,15 +13865,8 @@
       "Behavior": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -13948,15 +13941,8 @@
       "BehaviorCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -14125,15 +14111,8 @@
       "BehaviorUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -14307,15 +14286,8 @@
       "Category": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -14414,15 +14386,8 @@
       "CategoryCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -14783,15 +14748,8 @@
       "CategoryUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -15269,15 +15227,8 @@
       "Demographic": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -15356,15 +15307,8 @@
       "DemographicCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -15439,15 +15383,8 @@
       "DemographicUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -15526,15 +15463,8 @@
       "Dimension": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -15601,15 +15531,8 @@
       "DimensionCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -15698,15 +15621,8 @@
       "DimensionUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -16293,15 +16209,8 @@
       "EndpointCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -17187,15 +17096,8 @@
       "EndpointUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -18623,15 +18525,8 @@
       "MetricCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -19065,15 +18960,8 @@
       "MetricUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -19575,15 +19463,8 @@
       "ModelCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -20168,15 +20049,8 @@
       "ModelUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -20803,15 +20677,8 @@
       "Organization": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -21010,15 +20877,8 @@
       "OrganizationCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -21302,15 +21162,8 @@
       "OrganizationUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -22189,15 +22042,8 @@
       "ProjectCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -22589,15 +22435,8 @@
       "ProjectUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -22711,15 +22550,8 @@
       "Prompt": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -22909,15 +22741,8 @@
       "PromptCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -23233,15 +23058,8 @@
       "PromptTemplate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -23390,15 +23208,8 @@
       "PromptTemplateCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -23547,15 +23358,8 @@
       "PromptTemplateUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -23708,15 +23512,8 @@
       "PromptUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -23916,15 +23713,8 @@
       "PromptView": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -24104,15 +23894,8 @@
       "ResponsePattern": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -24188,15 +23971,8 @@
       "ResponsePatternCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -24272,15 +24048,8 @@
       "ResponsePatternUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -24410,15 +24179,8 @@
       "Risk": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -24505,15 +24267,8 @@
       "RiskCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -24600,15 +24355,8 @@
       "RiskUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -24782,15 +24530,8 @@
       "Source": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -24923,15 +24664,8 @@
       "SourceCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -25171,15 +24905,8 @@
       "SourceUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -25324,15 +25051,8 @@
       "Status": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -25407,15 +25127,8 @@
       "StatusCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -25717,15 +25430,8 @@
       "StatusUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -25804,15 +25510,8 @@
       "Tag": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -25875,15 +25574,8 @@
       "TagCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -25987,15 +25679,8 @@
       "TagUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -26062,15 +25747,8 @@
       "Task": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -26889,15 +26567,8 @@
       "TestConfiguration": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -27036,15 +26707,8 @@
       "TestConfigurationCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -27417,15 +27081,8 @@
       "TestConfigurationUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -27676,15 +27333,8 @@
       "TestContextCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -27762,15 +27412,8 @@
       "TestContextUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -27864,15 +27507,8 @@
       "TestCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -28797,15 +28433,8 @@
       "TestResult": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -28937,15 +28566,8 @@
       "TestResultCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -29633,15 +29255,8 @@
       "TestResultUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -29777,15 +29392,8 @@
       "TestRun": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -29900,15 +29508,8 @@
       "TestRunCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -30697,15 +30298,8 @@
       "TestRunUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -30823,15 +30417,8 @@
       "TestSet": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -31365,15 +30952,8 @@
       "TestSetCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -32179,15 +31759,8 @@
       "TestSetUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -32621,15 +32194,8 @@
       "TestUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -33121,15 +32687,8 @@
       "TokenUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -33265,15 +32824,8 @@
       "Topic": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -33372,15 +32924,8 @@
       "TopicCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -33721,15 +33266,8 @@
       "TopicUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -33832,15 +33370,8 @@
       "TypeLookup": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -33908,15 +33439,8 @@
       "TypeLookupCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -34067,15 +33591,8 @@
       "TypeLookupUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -34153,15 +33670,8 @@
       "UseCase": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -34264,15 +33774,8 @@
       "UseCaseCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -34459,15 +33962,8 @@
       "UseCaseUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -34579,15 +34075,8 @@
       "User": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -34718,15 +34207,8 @@
       "UserCreate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {
@@ -34962,15 +34444,8 @@
       "UserUpdate": {
         "properties": {
           "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid4"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "format": "uuid4",
             "title": "Id"
           },
           "nano_id": {

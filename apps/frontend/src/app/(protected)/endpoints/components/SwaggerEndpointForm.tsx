@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -23,14 +23,6 @@ import {
 } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 import DownloadIcon from '@mui/icons-material/Download';
-import { createEndpoint } from '@/actions/endpoints';
-import { Endpoint } from '@/utils/api-client/interfaces/endpoint';
-import { Project } from '@/utils/api-client/interfaces/project';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { useSession } from 'next-auth/react';
-import { auth } from '@/auth';
-
-// Import icons for project icon rendering
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import DevicesIcon from '@mui/icons-material/Devices';
 import WebIcon from '@mui/icons-material/Web';
@@ -51,6 +43,14 @@ import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
 import SchoolIcon from '@mui/icons-material/School';
 import ScienceIcon from '@mui/icons-material/Science';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+
+import { useQuery } from '@tanstack/react-query';
+import { createEndpoint } from '@/actions/endpoints';
+
+// Generated API query options + types
+import { readProjectsProjectsGetOptions } from '@/api-client/@tanstack/react-query.gen';
+import type { PaginatedProjectDetail, ProjectDetail } from '@/api-client/types.gen';
+import type { Endpoint } from '@/utils/api-client/interfaces/endpoint';
 
 // Map of icon names to components for easy lookup
 const ICON_MAP: Record<string, React.ComponentType> = {
@@ -76,16 +76,15 @@ const ICON_MAP: Record<string, React.ComponentType> = {
   AccountTree: AccountTreeIcon,
 };
 
-const ENVIRONMENTS = ['production', 'staging', 'development'];
+const ENVIRONMENTS = ['production', 'staging', 'development'] as const;
+type Environment = (typeof ENVIRONMENTS)[number];
 
 // Get appropriate icon based on project type or use case
-const getProjectIcon = (project: Project) => {
-  // Check if a specific project icon was selected during creation
+const getProjectIcon = (project?: { icon?: string|null }) => {
   if (project?.icon && ICON_MAP[project.icon]) {
     const IconComponent = ICON_MAP[project.icon];
     return <IconComponent />;
   }
-
   // Fall back to a default icon
   return <SmartToyIcon />;
 };
@@ -93,13 +92,18 @@ const getProjectIcon = (project: Project) => {
 export default function SwaggerEndpointForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [swaggerUrl, setSwaggerUrl] = useState('');
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState<boolean>(true);
-  const { data: session } = useSession();
 
-  const [formData, setFormData] = useState({
+  // Form state for OpenAPI-based creation
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    environment: Environment;
+    openapi_spec_url: string;
+    config_source: 'openapi';
+    project_id: string;
+  }>({
     name: '',
     description: '',
     environment: 'development',
@@ -108,70 +112,44 @@ export default function SwaggerEndpointForm() {
     project_id: '',
   });
 
-  // Fetch projects when component mounts
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        setLoadingProjects(true);
-        let sessionToken = session?.session_token;
+  // Load projects via generated TanStack v5 query options (paginated response)
+  const {
+    data: projectsPage,
+    isLoading: loadingProjects,
+    isError: projectsError,
+  } = useQuery({
+    ...readProjectsProjectsGetOptions({
+      query: { skip: 0, limit: 100, sort_by: 'name', sort_order: 'asc' },
+    }),
+  });
 
-        // Fallback to server-side auth if client-side session is not available
-        if (!sessionToken) {
-          try {
-            const serverSession = await auth();
-            sessionToken = serverSession?.session_token;
-          } catch (error) {
-            console.error(
-              'Failed to get session from server-side auth:',
-              error
-            );
-          }
-        }
+  const projects: ProjectDetail[] = useMemo(
+      () => ((projectsPage as PaginatedProjectDetail | undefined)?.data ?? []),
+      [projectsPage]
+  );
 
-        if (sessionToken) {
-          const client = new ApiClientFactory(sessionToken).getProjectsClient();
-          const data = await client.getProjects();
-          setProjects(data.data);
-        } else {
-          setError('Authentication required. Please log in again.');
-        }
-      } catch (err) {
-        console.error('Error fetching projects:', err);
-        setError('Failed to load projects. Please try again later.');
-      } finally {
-        setLoadingProjects(false);
-      }
-    };
-
-    fetchProjects();
-  }, [session]);
-
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value,
+      [field]: value as Environment | 'openapi' | string,
     }));
   };
 
   const handleImportSpecification = async () => {
-    setIsLoading(true);
+    setIsImporting(true);
     setError(null);
-
     try {
-      // TODO: Implement the actual swagger import logic
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated delay
-
-      // Update the form data with the Swagger URL
-      setFormData(prev => ({
-        ...prev,
-        openapi_spec_url: swaggerUrl,
-      }));
-    } catch (error) {
+      // Simple client-side store of the URL; add validation if desired
+      await new Promise(resolve => setTimeout(resolve, 200));
+      setFormData(prev => ({ ...prev, openapi_spec_url: swaggerUrl }));
+    } catch (e) {
       setError(
-        `Failed to import Swagger specification: ${(error as Error).message}`
+          `Failed to import Swagger specification: ${
+              (e as Error).message || 'Unknown error'
+          }`
       );
     } finally {
-      setIsLoading(false);
+      setIsImporting(false);
     }
   };
 
@@ -184,256 +162,233 @@ export default function SwaggerEndpointForm() {
       return;
     }
 
+    // Build payload with **narrow** literal types and validate against Endpoint
+    const payload = {
+      name: formData.name,
+      description: formData.description,
+      project_id: formData.project_id,
+      environment: formData.environment,
+      config_source: 'openapi',           // <- literal, NOT string
+      openapi_spec_url: formData.openapi_spec_url,
+
+      // Minimum required extras to satisfy Omit<Endpoint, 'id'>
+      url: '',
+      protocol: 'REST',                   // <- literal
+      method: 'POST',                     // <- literal (use your allowed set)
+      response_format: 'json',            // <- literal
+      endpoint_path: '',
+    } satisfies Omit<Endpoint, 'id'>;
+
     try {
-      await createEndpoint(formData as unknown as Omit<Endpoint, 'id'>);
+      await createEndpoint(payload);
       router.push('/endpoints');
-    } catch (error) {
-      setError((error as Error).message);
+    } catch (e) {
+      setError((e as Error).message);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <Card>
-        {/* Action buttons row */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            p: 2,
-          }}
-        >
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant="outlined"
-              onClick={() => router.push('/endpoints')}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              disabled={projects.length === 0 && !loadingProjects}
-            >
-              Create Endpoint
-            </Button>
+      <form onSubmit={handleSubmit}>
+        <Card>
+          {/* Action buttons row */}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button variant="outlined" onClick={() => router.push('/endpoints')}>
+                Cancel
+              </Button>
+              <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  disabled={(projects.length === 0 && !loadingProjects) || isImporting}
+              >
+                Create Endpoint
+              </Button>
+            </Box>
           </Box>
-        </Box>
 
-        <Box sx={{ p: 3 }}>
-          <Grid container spacing={3}>
-            {/* General Information */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                General Information
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Name"
-                    value={formData.name}
-                    onChange={e => handleChange('name', e.target.value)}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Description"
-                    value={formData.description}
-                    onChange={e => handleChange('description', e.target.value)}
-                    multiline
-                    rows={1}
-                  />
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* Swagger URL */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                Swagger Configuration
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ p: 3 }}>
+            <Grid container spacing={3}>
+              {/* General Information */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                  General Information
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
                     <TextField
-                      fullWidth
-                      label="Swagger Documentation URL"
-                      value={swaggerUrl}
-                      onChange={e => setSwaggerUrl(e.target.value)}
-                      placeholder="https://api.example.com/swagger.json"
-                    />
-                    <LoadingButton
-                      variant="outlined"
-                      onClick={handleImportSpecification}
-                      loading={isLoading}
-                      loadingPosition="start"
-                      startIcon={<DownloadIcon />}
-                      sx={{ minWidth: '200px' }}
-                    >
-                      Import
-                    </LoadingButton>
-                  </Box>
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* Project Selection */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                Project
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  {projects.length === 0 && !loadingProjects ? (
-                    <Alert
-                      severity="warning"
-                      action={
-                        <Button
-                          color="inherit"
-                          size="small"
-                          component="a"
-                          href="/projects/create-new"
-                        >
-                          Create Project
-                        </Button>
-                      }
-                    >
-                      No projects available. Please create a project first.
-                    </Alert>
-                  ) : (
-                    <FormControl
-                      fullWidth
-                      required
-                      error={Boolean(error && !formData.project_id)}
-                    >
-                      <InputLabel id="project-select-label">
-                        Select Project
-                      </InputLabel>
-                      <Select
-                        labelId="project-select-label"
-                        id="project-select"
-                        value={formData.project_id}
-                        onChange={e =>
-                          handleChange('project_id', e.target.value)
-                        }
-                        label="Select Project"
-                        disabled={loadingProjects}
+                        fullWidth
+                        label="Name"
+                        value={formData.name}
+                        onChange={e => handleChange('name', e.target.value)}
                         required
-                        renderValue={selected => {
-                          const selectedProject = projects.find(
-                            p => p.id === selected
-                          );
-                          return (
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              {selectedProject && (
-                                <Box
-                                  sx={{
-                                    mr: 1,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                  }}
-                                >
-                                  {getProjectIcon(selectedProject)}
-                                </Box>
-                              )}
-                              {selectedProject?.name || 'No project selected'}
-                            </Box>
-                          );
-                        }}
-                      >
-                        {loadingProjects ? (
-                          <MenuItem disabled>
-                            <CircularProgress size={20} sx={{ mr: 1 }} />
-                            Loading projects...
-                          </MenuItem>
-                        ) : (
-                          projects.map(project => (
-                            <MenuItem key={project.id} value={project.id}>
-                              <ListItemIcon>
-                                {getProjectIcon(project)}
-                              </ListItemIcon>
-                              <ListItemText
-                                primary={project.name}
-                                secondary={project.description}
-                              />
-                            </MenuItem>
-                          ))
-                        )}
-                      </Select>
-                      {error && !formData.project_id && (
-                        <FormHelperText error>
-                          A project is required
-                        </FormHelperText>
-                      )}
-                    </FormControl>
-                  )}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                        fullWidth
+                        label="Description"
+                        value={formData.description}
+                        onChange={e => handleChange('description', e.target.value)}
+                        multiline
+                        rows={1}
+                    />
+                  </Grid>
                 </Grid>
               </Grid>
-            </Grid>
 
-            {/* Environment */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                Environment
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <ToggleButtonGroup
-                    value={formData.environment}
-                    exclusive
-                    onChange={(e, newValue) => {
-                      if (newValue !== null) {
-                        setFormData(prev => ({
-                          ...prev,
-                          environment: newValue,
-                        }));
-                      }
-                    }}
-                    aria-label="environment selection"
-                    sx={{
-                      '& .MuiToggleButton-root.Mui-selected': {
-                        backgroundColor: 'primary.main',
-                        color: 'common.white',
-                        '&:hover': {
-                          backgroundColor: 'primary.dark',
-                        },
-                      },
-                    }}
-                  >
-                    {ENVIRONMENTS.map(env => (
-                      <ToggleButton
-                        key={env}
-                        value={env}
+              {/* Swagger URL */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                  Swagger / OpenAPI
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <TextField
+                          fullWidth
+                          label="OpenAPI JSON URL"
+                          value={swaggerUrl}
+                          onChange={e => setSwaggerUrl(e.target.value)}
+                          placeholder="https://api.example.com/openapi.json"
+                      />
+                      <LoadingButton
+                          variant="outlined"
+                          onClick={handleImportSpecification}
+                          loading={isImporting}
+                          loadingPosition="start"
+                          startIcon={<DownloadIcon />}
+                          sx={{ minWidth: '200px' }}
+                      >
+                        Import
+                      </LoadingButton>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Grid>
+
+              {/* Project Selection */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                  Project
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    {projectsError && !loadingProjects ? (
+                        <Alert severity="error">
+                          Failed to load projects. Please try again later.
+                        </Alert>
+                    ) : projects.length === 0 && !loadingProjects ? (
+                        <Alert severity="warning">
+                          No projects available. Please create a project first.
+                        </Alert>
+                    ) : (
+                        <FormControl
+                            fullWidth
+                            required
+                            error={Boolean(error && !formData.project_id)}
+                        >
+                          <InputLabel id="project-select-label">Select Project</InputLabel>
+                          <Select
+                              labelId="project-select-label"
+                              id="project-select"
+                              value={formData.project_id}
+                              onChange={e => handleChange('project_id', e.target.value)}
+                              label="Select Project"
+                              disabled={loadingProjects}
+                              required
+                              renderValue={selected => {
+                                const selectedProject = projects.find(p => p.id === selected);
+                                return (
+                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                      {selectedProject && (
+                                          <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
+                                            {getProjectIcon(selectedProject)}
+                                          </Box>
+                                      )}
+                                      {selectedProject?.name || 'No project selected'}
+                                    </Box>
+                                );
+                              }}
+                          >
+                            {loadingProjects ? (
+                                <MenuItem disabled>
+                                  <CircularProgress size={20} sx={{ mr: 1 }} />
+                                  Loading projects...
+                                </MenuItem>
+                            ) : (
+                                projects.map(project => (
+                                    <MenuItem key={project.id} value={project.id}>
+                                      <ListItemIcon>{getProjectIcon(project)}</ListItemIcon>
+                                      <ListItemText
+                                          primary={project.name}
+                                          secondary={project.description ?? ''}
+                                      />
+                                    </MenuItem>
+                                ))
+                            )}
+                          </Select>
+                          {error && !formData.project_id && (
+                              <FormHelperText error>A project is required</FormHelperText>
+                          )}
+                        </FormControl>
+                    )}
+                  </Grid>
+                </Grid>
+              </Grid>
+
+              {/* Environment */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                  Environment
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <ToggleButtonGroup
+                        value={formData.environment}
+                        exclusive
+                        onChange={(_, newValue: Environment | null) => {
+                          if (newValue) {
+                            handleChange('environment', newValue);
+                          }
+                        }}
+                        aria-label="environment selection"
                         sx={{
-                          textTransform: 'capitalize',
-                          '&.Mui-selected': {
-                            borderColor: 'primary.main',
-                          },
-                          '&:hover': {
-                            backgroundColor: 'action.hover',
+                          '& .MuiToggleButton-root.Mui-selected': {
+                            backgroundColor: 'primary.main',
+                            color: 'common.white',
+                            '&:hover': { backgroundColor: 'primary.dark' },
                           },
                         }}
-                      >
-                        {env}
-                      </ToggleButton>
-                    ))}
-                  </ToggleButtonGroup>
+                    >
+                      {ENVIRONMENTS.map(env => (
+                          <ToggleButton
+                              key={env}
+                              value={env}
+                              sx={{
+                                textTransform: 'capitalize',
+                                '&.Mui-selected': { borderColor: 'primary.main' },
+                                '&:hover': { backgroundColor: 'action.hover' },
+                              }}
+                          >
+                            {env}
+                          </ToggleButton>
+                      ))}
+                    </ToggleButtonGroup>
+                  </Grid>
                 </Grid>
               </Grid>
             </Grid>
-          </Grid>
-        </Box>
-      </Card>
+          </Box>
+        </Card>
 
-      {error && (
-        <Box sx={{ mt: 2 }}>
-          <Alert severity="error">{error}</Alert>
-        </Box>
-      )}
-    </form>
+        {(error || projectsError) && (
+            <Box sx={{ mt: 2 }}>
+              <Alert severity="error">
+                {error ?? 'Failed to load projects. Please try again later.'}
+              </Alert>
+            </Box>
+        )}
+      </form>
   );
 }

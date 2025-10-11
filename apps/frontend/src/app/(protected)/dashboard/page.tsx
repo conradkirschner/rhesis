@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import DashboardCharts from './components/DashboardCharts';
@@ -42,13 +41,6 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const router = useRouter();
 
-  // Check if user has organization_id
-  useEffect(() => {
-    const user = session?.user as ExtendedUser | undefined;
-
-    // Removed organization_id check - now handled by middleware
-  }, [session, router]);
-
   return (
     <PageContainer>
       {/* Charts Section */}
@@ -86,7 +78,7 @@ export default function DashboardPage() {
               <HorizontalSplitIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
               Newest Test Sets
             </Typography>
-            <RecentTestSetsGrid sessionToken={session?.session_token || ''} />
+            <RecentTestSetsGrid />
           </Paper>
         </Grid>
 

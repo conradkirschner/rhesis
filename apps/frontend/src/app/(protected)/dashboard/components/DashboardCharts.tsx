@@ -97,7 +97,7 @@ export default function DashboardCharts() {
           monthlyCounts,
           getLastSixMonths()
       );
-      if (monthlyData.length > 0 && typeof (testStats).total === 'number') {
+      if (monthlyData.length > 0) {
         const last = monthlyData[monthlyData.length - 1];
         if (last.total < (testStats).total) {
           last.total = (testStats).total;

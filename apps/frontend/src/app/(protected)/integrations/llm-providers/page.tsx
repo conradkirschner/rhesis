@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Paper,
@@ -15,7 +15,6 @@ import {
   CircularProgress,
   Alert,
   List,
-  ListItem,
   ListItemIcon,
   ListItemText,
   ListItemButton,
@@ -24,49 +23,55 @@ import {
 import {
   SiOpenai,
   SiGoogle,
-  SiAmazon,
   SiHuggingface,
   SiOllama,
   SiReplicate,
 } from '@icons-pack/react-simple-icons';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AnthropicIcon from '@mui/icons-material/Psychology';
 import CohereLogo from '@mui/icons-material/AutoFixHigh';
 import MistralIcon from '@mui/icons-material/AcUnit';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { DeleteIcon, AddIcon, CloudIcon } from '@/components/icons';
-import { useSession } from 'next-auth/react';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { Model, ModelCreate } from '@/utils/api-client/interfaces/model';
-import { TypeLookup } from '@/utils/api-client/interfaces/type-lookup';
-import { DeleteModal } from '@/components/common/DeleteModal';
 
-interface ProviderInfo {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-}
+import { DeleteIcon, AddIcon } from '@/components/icons';
+import { DeleteModal } from '@/components/common/DeleteModal';
+import { useSession } from 'next-auth/react';
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  // Queries
+  readTypeLookupsTypeLookupsGetOptions,
+  readModelsModelsGetOptions,
+  // Mutations
+  createModelModelsPostMutation,
+  deleteModelModelsModelIdDeleteMutation,
+} from '@/api-client/@tanstack/react-query.gen';
+
+import type {
+  TypeLookup,
+  Model,
+  ModelCreate,
+} from '@/api-client/types.gen';
+
+/* ----------------------------- Icons by provider ---------------------------- */
 
 const PROVIDER_ICONS: Record<string, React.ReactNode> = {
-  anthropic: (
-    <AnthropicIcon sx={{ fontSize: theme => theme.iconSizes.large }} />
-  ),
-  cohere: <CohereLogo sx={{ fontSize: theme => theme.iconSizes.large }} />,
+  anthropic: <AnthropicIcon sx={{ fontSize: (t) => t.iconSizes.large }} />,
+  cohere: <CohereLogo sx={{ fontSize: (t) => t.iconSizes.large }} />,
   google: <SiGoogle className="h-8 w-8" />,
-  groq: <SmartToyIcon sx={{ fontSize: theme => theme.iconSizes.large }} />,
+  groq: <SmartToyIcon sx={{ fontSize: (t) => t.iconSizes.large }} />,
   huggingface: <SiHuggingface className="h-8 w-8" />,
-  meta: <SmartToyIcon sx={{ fontSize: theme => theme.iconSizes.large }} />,
-  mistral: <MistralIcon sx={{ fontSize: theme => theme.iconSizes.large }} />,
+  meta: <SmartToyIcon sx={{ fontSize: (t) => t.iconSizes.large }} />,
+  mistral: <MistralIcon sx={{ fontSize: (t) => t.iconSizes.large }} />,
   ollama: <SiOllama className="h-8 w-8" />,
   openai: <SiOpenai className="h-8 w-8" />,
-  perplexity: (
-    <SmartToyIcon sx={{ fontSize: theme => theme.iconSizes.large }} />
-  ),
+  perplexity: <SmartToyIcon sx={{ fontSize: (t) => t.iconSizes.large }} />,
   replicate: <SiReplicate className="h-8 w-8" />,
-  together: <SmartToyIcon sx={{ fontSize: theme => theme.iconSizes.large }} />,
-  vllm: <SmartToyIcon sx={{ fontSize: theme => theme.iconSizes.large }} />,
+  together: <SmartToyIcon sx={{ fontSize: (t) => t.iconSizes.large }} />,
+  vllm: <SmartToyIcon sx={{ fontSize: (t) => t.iconSizes.large }} />,
 };
+
+/* ----------------------------- Select Provider ------------------------------ */
 
 interface ProviderSelectionDialogProps {
   open: boolean;
@@ -76,101 +81,91 @@ interface ProviderSelectionDialogProps {
 }
 
 function ProviderSelectionDialog({
-  open,
-  onClose,
-  onSelectProvider,
-  providers,
-}: ProviderSelectionDialogProps) {
+                                   open,
+                                   onClose,
+                                   onSelectProvider,
+                                   providers,
+                                 }: ProviderSelectionDialogProps) {
   if (!providers || providers.length === 0) {
     return (
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogTitle>Select LLM Provider</DialogTitle>
-        <DialogContent>
-          <Box sx={{ py: 2, textAlign: 'center' }}>
-            <Typography color="text.secondary">
-              No providers available. Please try again later.
-            </Typography>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose}>Close</Button>
-        </DialogActions>
-      </Dialog>
+        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+          <DialogTitle>Select LLM Provider</DialogTitle>
+          <DialogContent>
+            <Box sx={{ py: 2, textAlign: 'center' }}>
+              <Typography color="text.secondary">
+                No providers available. Please try again later.
+              </Typography>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={onClose}>Close</Button>
+          </DialogActions>
+        </Dialog>
     );
   }
 
-  // Sort providers alphabetically by type_value
-  const sortedProviders = [...providers].sort((a, b) =>
-    a.type_value.localeCompare(b.type_value)
+  const sorted = [...providers].sort((a, b) =>
+      a.type_value.localeCompare(b.type_value),
   );
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Select LLM Provider</DialogTitle>
-      <DialogContent>
-        <List>
-          {sortedProviders.map(provider => {
-            const providerInfo: ProviderInfo = {
-              id: provider.type_value,
-              name: provider.description || provider.type_value,
-              description: provider.description || '',
-              icon: PROVIDER_ICONS[provider.type_value] || (
-                <SmartToyIcon
-                  sx={{ fontSize: theme => theme.iconSizes.large }}
-                />
-              ),
-            };
-
-            return (
-              <ListItemButton
-                key={provider.id}
-                onClick={() => onSelectProvider(provider)}
-                sx={{
-                  borderRadius: theme => theme.shape.borderRadius * 0.25,
-                  my: 0.5,
-                  '&:hover': {
-                    backgroundColor: 'action.hover',
-                  },
-                }}
-              >
-                <ListItemIcon>{providerInfo.icon}</ListItemIcon>
-                <ListItemText
-                  primary={providerInfo.name}
-                  secondary={providerInfo.description}
-                />
-              </ListItemButton>
-            );
-          })}
-        </List>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-      </DialogActions>
-    </Dialog>
+      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Select LLM Provider</DialogTitle>
+        <DialogContent>
+          <List>
+            {sorted.map((provider) => {
+              const icon =
+                  PROVIDER_ICONS[provider.type_value] ?? (
+                      <SmartToyIcon sx={{ fontSize: (t) => t.iconSizes.large }} />
+                  );
+              return (
+                  <ListItemButton
+                      key={provider.id}
+                      onClick={() => onSelectProvider(provider)}
+                      sx={{
+                        borderRadius: (t) => t.shape.borderRadius * 0.25,
+                        my: 0.5,
+                        '&:hover': { backgroundColor: 'action.hover' },
+                      }}
+                  >
+                    <ListItemIcon>{icon}</ListItemIcon>
+                    <ListItemText
+                        primary={provider.description || provider.type_value}
+                        secondary={provider.description || ''}
+                    />
+                  </ListItemButton>
+              );
+            })}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onClose}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
   );
 }
+
+/* ---------------------------- Connect Provider ------------------------------ */
 
 interface ConnectionDialogProps {
   open: boolean;
   provider: TypeLookup | null;
   onClose: () => void;
-  onConnect: (providerId: string, modelData: ModelCreate) => Promise<void>;
+  onConnect: (payload: ModelCreate) => Promise<void>;
 }
 
 function ConnectionDialog({
-  open,
-  provider,
-  onClose,
-  onConnect,
-}: ConnectionDialogProps) {
+                            open,
+                            provider,
+                            onClose,
+                            onConnect,
+                          }: ConnectionDialogProps) {
   const [name, setName] = useState('');
   const [providerName, setProviderName] = useState('');
   const [modelName, setModelName] = useState('');
   const [endpoint, setEndpoint] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [customHeaders, setCustomHeaders] = useState<Record<string, string>>(
-    {}
-  );
+  const [customHeaders, setCustomHeaders] = useState<Record<string, string>>({});
   const [newHeaderKey, setNewHeaderKey] = useState('');
   const [newHeaderValue, setNewHeaderValue] = useState('');
   const [loading, setLoading] = useState(false);
@@ -178,7 +173,7 @@ function ConnectionDialog({
 
   const isCustomProvider = provider?.type_value === 'vllm';
 
-  // Reset form when dialog opens with new provider
+  // Reset form when opening for a provider
   useEffect(() => {
     if (provider) {
       setName('');
@@ -194,603 +189,528 @@ function ConnectionDialog({
   }, [provider]);
 
   const handleAddHeader = () => {
-    if (newHeaderKey.trim() && newHeaderValue.trim()) {
-      setCustomHeaders(prev => ({
-        ...prev,
-        [newHeaderKey.trim()]: newHeaderValue.trim(),
-      }));
+    const key = newHeaderKey.trim();
+    const val = newHeaderValue.trim();
+    if (key && val) {
+      setCustomHeaders((prev) => ({ ...prev, [key]: val }));
       setNewHeaderKey('');
       setNewHeaderValue('');
     }
   };
 
   const handleRemoveHeader = (key: string) => {
-    setCustomHeaders(prev => {
-      const newHeaders = { ...prev };
-      delete newHeaders[key];
-      return newHeaders;
+    setCustomHeaders((prev) => {
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (provider && name && modelName && endpoint && apiKey) {
-      setLoading(true);
-      setError(null);
-      try {
-        const requestHeaders: Record<string, any> = {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          ...customHeaders,
-        };
+    if (!provider || !name || !modelName || !endpoint || !apiKey) return;
 
-        const modelData: ModelCreate = {
-          name,
-          description: `${isCustomProvider ? providerName : provider.description} Connection`,
-          icon: provider.type_value,
-          model_name: modelName,
-          endpoint,
-          key: apiKey,
-          tags: [provider.type_value],
-          request_headers: requestHeaders,
-        };
-        await onConnect(provider.type_value, modelData);
-        onClose();
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to connect to provider'
-        );
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    setError(null);
+    try {
+      const request_headers: Record<string, string> = {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        ...customHeaders,
+      };
+
+      const payload: ModelCreate = {
+        name,
+        description: `${
+            isCustomProvider ? providerName : provider.description || provider.type_value
+        } Connection`,
+        icon: provider.type_value,
+        model_name: modelName,
+        endpoint,
+        key: apiKey,
+        request_headers,
+        // Use provider lookup id if your backend expects the relation:
+        provider_type_id: provider.id,
+      };
+
+      await onConnect(payload);
+      onClose();
+    } catch (err) {
+      setError(
+          err instanceof Error ? err.message : 'Failed to connect to provider',
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
-  const providerIcon = PROVIDER_ICONS[provider?.type_value || ''] || (
-    <SmartToyIcon sx={{ fontSize: theme => theme.iconSizes.medium }} />
-  );
+  const providerIcon =
+      PROVIDER_ICONS[provider?.type_value || ''] ?? (
+          <SmartToyIcon sx={{ fontSize: (t) => t.iconSizes.medium }} />
+      );
+
   const displayName = isCustomProvider
-    ? 'Custom Provider'
-    : provider?.description || provider?.type_value || 'Provider';
+      ? 'Custom Provider'
+      : provider?.description || provider?.type_value || 'Provider';
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: theme => theme.shape.borderRadius * 0.5 },
-      }}
-    >
-      <DialogTitle sx={{ pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {providerIcon}
-          <Box>
-            <Typography variant="h6" component="div">
-              Connect to {displayName}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Configure your connection settings below
-            </Typography>
+      <Dialog
+          open={open}
+          onClose={onClose}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: (t) => t.shape.borderRadius * 0.5 } }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {providerIcon}
+            <Box>
+              <Typography variant="h6">Connect to {displayName}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Configure your connection settings below
+              </Typography>
+            </Box>
           </Box>
-        </Box>
-      </DialogTitle>
+        </DialogTitle>
 
-      <form onSubmit={handleSubmit}>
-        <DialogContent sx={{ px: 3, py: 2 }}>
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
-
-          <Stack spacing={2}>
-            {/* Basic Configuration */}
-            <Typography
-              variant="subtitle1"
-              sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}
-            >
-              Basic Configuration
-            </Typography>
-
-            {isCustomProvider && (
-              <TextField
-                label="Provider Name"
-                fullWidth
-                required
-                value={providerName}
-                onChange={e => setProviderName(e.target.value)}
-                helperText="A descriptive name for your custom LLM provider or deployment"
-              />
+        <form onSubmit={handleSubmit}>
+          <DialogContent sx={{ px: 3, py: 2 }}>
+            {error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                  {error}
+                </Alert>
             )}
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField
-                label="Connection Name"
-                fullWidth
-                variant="outlined"
-                required
-                value={name}
-                onChange={e => setName(e.target.value)}
-                helperText="A unique name to identify this connection"
-              />
-
-              <TextField
-                label="Model Name"
-                fullWidth
-                required
-                value={modelName}
-                onChange={e => setModelName(e.target.value)}
-                helperText={
-                  isCustomProvider
-                    ? 'The model identifier for your deployment'
-                    : 'The specific model to use from this provider'
-                }
-              />
-            </Stack>
-
-            {/* Connection Details */}
-            <Typography
-              variant="subtitle1"
-              sx={{ fontWeight: 600, mb: 1, color: 'primary.main', mt: 1 }}
-            >
-              Connection Details
-            </Typography>
-
-            <TextField
-              label="API Endpoint"
-              fullWidth
-              required
-              value={endpoint}
-              onChange={e => setEndpoint(e.target.value)}
-              helperText={
-                isCustomProvider
-                  ? "The full URL of your model's API endpoint"
-                  : 'The API endpoint URL provided by your LLM provider'
-              }
-            />
-
-            <TextField
-              label="API Key"
-              fullWidth
-              required
-              type="password"
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-              helperText={
-                isCustomProvider
-                  ? 'Authentication key for your deployment (if required)'
-                  : "Your API key from the provider's dashboard"
-              }
-            />
-
-            {/* Custom Headers */}
-            <Stack spacing={1}>
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: 600, color: 'primary.main', mt: 1 }}
-              >
-                Custom Headers (Optional)
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Add any additional HTTP headers required for your API calls.
-                Authorization header is automatically included.
+            <Stack spacing={2}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
+                Basic Configuration
               </Typography>
 
-              {/* Existing Headers */}
-              {Object.entries(customHeaders).length > 0 && (
-                <Stack spacing={1}>
-                  {Object.entries(customHeaders).map(([key, value]) => (
-                    <Paper
-                      key={key}
-                      variant="outlined"
-                      sx={{
-                        p: 2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        bgcolor: 'grey.50',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', gap: 2, flex: 1 }}>
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 500, minWidth: 120 }}
-                        >
-                          {key}:
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {value}
-                        </Typography>
-                      </Box>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleRemoveHeader(key)}
-                        color="error"
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Paper>
-                  ))}
-                </Stack>
+              {isCustomProvider && (
+                  <TextField
+                      label="Provider Name"
+                      fullWidth
+                      required
+                      value={providerName}
+                      onChange={(e) => setProviderName(e.target.value)}
+                      helperText="A descriptive name for your custom LLM provider or deployment"
+                  />
               )}
 
-              {/* Add New Header */}
-              <Paper variant="outlined" sx={{ p: 2 }}>
-                <Stack
-                  direction={{ xs: 'column', sm: 'row' }}
-                  spacing={2}
-                  alignItems="flex-end"
-                >
-                  <TextField
-                    label="Header Name"
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                    label="Connection Name"
                     fullWidth
-                    value={newHeaderKey}
-                    onChange={e => setNewHeaderKey(e.target.value)}
-                  />
-                  <TextField
-                    label="Header Value"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    helperText="A unique name to identify this connection"
+                />
+                <TextField
+                    label="Model Name"
                     fullWidth
-                    value={newHeaderValue}
-                    onChange={e => setNewHeaderValue(e.target.value)}
-                  />
-                  <Button
-                    variant="outlined"
-                    onClick={handleAddHeader}
-                    disabled={!newHeaderKey.trim() || !newHeaderValue.trim()}
-                    sx={{ minWidth: { xs: '100%', sm: 'auto' } }}
-                    startIcon={<AddIcon />}
-                  >
-                    Add
-                  </Button>
-                </Stack>
-              </Paper>
-            </Stack>
-          </Stack>
-        </DialogContent>
+                    required
+                    value={modelName}
+                    onChange={(e) => setModelName(e.target.value)}
+                    helperText={
+                      isCustomProvider
+                          ? 'The model identifier for your deployment'
+                          : 'The specific model to use from this provider'
+                    }
+                />
+              </Stack>
 
-        <DialogActions
-          sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}
-        >
-          <Button onClick={onClose} disabled={loading} size="large">
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={
-              !name ||
-              (!isCustomProvider && !modelName) ||
-              (isCustomProvider && !providerName) ||
-              !endpoint ||
-              !apiKey ||
-              loading
-            }
-            size="large"
-            sx={{ minWidth: 120 }}
-          >
-            {loading ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CircularProgress size={16} />
-                Connecting...
-              </Box>
-            ) : (
-              'Connect'
-            )}
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, color: 'primary.main', mt: 1 }}>
+                Connection Details
+              </Typography>
+
+              <TextField
+                  label="API Endpoint"
+                  fullWidth
+                  required
+                  value={endpoint}
+                  onChange={(e) => setEndpoint(e.target.value)}
+                  helperText={
+                    isCustomProvider
+                        ? "The full URL of your model's API endpoint"
+                        : 'The API endpoint URL provided by your LLM provider'
+                  }
+              />
+
+              <TextField
+                  label="API Key"
+                  fullWidth
+                  required
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  helperText={
+                    isCustomProvider
+                        ? 'Authentication key for your deployment (if required)'
+                        : "Your API key from the provider's dashboard"
+                  }
+              />
+
+              <Stack spacing={1}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'primary.main', mt: 1 }}>
+                  Custom Headers (Optional)
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Add any additional HTTP headers required for your API calls. Authorization is included automatically.
+                </Typography>
+
+                {Object.entries(customHeaders).length > 0 && (
+                    <Stack spacing={1}>
+                      {Object.entries(customHeaders).map(([key, value]) => (
+                          <Paper
+                              key={key}
+                              variant="outlined"
+                              sx={{
+                                p: 2,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                bgcolor: 'grey.50',
+                              }}
+                          >
+                            <Box sx={{ display: 'flex', gap: 2, flex: 1 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 500, minWidth: 120 }}>
+                                {key}:
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {value}
+                              </Typography>
+                            </Box>
+                            <IconButton size="small" onClick={() => handleRemoveHeader(key)} color="error">
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Paper>
+                      ))}
+                    </Stack>
+                )}
+
+                <Paper variant="outlined" sx={{ p: 2 }}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-end">
+                    <TextField
+                        label="Header Name"
+                        fullWidth
+                        value={newHeaderKey}
+                        onChange={(e) => setNewHeaderKey(e.target.value)}
+                    />
+                    <TextField
+                        label="Header Value"
+                        fullWidth
+                        value={newHeaderValue}
+                        onChange={(e) => setNewHeaderValue(e.target.value)}
+                    />
+                    <Button
+                        variant="outlined"
+                        onClick={handleAddHeader}
+                        disabled={!newHeaderKey.trim() || !newHeaderValue.trim()}
+                        sx={{ minWidth: { xs: '100%', sm: 'auto' } }}
+                        startIcon={<AddIcon />}
+                    >
+                      Add
+                    </Button>
+                  </Stack>
+                </Paper>
+              </Stack>
+            </Stack>
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+            <Button onClick={onClose} disabled={loading} size="large">
+              Cancel
+            </Button>
+            <Button
+                type="submit"
+                variant="contained"
+                disabled={
+                    !provider ||
+                    !name ||
+                    !modelName ||
+                    !endpoint ||
+                    !apiKey ||
+                    (isCustomProvider && !providerName) ||
+                    loading
+                }
+                size="large"
+                sx={{ minWidth: 120 }}
+            >
+              {loading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CircularProgress size={16} />
+                    Connecting...
+                  </Box>
+              ) : (
+                  'Connect'
+              )}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
   );
 }
 
+/* --------------------------------- Page ------------------------------------ */
+
 export default function LLMProvidersPage() {
   const { data: session } = useSession();
-  const [connectedModels, setConnectedModels] = useState<Model[]>([]);
-  const [providerTypes, setProviderTypes] = useState<TypeLookup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedProvider, setSelectedProvider] = useState<TypeLookup | null>(
-    null
-  );
+  const queryClient = useQueryClient();
+
+  const [selectedProvider, setSelectedProvider] = useState<TypeLookup | null>(null);
   const [providerSelectionOpen, setProviderSelectionOpen] = useState(false);
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [modelToDelete, setModelToDelete] = useState<Model | null>(null);
 
-  useEffect(() => {
-    async function loadData() {
-      if (!session?.session_token) {
-        setLoading(false);
-        return;
-      }
+  /* ---------------------------- Queries (v5) ---------------------------- */
 
-      try {
-        setLoading(true);
-        const apiFactory = new ApiClientFactory(session.session_token);
-        const modelsClient = apiFactory.getModelsClient();
-        const typeLookupClient = apiFactory.getTypeLookupClient();
+  const providersQuery = useQuery({
+    ...readTypeLookupsTypeLookupsGetOptions({
+      query: { $filter: "type_name eq 'ProviderType'" },
+    }),
+    enabled: !!session?.session_token,
+  });
 
-        // Load provider types first
-        const types = await typeLookupClient.getTypeLookups({
-          $filter: "type_name eq 'ProviderType'",
-        });
-        console.log('Provider types loaded:', types);
-        setProviderTypes(types);
+  const modelsQuery = useQuery({
+    ...readModelsModelsGetOptions(),
+    enabled: !!session?.session_token,
+  });
 
-        // Then load connected models
-        try {
-          const modelsResponse = await modelsClient.getModels();
-          setConnectedModels(modelsResponse.data);
-        } catch (err) {
-          console.error('Failed to load models:', err);
-        }
-      } catch (err) {
-        console.error('Failed to load providers:', err);
-        setError(
-          err instanceof Error ? err.message : 'Failed to load providers'
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
+  const providerTypes: TypeLookup[] = useMemo(
+      () => (providersQuery.data as { data?: TypeLookup[] } | undefined)?.data ?? [],
+      [providersQuery.data],
+  );
 
-    loadData();
-  }, [session]);
+  const connectedModels: Model[] = useMemo(
+      () => (modelsQuery.data as { data?: Model[] } | undefined)?.data ?? [],
+      [modelsQuery.data],
+  );
+
+  const loading = providersQuery.isLoading || modelsQuery.isLoading;
+  const error =
+      (providersQuery.error && providersQuery.error.message) ||
+      (modelsQuery.error && modelsQuery.error.message) ||
+      null;
+
+  /* --------------------------- Mutations (v5) --------------------------- */
+
+  const createModel = useMutation({
+    ...createModelModelsPostMutation(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: readModelsModelsGetOptions().queryKey });
+    },
+  });
+
+  const deleteModel = useMutation({
+    ...deleteModelModelsModelIdDeleteMutation(),
+    onSuccess: () => {
+      voidqueryClient.invalidateQueries({ queryKey: readModelsModelsGetOptions().queryKey });
+    },
+  });
+
+  /* ------------------------------ Handlers ------------------------------ */
 
   const handleAddLLM = () => {
-    console.log('Opening provider selection with types:', providerTypes);
     setProviderSelectionOpen(true);
   };
 
-  const handleProviderSelect = (provider: TypeLookup) => {
-    setSelectedProvider(provider);
-    setProviderSelectionOpen(false);
-    setConnectionDialogOpen(true);
-  };
-
-  const handleConnect = async (providerId: string, modelData: ModelCreate) => {
-    if (!session?.session_token) return;
-
-    try {
-      const apiFactory = new ApiClientFactory(session.session_token);
-      const modelsClient = apiFactory.getModelsClient();
-
-      const model = await modelsClient.createModel(modelData);
-      setConnectedModels(prev => [...prev, model]);
-    } catch (err) {
-      throw err;
-    }
-  };
-
-  const handleDeleteClick = (model: Model, event: React.MouseEvent) => {
-    event.stopPropagation();
+  const handleDeleteClick = (model: Model, e: React.MouseEvent) => {
+    e.stopPropagation();
     setModelToDelete(model);
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!session?.session_token || !modelToDelete) return;
-
-    try {
-      const apiFactory = new ApiClientFactory(session.session_token);
-      const modelsClient = apiFactory.getModelsClient();
-
-      await modelsClient.deleteModel(modelToDelete.id);
-      setConnectedModels(prev =>
-        prev.filter(model => model.id !== modelToDelete.id)
-      );
-      setDeleteDialogOpen(false);
-      setModelToDelete(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete model');
-    }
-  };
+  /* -------------------------------- Render ------------------------------ */
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ mb: 1 }}>
-          LLM Providers
-        </Typography>
-        <Typography color="text.secondary">
-          Connect to leading AI providers to power your evaluation and testing
-          workflows.
-        </Typography>
-        {error && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {error}
-          </Alert>
-        )}
-      </Box>
-
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h4" sx={{ mb: 1 }}>
+            LLM Providers
+          </Typography>
+          <Typography color="text.secondary">
+            Connect to leading AI providers to power your evaluation and testing workflows.
+          </Typography>
+          {error && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error}
+              </Alert>
+          )}
         </Box>
-      ) : (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr', // 1 column on mobile
-              sm: 'repeat(2, 1fr)', // 2 columns on small screens
-              md: 'repeat(4, 1fr)', // 4 columns on medium screens
-              lg: 'repeat(4, 1fr)', // 4 columns on large screens
-            },
-            gap: 3,
-            '& > *': {
-              minHeight: '200px',
-              display: 'flex',
-            },
-          }}
-        >
-          {connectedModels.map(model => (
-            <Paper
-              key={model.id}
-              sx={{
-                p: 3,
-                width: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'relative',
-                minHeight: 'inherit', // Inherit the minimum height from parent
-              }}
-            >
-              <IconButton
-                size="small"
-                onClick={e => handleDeleteClick(model, e)}
+
+        {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+        ) : (
+            <Box
                 sx={{
-                  position: 'absolute',
-                  top: 8,
-                  right: 8,
-                  color: 'error.main',
-                  '&:hover': {
-                    backgroundColor: 'error.light',
-                    color: 'error.main',
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: 'repeat(2, 1fr)',
+                    md: 'repeat(4, 1fr)',
+                    lg: 'repeat(4, 1fr)',
                   },
+                  gap: 3,
+                  '& > *': { minHeight: '200px', display: 'flex' },
                 }}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
+            >
+              {connectedModels.map((model) => (
+                  <Paper
+                      key={model.id}
+                      sx={{
+                        p: 3,
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        position: 'relative',
+                        minHeight: 'inherit',
+                      }}
+                  >
+                    <IconButton
+                        size="small"
+                        onClick={(e) => handleDeleteClick(model, e)}
+                        sx={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          color: 'error.main',
+                          '&:hover': { backgroundColor: 'error.light', color: 'error.main' },
+                        }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
 
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  {PROVIDER_ICONS[model.icon || 'custom'] || (
-                    <SmartToyIcon
-                      sx={{ fontSize: theme => theme.iconSizes.large }}
-                    />
-                  )}
-                  <CheckCircleIcon
-                    sx={{
-                      ml: -1,
-                      mt: -2,
-                      fontSize: 16,
-                      color: 'success.main',
-                    }}
-                  />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="h6">{model.name}</Typography>
-                  <Typography color="text.secondary" variant="body2">
-                    {model.description}
-                  </Typography>
-                </Box>
-              </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {PROVIDER_ICONS[model.icon || 'custom'] ?? (
+                            <SmartToyIcon sx={{ fontSize: (t) => t.iconSizes.large }} />
+                        )}
+                        <CheckCircleIcon sx={{ ml: -1, mt: -2, fontSize: 16, color: 'success.main' }} />
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6">{model.name}</Typography>
+                        <Typography color="text.secondary" variant="body2">
+                          {model.description}
+                        </Typography>
+                      </Box>
+                    </Box>
 
-              <Box sx={{ mt: 1, mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Model: {model.model_name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  API Key: •••••{model.key.slice(-4)}
-                </Typography>
-              </Box>
+                    <Box sx={{ mt: 1, mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Model: {model.model_name}
+                      </Typography>
+                      {model.key && (
+                          <Typography variant="body2" color="text.secondary">
+                            API Key: •••••{model.key.slice(-4)}
+                          </Typography>
+                      )}
+                    </Box>
 
-              <Box sx={{ mt: 'auto' }}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="success"
-                  size="small"
-                  disableElevation
-                  disableRipple
+                    <Box sx={{ mt: 'auto' }}>
+                      <Button
+                          fullWidth
+                          variant="contained"
+                          color="success"
+                          size="small"
+                          disableElevation
+                          disableRipple
+                          sx={{
+                            textTransform: 'none',
+                            borderRadius: (t) => t.shape.borderRadius * 0.375,
+                            pointerEvents: 'none',
+                            cursor: 'default',
+                          }}
+                      >
+                        Connected
+                      </Button>
+                    </Box>
+                  </Paper>
+              ))}
+
+              {/* Add LLM Card */}
+              <Paper
                   sx={{
-                    textTransform: 'none',
-                    borderRadius: theme => theme.shape.borderRadius * 0.375,
-                    pointerEvents: 'none',
-                    cursor: 'default',
+                    p: 3,
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    bgcolor: 'action.hover',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    minHeight: 'inherit',
+                    '&:hover': { bgcolor: 'action.selected', transform: 'translateY(-2px)' },
                   }}
-                >
-                  Connected
-                </Button>
-              </Box>
-            </Paper>
-          ))}
-
-          {/* Add LLM Card */}
-          <Paper
-            sx={{
-              p: 3,
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              bgcolor: 'action.hover',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              minHeight: 'inherit', // Inherit the minimum height from parent
-              '&:hover': {
-                bgcolor: 'action.selected',
-                transform: 'translateY(-2px)',
-              },
-            }}
-            onClick={handleAddLLM}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <AddIcon
-                sx={{
-                  fontSize: theme => theme.iconSizes.large,
-                  color: 'grey.500',
-                }}
-              />
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="h6" color="text.secondary">
-                  Add LLM
-                </Typography>
-                <Typography color="text.secondary" variant="body2">
-                  Connect to a new LLM provider
-                </Typography>
-              </Box>
-            </Box>
-
-            <Box sx={{ mt: 'auto' }}>
-              <Button
-                fullWidth
-                variant="outlined"
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  borderRadius: theme => theme.shape.borderRadius * 0.375,
-                }}
+                  onClick={handleAddLLM}
               >
-                Add Provider
-              </Button>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <AddIcon sx={{ fontSize: (t) => t.iconSizes.large, color: 'grey.500' }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h6" color="text.secondary">
+                      Add LLM
+                    </Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      Connect to a new LLM provider
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ mt: 'auto' }}>
+                  <Button
+                      fullWidth
+                      variant="outlined"
+                      size="small"
+                      sx={{ textTransform: 'none', borderRadius: (t) => t.shape.borderRadius * 0.375 }}
+                  >
+                    Add Provider
+                  </Button>
+                </Box>
+              </Paper>
             </Box>
-          </Paper>
-        </Box>
-      )}
+        )}
 
-      <ProviderSelectionDialog
-        open={providerSelectionOpen}
-        onClose={() => setProviderSelectionOpen(false)}
-        onSelectProvider={handleProviderSelect}
-        providers={providerTypes}
-      />
+        <ProviderSelectionDialog
+            open={providerSelectionOpen}
+            onClose={() => setProviderSelectionOpen(false)}
+            onSelectProvider={(p) => {
+              setSelectedProvider(p);
+              setProviderSelectionOpen(false);
+              setConnectionDialogOpen(true);
+            }}
+            providers={providerTypes}
+        />
 
-      <ConnectionDialog
-        open={connectionDialogOpen}
-        provider={selectedProvider}
-        onClose={() => {
-          setConnectionDialogOpen(false);
-          setSelectedProvider(null);
-        }}
-        onConnect={handleConnect}
-      />
+        <ConnectionDialog
+            open={connectionDialogOpen}
+            provider={selectedProvider}
+            onClose={() => {
+              setConnectionDialogOpen(false);
+              setSelectedProvider(null);
+            }}
+            onConnect={async (payload) => {
+              await createModel.mutateAsync({ body: payload });
+            }}
+        />
 
-      <DeleteModal
-        open={deleteDialogOpen}
-        onClose={() => {
-          setDeleteDialogOpen(false);
-          setModelToDelete(null);
-        }}
-        onConfirm={handleDeleteConfirm}
-        itemType="model connection"
-        itemName={modelToDelete?.name}
-        title="Delete Model Connection"
-      />
-    </Box>
+        <DeleteModal
+            open={deleteDialogOpen}
+            onClose={() => {
+              setDeleteDialogOpen(false);
+              setModelToDelete(null);
+            }}
+            onConfirm={async () => {
+              if (!modelToDelete) return;
+              await deleteModel.mutateAsync({ path: { model_id: modelToDelete.id } });
+              setDeleteDialogOpen(false);
+              setModelToDelete(null);
+            }}
+            itemType="model connection"
+            itemName={modelToDelete?.name}
+            title="Delete Model Connection"
+        />
+      </Box>
   );
 }

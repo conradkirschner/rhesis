@@ -1,6 +1,6 @@
 /**
  * BaseTag component for managing entity tags with customizable behavior
- * Handles tag creation, deletion, and validation with API integration
+ * UI-first: optionally integrates with API via assignTag/removeTag callbacks.
  */
 
 'use client';
@@ -10,7 +10,6 @@ import React, {
   useRef,
   KeyboardEvent,
   ClipboardEvent,
-  ChangeEvent,
   FocusEvent,
   useEffect,
 } from 'react';
@@ -19,45 +18,66 @@ import {
   Box,
   Chip,
   TextField,
-  Autocomplete,
-  InputProps,
-  StandardTextFieldProps,
-  InputLabelProps,
-  FormHelperText,
+  TextFieldProps,
+  InputLabelProps as MuiInputLabelProps,
 } from '@mui/material';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { TagsClient } from '@/utils/api-client/tags-client';
+import Autocomplete from '@mui/material/Autocomplete';
 import { useNotifications } from '@/components/common/NotificationContext';
-import { EntityType, Tag, TagCreate } from '@/utils/api-client/interfaces/tag';
-import { UUID } from 'crypto';
+
+// Use only generated types
+import type { Tag } from '@/api-client/types.gen';
+export enum EntityType {
+  TEST = 'Test',
+  TEST_SET = 'TestSet',
+  TEST_RUN = 'TestRun',
+  TEST_RESULT = 'TestResult',
+  PROMPT = 'Prompt',
+  BEHAVIOR = 'Behavior',
+  CATEGORY = 'Category',
+  ENDPOINT = 'Endpoint',
+  PROJECT = 'Project',
+  ORGANIZATION = 'Organization',
+  METRIC = 'Metric',
+  MODEL = 'Model',
+  /* Will be used laters*/
+  // eslint-disable-next-line no-use-before-define
+  USE_CASE = 'UseCase',
+  // eslint-disable-next-line no-use-before-define
+  RESPONSE_PATTERN = 'ResponsePattern',
+  // eslint-disable-next-line no-use-before-define
+  PROMPT_TEMPLATE = 'PromptTemplate',
+}
+
+type UUID = string;
 
 // Type definitions
 interface TaggableEntity {
   id: UUID;
-  organization_id?: UUID;
-  user_id?: UUID;
+  organization_id?: UUID | null;
+  user_id?: UUID | null;
   tags?: Tag[];
 }
 
 export interface BaseTagProps
-  extends Omit<StandardTextFieldProps, 'onChange' | 'value'> {
+    extends Omit<TextFieldProps, 'onChange' | 'value' | 'defaultValue'> {
   /** Current tag values */
   value: string[];
-  /** Callback when tags change */
+  /** Callback when tags change (local state is already updated) */
   onChange: (value: string[]) => void;
+
   /** Function to validate tag values */
   validate?: (value: string) => boolean;
   /** Whether to add tag on blur */
   addOnBlur?: boolean;
   /** Color of the tag chips */
   chipColor?:
-    | 'primary'
-    | 'secondary'
-    | 'default'
-    | 'error'
-    | 'info'
-    | 'success'
-    | 'warning';
+      | 'primary'
+      | 'secondary'
+      | 'default'
+      | 'error'
+      | 'info'
+      | 'success'
+      | 'warning';
   /** Whether to clear input on blur */
   clearInputOnBlur?: boolean;
   /** Characters that trigger tag addition */
@@ -72,47 +92,66 @@ export interface BaseTagProps
   maxTags?: number;
   /** Whether to disable tag deletion on backspace */
   disableDeleteOnBackspace?: boolean;
-  /** Session token for API calls */
-  sessionToken?: string;
-  /** Entity type for tag management */
+
+  /** (Optional) Entity type for tag management */
   entityType?: EntityType;
-  /** Entity for tag management */
+  /** (Optional) Entity for tag management */
   entity?: TaggableEntity;
+
+  /**
+   * Optional API callbacks (wire these with your generated TanStack mutations)
+   * If not provided, the component will only update local value via onChange.
+   */
+  assignTag?: (args: {
+    entityType: EntityType;
+    entityId: string;
+    name: string;
+    organization_id?: string | null;
+    user_id?: string | null;
+  }) => Promise<Tag>;
+
+  removeTag?: (args: {
+    entityType: EntityType;
+    entityId: string;
+    tagId: string;
+  }) => Promise<void>;
 }
 
 // Tag validation utilities
 const TagValidation = {
   isValidLength: (value: string) => value.length > 0 && value.length <= 50,
   isValidFormat: (value: string) =>
-    /^[a-zA-Z0-9\-_\s\u00C0-\u017F\u0180-\u024F.,!?()]+$/.test(value),
+      /^[a-zA-Z0-9\-_\s\u00C0-\u017F\u0180-\u024F.,!?()]+$/.test(value),
   isValidTag: (value: string) =>
-    TagValidation.isValidLength(value) && TagValidation.isValidFormat(value),
+      TagValidation.isValidLength(value) && TagValidation.isValidFormat(value),
 };
 
 export default function BaseTag({
-  value = [],
-  onChange,
-  validate = TagValidation.isValidTag,
-  addOnBlur = false,
-  chipColor = 'default',
-  clearInputOnBlur = false,
-  delimiters = [',', 'Enter'],
-  placeholder = '',
-  disableEdition = false,
-  uniqueTags = true,
-  maxTags,
-  label,
-  disabled = false,
-  error = false,
-  disableDeleteOnBackspace = false,
-  sessionToken,
-  entityType,
-  entity,
-  InputProps: customInputProps,
-  InputLabelProps: customInputLabelProps,
-  id,
-  ...textFieldProps
-}: BaseTagProps) {
+                                  value = [],
+                                  onChange,
+                                  validate = TagValidation.isValidTag,
+                                  addOnBlur = false,
+                                  chipColor = 'default',
+                                  clearInputOnBlur = false,
+                                  delimiters = [',', 'Enter'],
+                                  placeholder = '',
+                                  disableEdition = false,
+                                  uniqueTags = true,
+                                  maxTags,
+                                  label,
+                                  disabled = false,
+                                  error = false,
+                                  disableDeleteOnBackspace = false,
+                                  entityType,
+                                  entity,
+                                  assignTag,
+                                  removeTag,
+                                  InputProps: customInputProps,
+                                  InputLabelProps: customInputLabelProps,
+                                  id,
+                                  helperText,
+                                  ...textFieldProps
+                                }: BaseTagProps) {
   const [inputValue, setInputValue] = useState<string>('');
   const [focused, setFocused] = useState<boolean>(false);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
@@ -123,10 +162,10 @@ export default function BaseTag({
 
   // Keep track of current tag objects (name -> tag mapping)
   const [tagObjectsMap, setTagObjectsMap] = useState<Map<string, Tag>>(
-    new Map()
+      new Map()
   );
 
-  // Update local tags when value prop changes
+  // Sync local state when `value` prop changes
   useEffect(() => {
     setLocalTags(value);
   }, [value]);
@@ -136,95 +175,109 @@ export default function BaseTag({
     if (entity?.tags) {
       const newMap = new Map<string, Tag>();
       entity.tags.forEach(tag => {
-        newMap.set(tag.name, tag);
+        if (tag?.name) newMap.set(tag.name, tag);
       });
       setTagObjectsMap(newMap);
     }
   }, [entity?.tags]);
 
-  const handleTagsChange = async (newTagNames: string[]) => {
-    if (!sessionToken || !entityType || !entity || isUpdating) {
-      onChange(newTagNames);
-      return;
+  const callAssignTag = async (namesToAdd: string[]) => {
+    if (!assignTag || !entity || !entityType) return;
+
+    for (const name of namesToAdd) {
+      try {
+        const newTag = await assignTag({
+          entityType,
+          entityId: entity.id,
+          name,
+          organization_id: entity.organization_id ?? null,
+          user_id: entity.user_id ?? null,
+        });
+        // Update map with the tag returned by API
+        if (newTag?.name) {
+          setTagObjectsMap(prev => {
+            const m = new Map(prev);
+            m.set(newTag.name, newTag);
+            return m;
+          });
+        }
+      } catch (e) {
+        throw e;
+      }
     }
+  };
 
-    setIsUpdating(true);
+  const callRemoveTag = async (namesToRemove: string[]) => {
+    if (!removeTag || !entity || !entityType) return;
+
+    for (const name of namesToRemove) {
+      const tag = tagObjectsMap.get(name);
+      if (!tag?.id) continue;
+      try {
+        await removeTag({
+          entityType,
+          entityId: entity.id,
+          tagId: tag.id,
+        });
+        // Remove from local map
+        setTagObjectsMap(prev => {
+          const m = new Map(prev);
+          m.delete(name);
+          return m;
+        });
+      } catch (e) {
+        throw e;
+      }
+    }
+  };
+
+  const handleTagsChange = async (newTagNames: string[]) => {
+    // Always update local/UI immediately
     const initialTagNames = localTags;
-    const initialTagObjectsMap = new Map(tagObjectsMap);
-
-    // Update local state immediately
     setLocalTags(newTagNames);
     onChange(newTagNames);
 
+    // If there are no API callbacks, we’re done
+    if (!assignTag && !removeTag) return;
+    if (!entityType || !entity) return;
+
+    // Determine add/remove sets
+    const namesToRemove = initialTagNames.filter(n => !newTagNames.includes(n));
+    const namesToAdd = newTagNames.filter(n => !initialTagNames.includes(n));
+
+    if (namesToAdd.length === 0 && namesToRemove.length === 0) return;
+
+    setIsUpdating(true);
+    const snapshotMap = new Map(tagObjectsMap);
+
     try {
-      const apiFactory = new ApiClientFactory(sessionToken);
-      const tagsClient = new TagsClient(sessionToken);
-
-      // Tags to remove (exist in current but not in new) - use the current tagObjectsMap
-      const tagsToRemove = initialTagNames
-        .filter(tagName => !newTagNames.includes(tagName))
-        .map(tagName => tagObjectsMap.get(tagName))
-        .filter((tag): tag is Tag => tag !== undefined);
-
-      // Tags to add (exist in new but not in current)
-      const tagsToAdd = newTagNames.filter(
-        tagName => !initialTagNames.includes(tagName)
-      );
-
-      // Remove tags
-      for (const tag of tagsToRemove) {
-        await tagsClient.removeTagFromEntity(entityType, entity.id, tag.id);
-        // Update the map by removing the deleted tag
-        const newMap = new Map(tagObjectsMap);
-        newMap.delete(tag.name);
-        setTagObjectsMap(newMap);
+      // Remove first (so uniqueness constraints on backend don’t collide)
+      if (namesToRemove.length > 0) {
+        await callRemoveTag(namesToRemove);
       }
 
-      // Add new tags
-      for (const tagName of tagsToAdd) {
-        const tagPayload: TagCreate = {
-          name: tagName,
-          ...(entity.organization_id && {
-            organization_id: entity.organization_id,
-          }),
-          ...(entity.user_id && { user_id: entity.user_id }),
-        };
-
-        const newTag = await tagsClient.assignTagToEntity(
-          entityType,
-          entity.id,
-          tagPayload
-        );
-        // Update the map by adding the new tag
-        const newMap = new Map(tagObjectsMap);
-        newMap.set(newTag.name, newTag);
-        setTagObjectsMap(newMap);
+      // Then add
+      if (namesToAdd.length > 0) {
+        await callAssignTag(namesToAdd);
       }
 
       notifications?.show('Tags updated successfully', {
         severity: 'success',
-        autoHideDuration: 4000,
+        autoHideDuration: 3000,
       });
-    } catch (error) {
-      console.error('Error updating tags:', error);
-      notifications?.show(
-        error instanceof Error ? error.message : 'Failed to update tags',
-        {
-          severity: 'error',
-          autoHideDuration: 6000,
-        }
-      );
-      // Revert local state on error
+    } catch (err) {
+      // Revert UI on error
       setLocalTags(initialTagNames);
       onChange(initialTagNames);
-      setTagObjectsMap(initialTagObjectsMap);
+      setTagObjectsMap(snapshotMap);
+
+      notifications?.show(
+          err instanceof Error ? err.message : 'Failed to update tags',
+          { severity: 'error', autoHideDuration: 6000 }
+      );
     } finally {
       setIsUpdating(false);
     }
-  };
-
-  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setInputValue(event.target.value);
   };
 
   const handleAddTag = (tagValue: string) => {
@@ -240,14 +293,13 @@ export default function BaseTag({
     if (uniqueTags && localTags.includes(trimmedValue)) {
       notifications?.show(`Tag "${trimmedValue}" already exists`, {
         severity: 'info',
-        autoHideDuration: 3000,
+        autoHideDuration: 2500,
       });
       setInputValue('');
       return;
     }
 
-    // Add the new tag
-    handleTagsChange([...localTags, trimmedValue]);
+    void handleTagsChange([...localTags, trimmedValue]);
     setInputValue('');
   };
 
@@ -259,79 +311,67 @@ export default function BaseTag({
       event.stopPropagation();
       isProcessingKeyboardInput.current = true;
       handleAddTag(inputValue);
-      // Reset the flag after a short delay to allow Autocomplete's onChange to complete
       setTimeout(() => {
         isProcessingKeyboardInput.current = false;
       }, 0);
     } else if (
-      event.key === 'Backspace' &&
-      !inputValue &&
-      localTags.length > 0 &&
-      !disableDeleteOnBackspace
+        event.key === 'Backspace' &&
+        !inputValue &&
+        localTags.length > 0 &&
+        !disableDeleteOnBackspace
     ) {
-      // Remove the last tag on backspace if input is empty
       event.preventDefault();
-      handleTagsChange(localTags.slice(0, -1));
+      void handleTagsChange(localTags.slice(0, -1));
     }
   };
 
   const handleDeleteTag = (tagToDelete: string) => {
     if (disabled || isUpdating) return;
-    handleTagsChange(localTags.filter(tag => tag !== tagToDelete));
-    // Focus the input after deleting
+    void handleTagsChange(localTags.filter(tag => tag !== tagToDelete));
     inputRef.current?.focus();
   };
 
   const handlePaste = (event: ClipboardEvent<HTMLDivElement>) => {
     event.preventDefault();
-
     if (disabled || isUpdating) return;
 
     const pastedText = event.clipboardData.getData('text');
     if (!pastedText) return;
 
-    // Split by delimiters
-    const delimiter = new RegExp(`[${delimiters.join('')}]`);
-    const tags = pastedText.split(delimiter).filter(Boolean);
+    // Split by all single-char delimiters OR newline/comma/semicolon by default
+    const splitRegex =
+        delimiters.length > 0
+            ? new RegExp(`[${delimiters.join('')}\n;]+`)
+            : /[,\n;]+/;
+    const parts = pastedText.split(splitRegex).filter(Boolean);
 
-    if (tags.length === 0) return;
-
-    // Process each tag
     const newTags = [...localTags];
-    let tagsAdded = 0;
     const duplicates: string[] = [];
 
-    for (const tag of tags) {
-      const trimmedTag = tag.trim();
-      if (!trimmedTag || !validate(trimmedTag)) continue;
+    for (const raw of parts) {
+      const t = raw.trim();
+      if (!t || !validate(t)) continue;
 
-      if (uniqueTags && newTags.includes(trimmedTag)) {
-        duplicates.push(trimmedTag);
+      if (uniqueTags && newTags.includes(t)) {
+        duplicates.push(t);
         continue;
       }
-
-      // Check max tags limit
       if (maxTags !== undefined && newTags.length >= maxTags) break;
 
-      newTags.push(trimmedTag);
-      tagsAdded++;
+      newTags.push(t);
     }
 
-    if (tagsAdded > 0) {
-      handleTagsChange(newTags);
+    if (newTags.length !== localTags.length) {
+      void handleTagsChange(newTags);
       setInputValue('');
     }
 
-    // Notify about duplicates
     if (duplicates.length > 0) {
-      const message =
-        duplicates.length === 1
-          ? `Tag "${duplicates[0]}" already exists`
-          : `${duplicates.length} duplicate tags skipped`;
-      notifications?.show(message, {
-        severity: 'info',
-        autoHideDuration: 3000,
-      });
+      const msg =
+          duplicates.length === 1
+              ? `Tag "${duplicates[0]}" already exists`
+              : `${duplicates.length} duplicate tags skipped`;
+      notifications?.show(msg, { severity: 'info', autoHideDuration: 2500 });
     }
   };
 
@@ -341,7 +381,6 @@ export default function BaseTag({
     if (addOnBlur && inputValue) {
       isProcessingKeyboardInput.current = true;
       handleAddTag(inputValue);
-      // Reset the flag after a short delay to allow Autocomplete's onChange to complete
       setTimeout(() => {
         isProcessingKeyboardInput.current = false;
       }, 0);
@@ -351,94 +390,91 @@ export default function BaseTag({
       setInputValue('');
     }
 
-    if (textFieldProps.onBlur) {
-      textFieldProps.onBlur(event as any);
-    }
+    textFieldProps.onBlur?.(event);
   };
 
   const handleFocus = (event: FocusEvent<HTMLInputElement>) => {
     setFocused(true);
-
-    if (textFieldProps.onFocus) {
-      textFieldProps.onFocus(event as any);
-    }
+    textFieldProps.onFocus?.(event);
   };
 
   // Field is disabled if component is disabled or max tags is reached
   const isTagInputDisabled =
-    disabled || (maxTags !== undefined && localTags.length >= maxTags);
+      disabled || (maxTags !== undefined && localTags.length >= maxTags);
 
   // Combine default and custom InputLabelProps
-  const inputLabelProps: InputLabelProps = {
+  const inputLabelProps: MuiInputLabelProps = {
     ...customInputLabelProps,
     shrink: focused || !!inputValue || localTags.length > 0,
   };
 
   return (
-    <Box className={styles.tagContainer}>
-      <Autocomplete
-        multiple
-        freeSolo
-        clearIcon={false}
-        options={[]}
-        value={localTags}
-        inputValue={inputValue}
-        onChange={(event, newValue: string[]) => {
-          // Skip if we're already processing keyboard input to prevent duplicate API calls
-          if (isProcessingKeyboardInput.current) {
-            return;
-          }
-          // Handle tag changes when chips are removed or values change
-          handleTagsChange(newValue);
-        }}
-        onInputChange={(event, newInputValue: string, reason) => {
-          if (reason === 'input') {
-            setInputValue(newInputValue);
-          } else if (reason === 'clear') {
-            setInputValue('');
-          }
-        }}
-        onKeyDown={handleInputKeyDown}
-        disabled={disabled || disableEdition}
-        renderTags={(value: string[], getTagProps) =>
-          value.map((option: string, index: number) => (
-            <Chip
-              {...getTagProps({ index })}
-              key={option}
-              label={option}
-              color={chipColor}
-              variant="outlined"
-              disabled={disabled}
-              className={styles.baseTag}
-              onDelete={
-                !disabled && !disableEdition
-                  ? () => handleDeleteTag(option)
-                  : undefined
-              }
-            />
-          ))
-        }
-        renderInput={params => (
-          <TextField
-            {...params}
-            {...textFieldProps}
-            label={label}
-            placeholder={localTags.length === 0 ? placeholder : ''}
-            error={error}
-            inputRef={inputRef}
-            onBlur={handleBlur}
-            onFocus={handleFocus}
-            onPaste={handlePaste}
-            InputLabelProps={inputLabelProps}
-            InputProps={{
-              ...params.InputProps,
-              ...customInputProps,
-              readOnly: disableEdition,
+      <Box className={styles.tagContainer}>
+        <Autocomplete
+            multiple
+            freeSolo
+            clearIcon={false}
+            options={[]}
+            value={localTags}
+            inputValue={inputValue}
+            disabled={disabled || disableEdition}
+            onChange={(_event, newValue: string[]) => {
+              if (isProcessingKeyboardInput.current) return;
+              void handleTagsChange(newValue);
             }}
-            fullWidth
-          />
-        )}
-      />
-    </Box>
+            onInputChange={(_event, newInputValue: string, reason) => {
+              if (reason === 'input') setInputValue(newInputValue);
+              else if (reason === 'clear') setInputValue('');
+            }}
+            onKeyDown={handleInputKeyDown}
+            renderTags={(vals: string[], getTagProps) =>
+                vals.map((option: string, index: number) => (
+                    <Chip
+                        {...getTagProps({ index })}
+                        key={option}
+                        label={option}
+                        color={chipColor}
+                        variant="outlined"
+                        disabled={disabled}
+                        className={styles.baseTag}
+                        onDelete={
+                          !disabled && !disableEdition
+                              ? () => handleDeleteTag(option)
+                              : undefined
+                        }
+                    />
+                ))
+            }
+            renderInput={params => (
+                <TextField
+                    {...params}
+                    {...textFieldProps}
+                    id={id}
+                    label={label}
+                    placeholder={localTags.length === 0 ? placeholder : ''}
+                    error={error}
+                    inputRef={inputRef}
+                    onBlur={handleBlur}
+                    onFocus={handleFocus}
+                    onPaste={handlePaste}
+                    InputLabelProps={inputLabelProps}
+                    InputProps={{
+                      ...params.InputProps,
+                      ...customInputProps,
+                      readOnly: disableEdition,
+                    }}
+                    fullWidth
+                    disabled={isTagInputDisabled || disabled}
+                    helperText={
+                      isUpdating
+                          ? 'Updating tags...'
+                          : helperText ?? (error ? 'Invalid tag(s)' : undefined)
+                    }
+                />
+            )}
+        />
+        {/* Optional helper/error text when not using TextField.helperText */}
+        {/* {error && <FormHelperText error>Invalid tag(s)</FormHelperText>} */}
+      </Box>
   );
 }

@@ -1,121 +1,82 @@
 'use client';
 
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import EndpointDetail from '../components/EndpointDetail';
+import { useMemo } from 'react';
 import { Box, Typography, CircularProgress } from '@mui/material';
 import { PageContainer } from '@toolpad/core';
-import { useEffect, useState } from 'react';
-import { Endpoint } from '@/utils/api-client/interfaces/endpoint';
-import { useSession } from 'next-auth/react';
+import EndpointDetail from '../components/EndpointDetail';
+import { useQuery } from '@tanstack/react-query';
 
-// Update the interface to match Next.js generated types
+// ✅ generated helpers & types
+import { readEndpointEndpointsEndpointIdGetOptions } from '@/api-client/@tanstack/react-query.gen';
+import type {Endpoint, EndpointDetail as EndpointDetailType } from '@/api-client/types.gen';
+
 interface PageProps {
-  params: Promise<{ identifier: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  params: { identifier: string };
+  searchParams?: Record<string, string | string[] | undefined>;
 }
 
-export default function EndpointPage({ params, searchParams }: PageProps) {
-  // Use the params Promise
-  const [identifier, setIdentifier] = useState<string>('');
+export default function EndpointPage({ params }: PageProps) {
+  const { identifier } = params;
 
-  useEffect(() => {
-    // Resolve the params Promise when component mounts
-    params.then(resolvedParams => {
-      setIdentifier(resolvedParams.identifier);
-    });
-  }, [params]);
+  // Build options with the generator helper (do NOT augment when calling useQuery)
+  const queryOptions = useMemo(
+      () =>
+          readEndpointEndpointsEndpointIdGetOptions({
+            path: { endpoint_id: identifier },
+          }),
+      [identifier]
+  );
 
-  const { data: session, status } = useSession();
-  const [endpoint, setEndpoint] = useState<Endpoint | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  // Call useQuery with the generated options directly
+  const { data, isLoading, isFetching, error } = useQuery(queryOptions);
 
-  useEffect(() => {
-    const fetchEndpoint = async () => {
-      try {
-        if (status === 'loading') return; // Wait for session to load
-        if (!identifier) return; // Wait for identifier to be resolved
+  const loading = isLoading || isFetching;
+  const endpoint: EndpointDetailType | undefined = data;
 
-        if (!session) {
-          throw new Error('No session available');
-        }
-
-        // Add UUID validation
-        const uuidRegex =
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(identifier)) {
-          throw new Error('Invalid endpoint identifier format');
-        }
-
-        // Get session token from the correct property
-        const sessionToken = session.session_token || '';
-        const apiFactory = new ApiClientFactory(sessionToken);
-        const endpointsClient = apiFactory.getEndpointsClient();
-        const data = await endpointsClient.getEndpoint(identifier);
-        setEndpoint(data);
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEndpoint();
-  }, [identifier, session, status]);
-
-  if (status === 'loading' || loading || !identifier) {
+  if (loading) {
     return (
-      <Box
-        sx={{
-          p: 3,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <CircularProgress size={24} sx={{ mr: 1 }} />
-        <Typography>Loading endpoint...</Typography>
-      </Box>
-    );
-  }
-
-  if (status === 'unauthenticated') {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Typography color="error">
-          Authentication required. Please log in.
-        </Typography>
-      </Box>
+        <Box
+            sx={{
+              p: 3,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 1,
+            }}
+        >
+          <CircularProgress size={24} />
+          <Typography>Loading endpoint...</Typography>
+        </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography color="error">Error loading endpoint: {error}</Typography>
-      </Box>
+        <Box sx={{ p: 3 }}>
+          <Typography color="error">Error loading endpoint: {error.message}</Typography>
+        </Box>
     );
   }
 
   if (!endpoint) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography color="error">No endpoint found</Typography>
-      </Box>
+        <Box sx={{ p: 3 }}>
+          <Typography color="error">No endpoint found</Typography>
+        </Box>
     );
   }
 
   return (
-    <PageContainer
-      title={endpoint.name}
-      breadcrumbs={[
-        { title: 'Endpoints', path: '/endpoints' },
-        { title: endpoint.name },
-      ]}
-    >
-      <Box sx={{ flexGrow: 1, pt: 3 }}>
-        <EndpointDetail endpoint={endpoint} />
-      </Box>
-    </PageContainer>
+      <PageContainer
+          title={endpoint.name ?? 'Endpoint'}
+          breadcrumbs={[
+            { title: 'Endpoints', path: '/endpoints' },
+            { title: endpoint.name ?? 'Details' },
+          ]}
+      >
+        <Box sx={{ flexGrow: 1, pt: 3 }}>
+            {endpoint.name ?? <EndpointDetail endpoint={endpoint as Endpoint} />}
+        </Box>
+      </PageContainer>
   );
 }

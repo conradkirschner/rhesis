@@ -15,7 +15,7 @@ from pydantic import UUID4, BaseModel, ConfigDict, field_serializer
 
 
 class Base(BaseModel):
-    id: Optional[UUID4] = None
+    id: UUID4 = None
     nano_id: Optional[str] = None
     model_config = ConfigDict(
         from_attributes=True,

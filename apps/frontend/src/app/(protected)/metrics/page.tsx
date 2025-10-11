@@ -69,7 +69,6 @@ export default function MetricsPage() {
       breadcrumbs={[{ title: 'Metrics', path: '/metrics' }]}
     >
       <MetricsClientComponent
-        sessionToken={sessionToken}
         organizationId={organizationId}
       />
     </PageContainer>

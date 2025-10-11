@@ -24,3 +24,4 @@ export const createClientConfig: CreateClientConfig = (config) => {
     auth: () => currentToken,
   };
 };
+
