@@ -1,223 +1,161 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { BasePieChart, BaseChartsGrid } from '@/components/common/BaseCharts';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import {
-  TestRunStatsStatus,
-  TestRunStatsResults,
-  TestRunStatsTests,
-  TestRunStatsExecutors,
-} from '@/utils/api-client/interfaces/test-run-stats';
+import React, { useMemo } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
+import { BasePieChart, BaseChartsGrid } from '@/components/common/BaseCharts';
+import { useQuery } from '@tanstack/react-query';
 
-// Fallback mock data in case the API fails
-const fallbackData = [{ name: 'Loading...', value: 100 }];
+import type {
+    TestRunStatsStatus,
+    TestRunStatsResults,
+    TestRunStatsTests,
+    TestRunStatsExecutors,
+} from '@/api-client/types.gen';
 
-// Configuration for each chart
-const CHART_CONFIG = {
-  status: { top: 5, title: 'Test Runs by Status' },
-  result: { top: 5, title: 'Test Runs by Result' },
-  test: { top: 5, title: 'Most Run Test Sets' },
-  executor: { top: 5, title: 'Top Test Executors' },
+import { generateTestRunStatsTestRunsStatsGetOptions } from '@/api-client/@tanstack/react-query.gen';
+
+
+const FALLBACK = [{ name: 'Loading…', value: 100 }];
+
+const CHART_CFG = {
+    status: { top: 5, title: 'Test Runs by Status' as const },
+    result: { top: 5, title: 'Test Runs by Result' as const },
+    test: { top: 5, title: 'Most Run Test Sets' as const },
+    executor: { top: 5, title: 'Top Test Executors' as const },
 };
 
-// Helper function to truncate long names for legends
-const truncateName = (name: string): string => {
-  if (name.length <= 15) return name;
-  return `${name.substring(0, 12)}...`;
-};
+const truncate = (s: string) => (s.length <= 15 ? s : `${s.slice(0, 12)}…`);
 
-// Using real API interfaces now
+export default function TestRunCharts() {
 
-interface TestRunChartsProps {
-  sessionToken: string;
-}
+    const statusQuery = useQuery({
+        ...generateTestRunStatsTestRunsStatsGetOptions({
+            query: { mode: 'status', top: CHART_CFG.status.top, months: 6 },
+        }),
+        staleTime: 60_000,
+    });
 
-export default function TestRunCharts({ sessionToken }: TestRunChartsProps) {
-  const isMounted = useRef(false);
+    const resultQuery = useQuery({
+        ...generateTestRunStatsTestRunsStatsGetOptions({
+            query: { mode: 'results', top: CHART_CFG.result.top, months: 6 },
+        }),
+        staleTime: 60_000,
+    });
 
-  // Global loading state for all charts
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const testSetsQuery = useQuery({
+        ...generateTestRunStatsTestRunsStatsGetOptions({
+            query: { mode: 'test_sets', top: CHART_CFG.test.top, months: 6 },
+        }),
+        staleTime: 60_000,
+    });
 
-  // Individual state for each chart (simplified - no individual loading/error states)
-  const [statusChart, setStatusChart] = useState<TestRunStatsStatus | null>(
-    null
-  );
-  const [resultChart, setResultChart] = useState<TestRunStatsResults | null>(
-    null
-  );
-  const [testChart, setTestChart] = useState<TestRunStatsTests | null>(null);
-  const [executorChart, setExecutorChart] =
-    useState<TestRunStatsExecutors | null>(null);
+    const executorsQuery = useQuery({
+        ...generateTestRunStatsTestRunsStatsGetOptions({
+            query: { mode: 'executors', top: CHART_CFG.executor.top, months: 6 },
+        }),
+        staleTime: 60_000,
+    });
 
-  useEffect(() => {
-    isMounted.current = true;
+    /* -------- Aggregate loading / error -------- */
+    const isLoading =
+        statusQuery.isLoading ||
+        resultQuery.isLoading ||
+        testSetsQuery.isLoading ||
+        executorsQuery.isLoading;
 
-    const fetchAllCharts = async () => {
-      if (!sessionToken) return;
+    const firstError =
+        statusQuery.error || resultQuery.error || testSetsQuery.error || executorsQuery.error;
 
-      try {
-        setIsLoading(true);
-        setHasError(false);
-        setErrorMessage(null);
 
-        const clientFactory = new ApiClientFactory(sessionToken);
-        const testRunsClient = clientFactory.getTestRunsClient();
 
-        // Fetch all chart data in parallel
-        const [statusStats, resultStats, testStats, executorStats] =
-          await Promise.all([
-            testRunsClient.getTestRunStats({
-              mode: 'status',
-              top: 5,
-              months: 6,
-            }),
-            testRunsClient.getTestRunStats({
-              mode: 'results',
-              top: 5,
-              months: 6,
-            }),
-            testRunsClient.getTestRunStats({
-              mode: 'test_sets',
-              top: 5,
-              months: 6,
-            }),
-            testRunsClient.getTestRunStats({
-              mode: 'executors',
-              top: 5,
-              months: 6,
-            }),
-          ]);
+    /* -------- Data mappers (typed casts at the edge) -------- */
+    const statusData = useMemo(() => {
+        const data = statusQuery.data as unknown as TestRunStatsStatus | undefined;
+        const dist = data?.status_distribution ?? [];
+        if (!dist.length) return FALLBACK;
+        return dist.slice(0, CHART_CFG.status.top).map((d) => ({
+            name: truncate(d.status),
+            value: d.count,
+            fullName: d.status,
+        }));
+    }, [statusQuery.data]);
 
-        if (isMounted.current) {
-          setStatusChart(statusStats as TestRunStatsStatus);
-          setResultChart(resultStats as TestRunStatsResults);
-          setTestChart(testStats as TestRunStatsTests);
-          setExecutorChart(executorStats as TestRunStatsExecutors);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Error fetching chart stats:', err);
-        if (isMounted.current) {
-          setIsLoading(false);
-          setHasError(true);
-          setErrorMessage('Failed to load chart data');
-        }
-      }
-    };
+    const resultData = useMemo(() => {
+        const data = resultQuery.data as unknown as TestRunStatsResults | undefined;
+        const d = data?.result_distribution;
+        if (!d) return FALLBACK;
+        return [
+            { name: 'Passed', value: d.passed, fullName: 'Passed' },
+            { name: 'Failed', value: d.failed, fullName: 'Failed' },
+            { name: 'Pending', value: d.pending, fullName: 'Pending' },
+        ].filter((x) => x.value > 0);
+    }, [resultQuery.data]);
 
-    fetchAllCharts();
+    const testSetsData = useMemo(() => {
+        const data = testSetsQuery.data as unknown as TestRunStatsTests | undefined;
+        const list = data?.most_run_test_sets ?? [];
+        if (!list.length) return FALLBACK;
+        return list.slice(0, CHART_CFG.test.top).map((d) => ({
+            name: truncate(d.test_set_name),
+            value: d.run_count,
+            fullName: d.test_set_name,
+        }));
+    }, [testSetsQuery.data]);
 
-    return () => {
-      isMounted.current = false;
-    };
-  }, [sessionToken]);
+    const executorsData = useMemo(() => {
+        const data = executorsQuery.data as unknown as TestRunStatsExecutors | undefined;
+        const list = data?.top_executors ?? [];
+        if (!list.length) return FALLBACK;
+        return list.slice(0, CHART_CFG.executor.top).map((d) => ({
+            name: truncate(d.executor_name),
+            value: d.run_count,
+            fullName: d.executor_name,
+        }));
+    }, [executorsQuery.data]);
+    if (isLoading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
 
-  // Generate chart data from individual chart states
-  const generateStatusData = () => {
-    if (!statusChart) return fallbackData;
-
-    return statusChart.status_distribution
-      .slice(0, CHART_CONFIG.status.top)
-      .map(item => ({
-        name: truncateName(item.status),
-        value: item.count,
-        fullName: item.status,
-      }));
-  };
-
-  const generateResultData = () => {
-    if (!resultChart) return fallbackData;
-
-    const { result_distribution } = resultChart;
-    return [
-      { name: 'Passed', value: result_distribution.passed, fullName: 'Passed' },
-      { name: 'Failed', value: result_distribution.failed, fullName: 'Failed' },
-      {
-        name: 'Pending',
-        value: result_distribution.pending,
-        fullName: 'Pending',
-      },
-    ].filter(item => item.value > 0); // Only show categories with data
-  };
-
-  const generateTestData = () => {
-    if (!testChart) return fallbackData;
-
-    return testChart.most_run_test_sets
-      .slice(0, CHART_CONFIG.test.top)
-      .map(item => ({
-        name: truncateName(item.test_set_name),
-        value: item.run_count,
-        fullName: item.test_set_name,
-      }));
-  };
-
-  const generateExecutorData = () => {
-    if (!executorChart) return fallbackData;
-
-    return executorChart.top_executors
-      .slice(0, CHART_CONFIG.executor.top)
-      .map(item => ({
-        name: truncateName(item.executor_name),
-        value: item.run_count,
-        fullName: item.executor_name,
-      }));
-  };
-
-  // Show single loading spinner for all charts (matching test-sets style)
-  if (isLoading) {
+    if (firstError) {
+        return (
+            <Box sx={{ p: 2 }}>
+                <Typography color="error">
+                    {(firstError as Error)?.message ?? 'Failed to load chart data'}
+                </Typography>
+            </Box>
+        );
+    }
+    /* -------- Render -------- */
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
+        <BaseChartsGrid>
+            <BasePieChart
+                title={CHART_CFG.status.title}
+                data={statusData}
+                useThemeColors
+                colorPalette="pie"
+            />
+            <BasePieChart
+                title={CHART_CFG.result.title}
+                data={resultData}
+                useThemeColors
+                colorPalette="pie"
+            />
+            <BasePieChart
+                title={CHART_CFG.test.title}
+                data={testSetsData}
+                useThemeColors
+                colorPalette="pie"
+            />
+            <BasePieChart
+                title={CHART_CFG.executor.title}
+                data={executorsData}
+                useThemeColors
+                colorPalette="pie"
+            />
+        </BaseChartsGrid>
     );
-  }
-
-  // Show error state for all charts (matching test-sets style)
-  if (hasError) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Typography color="error">
-          {errorMessage || 'Failed to load chart data'}
-        </Typography>
-      </Box>
-    );
-  }
-
-  // Show all charts when loaded
-  return (
-    <BaseChartsGrid>
-      <BasePieChart
-        title={CHART_CONFIG.status.title}
-        data={generateStatusData()}
-        useThemeColors={true}
-        colorPalette="pie"
-      />
-
-      <BasePieChart
-        title={CHART_CONFIG.result.title}
-        data={generateResultData()}
-        useThemeColors={true}
-        colorPalette="pie"
-      />
-
-      <BasePieChart
-        title={CHART_CONFIG.test.title}
-        data={generateTestData()}
-        useThemeColors={true}
-        colorPalette="pie"
-      />
-
-      <BasePieChart
-        title={CHART_CONFIG.executor.title}
-        data={generateExecutorData()}
-        useThemeColors={true}
-        colorPalette="pie"
-      />
-    </BaseChartsGrid>
-  );
 }

@@ -45,7 +45,7 @@ class RhesisPromptMetric(RhesisMetricBase):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
 
         # Set model from parameter or environment variable, with fallback to default
-        self.model = model or os.environ.get("GEMINI_MODEL_NAME") or "gemini-2.0-flash"
+        self.model = model or os.environ.get("GEMINI_MODEL_NAME") or "gemini-2.0-flash-lite"
 
         # Convert string to enum if needed
         if isinstance(score_type, str):

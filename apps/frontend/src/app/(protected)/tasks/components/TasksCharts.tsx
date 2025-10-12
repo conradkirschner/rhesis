@@ -1,115 +1,124 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Box, Typography, Grid, Card, CardContent } from '@mui/material';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { Task } from '@/utils/api-client/interfaces/task';
+import * as React from 'react';
+import {
+  Box,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  CircularProgress,
+  Alert,
+} from '@mui/material';
+import type { Theme } from '@mui/material/styles';
+import { useQuery } from '@tanstack/react-query';
+
+import type { PaginatedTaskDetail } from '@/api-client/types.gen';
+import { listTasksTasksGetOptions } from '@/api-client/@tanstack/react-query.gen';
 
 interface TasksChartsProps {
   sessionToken: string;
 }
 
+const PAGE_SIZE = 100;
+
+type PaletteKey =
+    | 'primary'
+    | 'secondary'
+    | 'success'
+    | 'error'
+    | 'warning'
+    | 'info';
+
+interface Stats {
+  total: number;
+  open: number;
+  inProgress: number;
+  completed: number;
+  cancelled: number;
+}
+
 export default function TasksCharts({ sessionToken }: TasksChartsProps) {
-  const [stats, setStats] = useState({
-    total: 0,
-    open: 0,
-    inProgress: 0,
-    completed: 0,
-    cancelled: 0,
+  const tasksQuery = useQuery({
+    ...listTasksTasksGetOptions({
+      headers: { Authorization: `Bearer ${sessionToken}` },
+      query: { skip: 0, limit: PAGE_SIZE },
+    }),
+    enabled: Boolean(sessionToken),
+    staleTime: 60_000,
   });
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const clientFactory = new ApiClientFactory(sessionToken);
-        const tasksClient = clientFactory.getTasksClient();
+  const loading = tasksQuery.isLoading || tasksQuery.isFetching;
+  const page: PaginatedTaskDetail | undefined = tasksQuery.data;
 
-        // Fetch all tasks in batches to get accurate statistics
-        const allTasks: Task[] = [];
-        let skip = 0;
-        const limit = 100; // Backend maximum limit
+  const stats = React.useMemo<Stats>(() => {
+    const tasks = page?.data ?? [];
 
-        while (true) {
-          const response = await tasksClient.getTasks({ skip, limit });
-          allTasks.push(...response.data);
+    const byStatus = (name: string) =>
+        tasks.filter((t) => t.status?.name === name).length;
 
-          // If we got fewer tasks than the limit, we've reached the end
-          if (response.data.length < limit) {
-            break;
-          }
-
-          skip += limit;
-        }
-
-        const stats = {
-          total: allTasks.length,
-          open: allTasks.filter(task => task.status?.name === 'Open').length,
-          inProgress: allTasks.filter(
-            task => task.status?.name === 'In Progress'
-          ).length,
-          completed: allTasks.filter(task => task.status?.name === 'Completed')
-            .length,
-          cancelled: allTasks.filter(task => task.status?.name === 'Cancelled')
-            .length,
-        };
-
-        setStats(stats);
-      } catch (error) {
-        console.error('Error fetching task stats:', error);
-      } finally {
-        setLoading(false);
-      }
+    return {
+      total: page?.pagination?.totalCount ?? tasks.length,
+      open: byStatus('Open'),
+      inProgress: byStatus('In Progress'),
+      completed: byStatus('Completed'),
+      cancelled: byStatus('Cancelled'),
     };
+  }, [page]);
 
-    fetchStats();
-  }, [sessionToken]);
+  const colorFromPalette =
+      (key: PaletteKey) =>
+          (theme: Theme): string =>
+              theme.palette[key].main;
 
-  const StatCard = ({
-    title,
-    value,
-    color = 'primary',
-  }: {
-    title: string;
-    value: number;
-    color?: string;
-  }) => (
-    <Card>
-      <CardContent>
-        <Typography color="textSecondary" gutterBottom variant="h6">
-          {title}
-        </Typography>
-        <Typography variant="h4" color={`${color}.main`}>
-          {loading ? '...' : value}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
+  const StatCard: React.FC<{ title: string; value: number; color?: PaletteKey }> =
+      ({ title, value, color = 'primary' }) => (
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom variant="h6">
+                {title}
+              </Typography>
+              <Typography variant="h4" sx={{ color: colorFromPalette(color) }}>
+                {loading ? '…' : value}
+              </Typography>
+            </CardContent>
+          </Card>
+      );
 
   return (
-    <Box sx={{ mb: 3 }}>
-      <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <StatCard title="Total" value={stats.total} />
+      <Box sx={{ mb: 3 }}>
+        {tasksQuery.isError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {tasksQuery.error.message}
+            </Alert>
+        )}
+
+        {tasksQuery.isFetching && !tasksQuery.isLoading && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <CircularProgress size={16} />
+              <Typography variant="caption" color="text.secondary">
+                Updating…
+              </Typography>
+            </Box>
+        )}
+
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6} md={3} lg={2}>
+            <StatCard title="Total" value={stats.total} />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3} lg={2}>
+            <StatCard title="Open" value={stats.open} color="warning" />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3} lg={2}>
+            <StatCard title="In Progress" value={stats.inProgress} color="primary" />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3} lg={2}>
+            <StatCard title="Completed" value={stats.completed} color="success" />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3} lg={2}>
+            <StatCard title="Cancelled" value={stats.cancelled} color="error" />
+          </Grid>
         </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <StatCard title="Open" value={stats.open} color="warning" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <StatCard
-            title="In Progress"
-            value={stats.inProgress}
-            color="primary"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <StatCard title="Completed" value={stats.completed} color="success" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <StatCard title="Cancelled" value={stats.cancelled} color="error" />
-        </Grid>
-      </Grid>
-    </Box>
+      </Box>
   );
 }

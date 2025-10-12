@@ -1,44 +1,62 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Box } from '@mui/material';
-import BaseTag from '@/components/common/BaseTag';
-import { EntityType } from '@/utils/api-client/interfaces/tag';
-import { TestDetail } from '@/utils/api-client/interfaces/tests';
+import BaseTag, { TaggableEntity } from '@/components/common/BaseTag';
+
+import type { TestDetail, Tag, TagRead } from '@/api-client/types.gen';
 
 interface TestTagsProps {
-  sessionToken: string;
   test: TestDetail;
 }
 
-export default function TestTags({ sessionToken, test }: TestTagsProps) {
-  const [tagNames, setTagNames] = useState<string[]>([]);
+export default function TestTags({ test }: TestTagsProps) {
+  // derive tag names from TestDetail.tags (TagRead[] | null | undefined)
+  const [tagNames, setTagNames] = useState<string[]>(
+      (test.tags ?? []).map((t: TagRead) => t.name),
+  );
 
-  // Initialize and update tag names when test changes
+  // keep tag names in sync if the parent updates the test
   useEffect(() => {
-    if (test.tags) {
-      setTagNames(test.tags.map(tag => tag.name));
-    }
+    setTagNames((test.tags ?? []).map((t: TagRead) => t.name));
   }, [test.tags]);
 
+  // normalize TestDetail.tags (TagRead[]) -> Tag[] (what BaseTag expects)
+  const normalizedTags: Tag[] | undefined = useMemo(() => {
+    const arr = test.tags ?? undefined;
+    return arr?.map((t: TagRead) => ({
+      id: t.id as string,
+      name: t.name,
+    }));
+  }, [test.tags]);
+
+  // Build a TaggableEntity explicitly (avoid `satisfies`/structural mismatch)
+  const taggableTest: TaggableEntity = useMemo(
+      () => ({
+        id: test.id as string,
+        tags: normalizedTags,
+      }),
+      [test.id, normalizedTags],
+  );
+
   return (
-    <Box sx={{ width: '100%' }}>
-      <BaseTag
-        value={tagNames}
-        onChange={setTagNames}
-        label="Tags"
-        placeholder="Add tags (press Enter or comma to add)"
-        helperText="These tags help categorize and find this test"
-        chipColor="primary"
-        addOnBlur
-        delimiters={[',', 'Enter']}
-        size="small"
-        margin="normal"
-        fullWidth
-        sessionToken={sessionToken}
-        entityType={EntityType.TEST}
-        entity={test}
-      />
-    </Box>
+      <Box sx={{ width: '100%' }}>
+        <BaseTag
+            value={tagNames}
+            onChange={setTagNames}
+            label="Tags"
+            placeholder="Add tags (press Enter or comma to add)"
+            helperText="These tags help categorize and find this test"
+            chipColor="primary"
+            addOnBlur
+            delimiters={[',', 'Enter']}
+            size="small"
+            margin="normal"
+            fullWidth
+            entityType={'Test'}
+            entity={taggableTest}
+            className="test-tags"
+        />
+      </Box>
   );
 }

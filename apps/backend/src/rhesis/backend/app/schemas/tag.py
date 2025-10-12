@@ -4,6 +4,7 @@ from typing import Optional
 from pydantic import UUID4
 
 from rhesis.backend.app.schemas import Base
+from rhesis.backend.app.constants import EntityType
 
 
 # Tag schemas
@@ -20,24 +21,6 @@ class TagCreate(TagBase):
 
 class TagUpdate(TagBase):
     name: Optional[str] = None
-
-
-class EntityType(str, Enum):
-    TEST = "Test"
-    TEST_SET = "TestSet"
-    TEST_RUN = "TestRun"
-    TEST_RESULT = "TestResult"
-    PROMPT = "Prompt"
-    PROMPT_TEMPLATE = "PromptTemplate"
-    BEHAVIOR = "Behavior"
-    CATEGORY = "Category"
-    ENDPOINT = "Endpoint"
-    USE_CASE = "UseCase"
-    RESPONSE_PATTERN = "ResponsePattern"
-    PROJECT = "Project"
-    ORGANIZATION = "Organization"
-    MODEL = "Model"
-    METRIC = "Metric"
 
 
 class TagAssignment(Base):

@@ -1,48 +1,31 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import BaseDrawer from '@/components/common/BaseDrawer';
-import { TestDetail } from '@/utils/api-client/interfaces/tests';
 import CreateTest from './CreateTest';
 import UpdateTest from './UpdateTest';
+
+import type { TestDetail } from '@/api-client/types.gen';
+import {useSession} from "next-auth/react";
 
 interface TestDrawerProps {
   open: boolean;
   onClose: () => void;
-  sessionToken: string;
   test?: TestDetail;
   onSuccess?: () => void;
 }
 
 export default function TestDrawer({
-  open,
-  onClose,
-  sessionToken,
-  test,
-  onSuccess,
-}: TestDrawerProps) {
-  const [error, setError] = React.useState<string>();
-  const [loading, setLoading] = React.useState(false);
+                                     open,
+                                     onClose,
+                                     test,
+                                     onSuccess,
+                                   }: TestDrawerProps) {
+  const [error, setError] = useState<string>();
+  const [loading, setLoading] = useState(false);
   const submitRef = useRef<(() => Promise<void>) | undefined>(undefined);
-
-  // Get current user from token
-  const getCurrentUserId = () => {
-    try {
-      const [, payloadBase64] = sessionToken.split('.');
-      // Add padding if needed
-      const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
-      const pad = base64.length % 4;
-      const paddedBase64 = pad ? base64 + '='.repeat(4 - pad) : base64;
-
-      const payload = JSON.parse(
-        Buffer.from(paddedBase64, 'base64').toString('utf-8')
-      );
-      return payload.user?.id;
-    } catch (err) {
-      console.error('Error decoding JWT token:', err);
-      return undefined;
-    }
-  };
+  const session = useSession();
+  const userId = session.data?.user?.id;
 
   const handleSave = async () => {
     try {
@@ -50,38 +33,38 @@ export default function TestDrawer({
       await submitRef.current?.();
       onClose();
     } catch (err) {
-      console.error('Error saving test:', err);
+      // Surface a generic error; details already handled in child via onError
+      setError((err as Error)?.message ?? 'Failed to save test');
+      // Keep drawer open so user can correct issues
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <BaseDrawer
-      open={open}
-      onClose={onClose}
-      title={test ? 'Edit Test' : 'New Test'}
-      loading={loading}
-      error={error}
-      onSave={handleSave}
-    >
-      {test ? (
-        <UpdateTest
-          sessionToken={sessionToken}
-          onSuccess={onSuccess}
-          onError={setError}
-          submitRef={submitRef}
-          test={test}
-        />
-      ) : (
-        <CreateTest
-          sessionToken={sessionToken}
-          onSuccess={onSuccess}
-          onError={setError}
-          defaultOwnerId={getCurrentUserId()}
-          submitRef={submitRef}
-        />
-      )}
-    </BaseDrawer>
+      <BaseDrawer
+          open={open}
+          onClose={onClose}
+          title={test ? 'Edit Test' : 'New Test'}
+          loading={loading}
+          error={error}
+          onSave={handleSave}
+      >
+        {test ? (
+            <UpdateTest
+                onSuccess={onSuccess}
+                onError={setError}
+                submitRef={submitRef}
+                test={test}
+            />
+        ) : (
+            <CreateTest
+                onSuccess={onSuccess}
+                onError={setError}
+                defaultOwnerId={userId}
+                submitRef={submitRef}
+            />
+        )}
+      </BaseDrawer>
   );
 }

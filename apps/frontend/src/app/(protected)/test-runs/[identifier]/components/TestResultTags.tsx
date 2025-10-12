@@ -1,78 +1,92 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Box } from '@mui/material';
-import BaseTag from '@/components/common/BaseTag';
-import { EntityType, Tag } from '@/utils/api-client/interfaces/tag';
-import { TestResultDetail } from '@/utils/api-client/interfaces/test-results';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
+import BaseTag, {TaggableEntity} from '@/components/common/BaseTag';
+
+import type { TestResultDetail } from '@/api-client/types.gen';
+import { readTestResultTestResultsTestResultIdGetOptions } from '@/api-client/@tanstack/react-query.gen';
+
+import { useQueryClient } from '@tanstack/react-query';
 
 interface TestResultTagsProps {
-  sessionToken: string;
   testResult: TestResultDetail;
   onUpdate: (updatedTest: TestResultDetail) => void;
 }
 
 export default function TestResultTags({
-  sessionToken,
-  testResult,
-  onUpdate,
-}: TestResultTagsProps) {
-  const [tagNames, setTagNames] = useState<string[]>([]);
+                                         testResult,
+                                         onUpdate,
+                                       }: TestResultTagsProps) {
+  const queryClient = useQueryClient();
 
-  // Initialize and update tag names when testResult changes
-  useEffect(() => {
-    // Reset tags whenever test result changes (based on ID)
-    // TestResult now has tags property via TagsMixin
-    const tags = testResult.tags;
-    if (tags && Array.isArray(tags)) {
-      setTagNames(tags.map((tag: any) => tag.name));
-    } else {
-      setTagNames([]);
-    }
-  }, [testResult.id]);
+  // Build the TaggableEntity that BaseTag expects
+  const entity = React.useMemo<TaggableEntity>(() => {
+    const orgId =
+        'organization_id' in testResult
+            ?
+            (testResult as { organization_id?: string | null }).organization_id ?? null
+            : null;
 
-  // Handle tag changes and update parent state
+    const userId =
+        'user_id' in testResult
+            ?
+            (testResult as { user_id?: string | null }).user_id ?? null
+            : null;
+    return {
+      id: testResult.id,
+      organization_id: orgId,
+      user_id: userId,
+      tags: Array.isArray(testResult.tags) ? testResult.tags : [],
+    };
+  }, [testResult]);
+
+  // Local tag names shown in the UI
+  const [tagNames, setTagNames] = React.useState<string[]>(
+      entity.tags?.map(t => t.name ?? '').filter(Boolean) ?? [],
+  );
+
+  // Keep tag names in sync when the parent provides a different test result
+  React.useEffect(() => {
+    setTagNames(entity.tags?.map(t => t.name ?? '').filter(Boolean) ?? []);
+  }, [entity]);
+
+  // After BaseTag does its API updates, refetch the full test result and bubble up
   const handleTagChange = async (newTagNames: string[]) => {
-    // Update local state immediately
-    setTagNames(newTagNames);
+    setTagNames(newTagNames); // optimistic UI
 
-    // After BaseTag completes its API calls, fetch the updated test result
-    // We use a small delay to ensure API calls have completed
-    setTimeout(async () => {
-      try {
-        const apiFactory = new ApiClientFactory(sessionToken);
-        const testResultsClient = apiFactory.getTestResultsClient();
-        const updatedTestResult = await testResultsClient.getTestResult(
-          testResult.id
-        );
+    try {
+      const opts = readTestResultTestResultsTestResultIdGetOptions({
+        path: { test_result_id: testResult.id },
+      });
 
-        // Notify parent of the update
-        onUpdate(updatedTestResult);
-      } catch (error) {
-        console.error('Failed to fetch updated test result:', error);
-      }
-    }, 500);
+      const updated = await queryClient.fetchQuery(opts);
+      onUpdate(updated as TestResultDetail);
+
+      // Keep cache fresh
+      await queryClient.invalidateQueries({ queryKey: opts.queryKey });
+    } catch {
+      // swallow — you can surface a toast here if desired
+    }
   };
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <BaseTag
-        value={tagNames}
-        onChange={handleTagChange}
-        label="Test Result Tags"
-        placeholder="Add tags (press Enter or comma to add)"
-        helperText="Tags help categorize and find this test result"
-        chipColor="primary"
-        addOnBlur
-        delimiters={[',', 'Enter']}
-        size="small"
-        margin="normal"
-        fullWidth
-        sessionToken={sessionToken}
-        entityType={EntityType.TEST_RESULT}
-        entity={testResult}
-      />
-    </Box>
+      <Box sx={{ width: '100%' }}>
+        <BaseTag
+            value={tagNames}
+            onChange={handleTagChange}
+            label="Test Result Tags"
+            placeholder="Add tags (press Enter or comma to add)"
+            helperText="Tags help categorize and find this test result"
+            chipColor="primary"
+            addOnBlur
+            delimiters={[',', 'Enter']}
+            size="small"
+            margin="normal"
+            fullWidth
+            entityType={'TestResult'}
+            entity={entity}
+        />
+      </Box>
   );
 }

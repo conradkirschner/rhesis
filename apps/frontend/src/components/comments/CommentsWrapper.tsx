@@ -1,15 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Box } from '@mui/material';
 import { CommentsSection } from './CommentsSection';
 import { useComments } from '@/hooks/useComments';
-import { EntityType } from '@/types/comments';
+import { EntityType } from '@/api-client';
 
 interface CommentsWrapperProps {
   entityType: EntityType;
   entityId: string;
-  sessionToken: string;
   currentUserId: string;
   currentUserName: string;
   currentUserPicture?: string;
@@ -20,7 +18,6 @@ interface CommentsWrapperProps {
 export default function CommentsWrapper({
   entityType,
   entityId,
-  sessionToken,
   currentUserId,
   currentUserName,
   currentUserPicture,
@@ -30,16 +27,13 @@ export default function CommentsWrapper({
   const {
     comments,
     isLoading,
-    error,
     createComment,
     editComment,
     deleteComment,
     reactToComment,
-    refetch,
   } = useComments({
     entityType,
     entityId,
-    sessionToken,
     currentUserId,
     currentUserName,
     currentUserPicture,

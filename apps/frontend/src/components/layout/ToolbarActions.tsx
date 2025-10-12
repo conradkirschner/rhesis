@@ -11,7 +11,7 @@ export default function ToolbarActions() {
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-      {showVersionInfo && (
+        {showVersionInfo && (
         <AppVersion
           variant="caption"
           sx={{

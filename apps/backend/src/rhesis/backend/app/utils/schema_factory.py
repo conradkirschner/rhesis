@@ -6,7 +6,7 @@ from rhesis.backend.app.schemas.base import Base
 from rhesis.backend.app.schemas.tag import TagRead
 from rhesis.backend.app.schemas.test_set import TestSet
 from rhesis.backend.app.utils.model_utils import get_model_relationships
-from rhesis.backend.app.models.mixins import CountsDict, AttributesDict, TestSetAttributesDict
+from rhesis.backend.app.models.mixins import CountsDict, AttributesDict
 from rhesis.backend.app.schemas.auth import AuthConfig
 
 
@@ -79,7 +79,6 @@ def create_detailed_schema(
         ("user_id", Optional[UUID4], None),
         ("organization_id", Optional[UUID4], None),
         ("status_id", Optional[UUID4], None),
-        ("attributes", Optional[TestSetAttributesDict], None),
         ("tags", Optional[List[TagRead]], None),
         ("icon", Optional[str], None),
         ("endpoint_id", Optional[UUID4], None),

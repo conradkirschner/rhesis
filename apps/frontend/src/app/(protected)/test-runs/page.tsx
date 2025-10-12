@@ -52,7 +52,6 @@ export default function TestRunsPage() {
     >
       {/* Charts Section */}
       <TestRunCharts
-        sessionToken={session.session_token}
         key={`charts-${refreshKey}`}
       />
 

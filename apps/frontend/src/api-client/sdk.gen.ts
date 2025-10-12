@@ -2162,7 +2162,6 @@ export const generateTextServicesGenerateTextPost = <ThrowOnError extends boolea
 
 /**
  * Upload Document
- * Upload a document to persistent storage.
  */
 export const uploadDocumentServicesDocumentsUploadPost = <ThrowOnError extends boolean = false>(options: Options<UploadDocumentServicesDocumentsUploadPostData, ThrowOnError>) => {
     return (options.client ?? client).post<UploadDocumentServicesDocumentsUploadPostResponses, UploadDocumentServicesDocumentsUploadPostErrors, ThrowOnError>({

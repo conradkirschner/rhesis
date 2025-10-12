@@ -1,15 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import { Box, Typography, Paper, Container } from '@mui/material';
+import { Paper } from '@mui/material';
 import { PageContainer } from '@toolpad/core/PageContainer';
-import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 import TeamInviteForm from './components/TeamInviteForm';
 import TeamMembersGrid from './components/TeamMembersGrid';
 
 export default function TeamPage() {
-  const { data: session } = useSession();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleInvitesSent = (emails: string[]) => {

@@ -3,7 +3,6 @@ import { auth } from './auth';
 import { isPublicPath, ONBOARDING_PATH } from './constants/paths';
 import { getServerBackendUrl } from './utils/url-resolver';
 
-// Helper function to verify token with backend
 async function verifySessionWithBackend(sessionToken: string) {
   try {
     const response = await fetch(
@@ -20,6 +19,7 @@ async function verifySessionWithBackend(sessionToken: string) {
     }
 
     const data = await response.json();
+
     return data.authenticated && data.user;
   } catch (error) {
     console.error('Backend session verification failed:', error);
@@ -27,9 +27,10 @@ async function verifySessionWithBackend(sessionToken: string) {
   }
 }
 
-// Helper function to get session token from request
 function getSessionTokenFromRequest(request: NextRequest): string | null {
   const sessionCookie = request.cookies.get('next-auth.session-token');
+  console.log('validation cookie', request, sessionCookie);
+
   if (!sessionCookie?.value) return null;
 
   const cookieValue = sessionCookie.value;
@@ -66,7 +67,8 @@ async function createSessionClearingResponse(
   const response = NextResponse.redirect(url);
 
   // If requested, call backend logout first to clear server-side session
-  if (shouldCallBackendLogout) {
+  if (!shouldCallBackendLogout) { return response }
+
     try {
       console.log(
         '🟠 [DEBUG] Middleware calling backend logout for session expiration'
@@ -90,7 +92,7 @@ async function createSessionClearingResponse(
       );
       // Continue with frontend cleanup even if backend fails
     }
-  }
+
 
   // List of cookies to clear
   const cookiesToClear = [

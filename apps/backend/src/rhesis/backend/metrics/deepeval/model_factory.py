@@ -149,7 +149,7 @@ class ModelFactory:
         # Use environment variable for default model name if not provided
         if model_name is None:
             if model_type_enum == ModelType.GEMINI:
-                model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash-001")
+                model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.0-flash-lite")
             else:
                 # Get default model name for other types
                 model_type_for_default = model_type.lower()

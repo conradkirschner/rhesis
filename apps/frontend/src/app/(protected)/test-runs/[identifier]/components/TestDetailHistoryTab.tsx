@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import * as React from 'react';
 import {
   Box,
   Typography,
@@ -20,16 +20,33 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import Link from 'next/link';
-import { TestResultDetail } from '@/utils/api-client/interfaces/test-results';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { formatDate } from '@/utils/date';
 
+import {
+  readTestResultsTestResultsGetOptions,
+  readTestRunTestRunsTestRunIdGetOptions,
+} from '@/api-client/@tanstack/react-query.gen';
+
+// ---- Local light-weight shapes we actually use from API responses ---- //
+type MetricEval = { is_successful?: boolean | null };
+type ResultLite = {
+  id: string;
+  test_run_id?: string | null;
+  created_at?: string | null;
+  test_metrics?: { metrics?: Record<string, MetricEval> | null } | null;
+};
+type Paginated<T> = { data: T[] };
+
+type TestRunLite = { id: string; name?: string | null; created_at?: string | null };
+
+// ---- Component props ---- //
 interface TestDetailHistoryTabProps {
-  test: TestResultDetail;
+  test: { test_id?: string | null; id: string; prompt_id?: string | null };
   testRunId: string;
-  sessionToken: string;
 }
 
+// ---- UI row shape ---- //
 interface HistoricalResult {
   id: string;
   testRunId: string;
@@ -41,331 +58,274 @@ interface HistoricalResult {
 }
 
 export default function TestDetailHistoryTab({
-  test,
-  testRunId,
-  sessionToken,
-}: TestDetailHistoryTabProps) {
+                                               test,
+                                               testRunId,
+                                             }: TestDetailHistoryTabProps) {
   const theme = useTheme();
-  const [history, setHistory] = useState<HistoricalResult[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchHistory() {
-      if (!test.test_id) {
-        setError('No test ID available');
-        setLoading(false);
-        return;
-      }
+  // ---- First query: historical results for this test ---- //
+  const resultsQuery = useQuery({
+    ...readTestResultsTestResultsGetOptions({
+      query: {
+        $filter: test.test_id ? `test_id eq '${test.test_id}'` : undefined,
+        limit: 50,
+        skip: 0,
+      },
+    }),
+    enabled: Boolean(test.test_id),
+    staleTime: 60_000,
+  });
 
-      try {
-        setLoading(true);
-        const clientFactory = new ApiClientFactory(sessionToken);
-        const testResultsClient = clientFactory.getTestResultsClient();
+  // Normalize and memoize result page + list to avoid ESLint deps warnings.
+  const page = React.useMemo(() => {
+    return (resultsQuery.data as Paginated<ResultLite> | undefined) ?? { data: [] };
+  }, [resultsQuery.data]);
 
-        // Fetch historical test results for this test
-        const results = await testResultsClient.getTestResults({
-          filter: `test_id eq '${test.test_id}'`,
-          limit: 10,
-          skip: 0,
-        });
+  const results = React.useMemo<ReadonlyArray<ResultLite>>(
+      () => page.data ?? [],
+      [page],
+  );
 
-        // Get unique test run IDs to fetch their names
-        const testRunIds = [
-          ...new Set(
-            results.data.filter(r => r.test_run_id).map(r => r.test_run_id!)
-          ),
-        ];
+  // ---- Unique test-run IDs (memoized) ---- //
+  const runIds = React.useMemo<string[]>(
+      () => Array.from(new Set(results.map(r => r.test_run_id).filter((v): v is string => !!v))),
+      [results],
+  );
 
-        // Fetch test run details to get actual names
-        const testRunsClient = clientFactory.getTestRunsClient();
-        const testRunsData = await Promise.allSettled(
-          testRunIds.map(id => testRunsClient.getTestRun(id))
-        );
+  // ---- Dependent queries: fetch each run’s name ---- //
+  const runDetailQueries = useQueries({
+    queries: runIds.map((id) => ({
+      ...readTestRunTestRunsTestRunIdGetOptions({
+        path: { test_run_id: id },
+      }),
+      enabled: Boolean(id),
+      staleTime: 5 * 60_000,
+    })),
+  });
 
-        // Create a map of test run IDs to names
-        const testRunNamesMap = new Map<string, string>();
-        testRunsData.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            const testRun = result.value;
-            // Use name if available, otherwise use the test run ID
-            const displayName = testRun.name || testRunIds[index];
-            testRunNamesMap.set(testRun.id, displayName);
-            console.log(
-              `Mapped test run ${testRun.id} to name: ${displayName}`
-            );
-          } else {
-            // If fetch failed, use the ID as fallback
-            console.warn(
-              `Failed to fetch test run ${testRunIds[index]}:`,
-              result.reason
-            );
-            testRunNamesMap.set(testRunIds[index], testRunIds[index]);
-          }
-        });
+  // Build a map id -> name (only for successful queries)
+  const runNameMap = React.useMemo(() => {
+    const m = new Map<string, string>();
+    runDetailQueries.forEach((q, idx) => {
+      const id = runIds[idx];
+      const run = q.data as TestRunLite | undefined;
+      if (id) m.set(id, (run?.name ?? id));
+    });
+    return m;
+  }, [runDetailQueries, runIds]);
 
-        // Process results into historical format
-        const historicalData: HistoricalResult[] = results.data.map(result => {
-          const metrics = result.test_metrics?.metrics || {};
-          const metricValues = Object.values(metrics);
-          const passedMetrics = metricValues.filter(
-            m => m.is_successful
-          ).length;
-          const totalMetrics = metricValues.length;
-          const passed = totalMetrics > 0 && passedMetrics === totalMetrics;
+  // ---- Derive historical rows (dedup per run, newest first, limit 10) ---- //
+  const history = React.useMemo<HistoricalResult[]>(() => {
+    const rows = results.map((r) => {
+      const metrics = r.test_metrics?.metrics ?? {};
+      const values = Object.values(metrics ?? {});
+      const passedMetrics = values.filter((m) => m?.is_successful).length;
+      const totalMetrics = values.length;
+      const passed = totalMetrics > 0 && passedMetrics === totalMetrics;
 
-          return {
-            id: result.id,
-            testRunId: result.test_run_id || 'unknown',
-            testRunName: result.test_run_id
-              ? testRunNamesMap.get(result.test_run_id) || result.test_run_id
-              : 'unknown',
-            passed,
-            passedMetrics,
-            totalMetrics,
-            executedAt: result.created_at || new Date().toISOString(),
-          };
-        });
+      const runId = r.test_run_id ?? 'unknown';
+      const runName = runId === 'unknown' ? 'unknown' : (runNameMap.get(runId) ?? runId);
 
-        // Sort by execution date (most recent first)
-        historicalData.sort(
-          (a, b) =>
-            new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime()
-        );
+      return {
+        id: r.id,
+        testRunId: runId,
+        testRunName: runName,
+        passed,
+        passedMetrics,
+        totalMetrics,
+        executedAt: r.created_at ?? new Date().toISOString(),
+      };
+    });
 
-        // Group by test run - only show one result per test run (the most recent one)
-        const uniqueByTestRun = new Map<string, HistoricalResult>();
-        historicalData.forEach(item => {
-          if (!uniqueByTestRun.has(item.testRunId)) {
-            uniqueByTestRun.set(item.testRunId, item);
-          }
-        });
+    // Sort desc by executedAt
+    rows.sort((a, b) => new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime());
 
-        // Convert back to array and limit to 10
-        const dedupedHistory = Array.from(uniqueByTestRun.values())
-          .sort(
-            (a, b) =>
-              new Date(b.executedAt).getTime() -
-              new Date(a.executedAt).getTime()
-          )
-          .slice(0, 10);
-
-        setHistory(dedupedHistory);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching test history:', err);
-        setError('Failed to load test history');
-      } finally {
-        setLoading(false);
-      }
+    // Dedup by testRunId (keep first/latest)
+    const perRun = new Map<string, HistoricalResult>();
+    for (const row of rows) {
+      if (!perRun.has(row.testRunId)) perRun.set(row.testRunId, row);
     }
 
-    fetchHistory();
-  }, [test.test_id, sessionToken]);
+    // Back to array, sorted, top 10
+    return Array.from(perRun.values())
+        .sort((a, b) => new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime())
+        .slice(0, 10);
+  }, [results, runNameMap]);
 
-  if (loading) {
+  // ---- Loading / error states ---- //
+  if (resultsQuery.isLoading) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          p: 4,
-        }}
-      >
-        <CircularProgress />
-      </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
     );
   }
 
-  if (error) {
+  if (resultsQuery.isError) {
+    const msg =  resultsQuery.error.message;
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
+        <Box sx={{ p: 3 }}>
+          <Alert severity="error">{msg}</Alert>
+        </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-        Test Execution History
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Last 10 test runs where this test was executed
-      </Typography>
+      <Box sx={{ p: 3 }}>
+        <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+          Test Execution History
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Last 10 test runs where this test was executed
+        </Typography>
 
-      {history.length === 0 ? (
-        <Paper variant="outlined" sx={{ p: 3, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            No historical data available for this test
-          </Typography>
-        </Paper>
-      ) : (
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Status</TableCell>
-                <TableCell>Test Run</TableCell>
-                <TableCell>Metrics</TableCell>
-                <TableCell>Executed At</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {history.map(item => (
-                <TableRow
-                  key={item.id}
-                  sx={{
-                    backgroundColor:
-                      item.testRunId === testRunId
-                        ? theme.palette.action.selected
-                        : 'transparent',
-                    '&:hover': {
-                      backgroundColor: theme.palette.action.hover,
-                    },
-                  }}
-                >
-                  <TableCell>
-                    <Chip
-                      icon={
-                        item.passed ? (
-                          <CheckCircleOutlineIcon />
-                        ) : (
-                          <CancelOutlinedIcon />
-                        )
-                      }
-                      label={item.passed ? 'Pass' : 'Fail'}
-                      size="small"
-                      color={item.passed ? 'success' : 'error'}
-                      sx={{ minWidth: 80 }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {item.testRunId !== 'unknown' ? (
-                        <Link
-                          href={`/test-runs/${item.testRunId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ textDecoration: 'none' }}
-                        >
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 0.5,
-                              '&:hover': {
-                                '& .test-run-name': {
-                                  color: theme.palette.primary.main,
-                                  textDecoration: 'underline',
-                                },
-                              },
-                            }}
-                          >
-                            <Typography
-                              variant="body2"
-                              className="test-run-name"
-                              sx={{
-                                transition: 'color 0.2s',
-                                color:
-                                  item.testRunId === testRunId
-                                    ? 'primary.main'
-                                    : 'text.primary',
-                                fontWeight:
-                                  item.testRunId === testRunId ? 600 : 400,
-                              }}
-                            >
-                              {item.testRunName}
-                            </Typography>
-                            <OpenInNewIcon
-                              sx={{
-                                fontSize: 14,
-                                color: 'text.disabled',
-                              }}
-                            />
+        {history.length === 0 ? (
+            <Paper variant="outlined" sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                No historical data available for this test
+              </Typography>
+            </Paper>
+        ) : (
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Test Run</TableCell>
+                    <TableCell>Metrics</TableCell>
+                    <TableCell>Executed At</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {history.map((item) => (
+                      <TableRow
+                          key={item.id}
+                          sx={{
+                            backgroundColor:
+                                item.testRunId === testRunId ? theme.palette.action.selected : 'transparent',
+                            '&:hover': { backgroundColor: theme.palette.action.hover },
+                          }}
+                      >
+                        <TableCell>
+                          <Chip
+                              icon={item.passed ? <CheckCircleOutlineIcon /> : <CancelOutlinedIcon />}
+                              label={item.passed ? 'Pass' : 'Fail'}
+                              size="small"
+                              color={item.passed ? 'success' : 'error'}
+                              sx={{ minWidth: 80 }}
+                          />
+                        </TableCell>
+
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {item.testRunId !== 'unknown' ? (
+                                <Link
+                                    href={`/test-runs/${item.testRunId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ textDecoration: 'none' }}
+                                >
+                                  <Box
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 0.5,
+                                        '&:hover .test-run-name': {
+                                          color: 'primary.main',
+                                          textDecoration: 'underline',
+                                        },
+                                      }}
+                                  >
+                                    <Typography
+                                        variant="body2"
+                                        className="test-run-name"
+                                        sx={{
+                                          transition: 'color 0.2s',
+                                          color: item.testRunId === testRunId ? 'primary.main' : 'text.primary',
+                                          fontWeight: item.testRunId === testRunId ? 600 : 400,
+                                        }}
+                                    >
+                                      {item.testRunName}
+                                    </Typography>
+                                    <OpenInNewIcon sx={{ fontSize: 14, color: 'text.disabled' }} />
+                                  </Box>
+                                </Link>
+                            ) : (
+                                <Typography variant="body2">{item.testRunName}</Typography>
+                            )}
+                            {item.testRunId === testRunId && (
+                                <Chip label="Current" size="small" color="primary" />
+                            )}
                           </Box>
-                        </Link>
-                      ) : (
-                        <Typography variant="body2">
-                          {item.testRunName}
-                        </Typography>
-                      )}
-                      {item.testRunId === testRunId && (
-                        <Chip label="Current" size="small" color="primary" />
-                      )}
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {item.passedMetrics}/{item.totalMetrics} passed
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {formatDate(item.executedAt)}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+                        </TableCell>
 
-      {/* Summary Statistics */}
-      {history.length > 0 && (
-        <Box sx={{ mt: 3 }}>
-          <Paper variant="outlined" sx={{ p: 2 }}>
-            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-              Summary Statistics
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 4, mt: 2 }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Total Executions
+                        <TableCell>
+                          <Typography variant="body2">
+                            {item.passedMetrics}/{item.totalMetrics} passed
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {formatDate(item.executedAt)}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+        )}
+
+        {/* Summary */}
+        {history.length > 0 && (
+            <Box sx={{ mt: 3 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                  Summary Statistics
                 </Typography>
-                <Typography variant="h6">{history.length}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Pass Rate
-                </Typography>
-                <Typography
-                  variant="h6"
-                  color={
-                    history.filter(h => h.passed).length / history.length >= 0.8
-                      ? 'success.main'
-                      : 'error.main'
-                  }
-                >
-                  {(
-                    (history.filter(h => h.passed).length / history.length) *
-                    100
-                  ).toFixed(1)}
-                  %
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Passed
-                </Typography>
-                <Typography variant="h6" color="success.main">
-                  {history.filter(h => h.passed).length}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Failed
-                </Typography>
-                <Typography variant="h6" color="error.main">
-                  {history.filter(h => !h.passed).length}
-                </Typography>
-              </Box>
+                <Box sx={{ display: 'flex', gap: 4, mt: 2 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Total Executions
+                    </Typography>
+                    <Typography variant="h6">{history.length}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Pass Rate
+                    </Typography>
+                    <Typography
+                        variant="h6"
+                        color={
+                          history.filter(h => h.passed).length / history.length >= 0.8
+                              ? 'success.main'
+                              : 'error.main'
+                        }
+                    >
+                      {((history.filter(h => h.passed).length / history.length) * 100).toFixed(1)}%
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Passed
+                    </Typography>
+                    <Typography variant="h6" color="success.main">
+                      {history.filter(h => h.passed).length}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Failed
+                    </Typography>
+                    <Typography variant="h6" color="error.main">
+                      {history.filter(h => !h.passed).length}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Paper>
             </Box>
-          </Paper>
-        </Box>
-      )}
-    </Box>
+        )}
+      </Box>
   );
 }

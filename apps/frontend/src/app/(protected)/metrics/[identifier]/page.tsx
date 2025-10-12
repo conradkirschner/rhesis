@@ -24,7 +24,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import CheckIcon from '@mui/icons-material/Check';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import BaseTag, {EntityType} from '@/components/common/BaseTag';
+import BaseTag from '@/components/common/BaseTag';
 import {PageContainer} from '@toolpad/core/PageContainer';
 import {useParams} from 'next/navigation';
 import {useMutation, useQuery} from '@tanstack/react-query';
@@ -567,7 +567,7 @@ export default function MetricDetailPage() {
                       placeholder="Add tags..."
                       chipColor="primary"
                       disableEdition={isEditing !== 'general'}
-                      entityType={'Metric' as EntityType}
+                      entityType={'Metric'}
                       entity={{
                         id: metric.id,
                         organization_id: metric.organization_id ?? undefined,

@@ -6,7 +6,6 @@ import { PageContainer } from '@toolpad/core';
 import EndpointDetail from '../components/EndpointDetail';
 import { useQuery } from '@tanstack/react-query';
 
-// ✅ generated helpers & types
 import { readEndpointEndpointsEndpointIdGetOptions } from '@/api-client/@tanstack/react-query.gen';
 import type {Endpoint, EndpointDetail as EndpointDetailType } from '@/api-client/types.gen';
 

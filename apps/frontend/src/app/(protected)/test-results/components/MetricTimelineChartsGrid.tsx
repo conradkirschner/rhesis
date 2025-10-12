@@ -1,170 +1,143 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
-  Box,
-  Typography,
-  Alert,
-  CircularProgress,
-  useTheme,
-  Paper,
+    Box,
+    Typography,
+    Alert,
+    CircularProgress,
+    useTheme,
 } from '@mui/material';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { TestResultsStats } from '@/utils/api-client/interfaces/test-results';
-import { TestResultsStatsOptions } from '@/utils/api-client/interfaces/common';
+import { useQuery } from '@tanstack/react-query';
+
+import { TimelineDataItem } from './timelineUtils';
+
+// ✅ Generated API types
+import type { TestResultStatsAll } from '@/api-client/types.gen';
+
+// ✅ Generated React Query helper
+import { generateTestResultStatsTestResultsStatsGetOptions } from '@/api-client/@tanstack/react-query.gen';
+
 import MetricTimelineChart from './MetricTimelineChart';
 
 interface MetricTimelineChartsGridProps {
-  sessionToken: string;
-  filters: Partial<TestResultsStatsOptions>;
+    // Only `months` is used here; keep it simple and typed
+    filters: Partial<{ months: number }>;
 }
 
-// Extract unique metric names from timeline data
-const extractUniqueMetrics = (
-  timeline?: Array<{
-    date: string;
-    overall: any;
-    metrics?: Record<string, any>;
-  }>
-) => {
-  if (!timeline || timeline.length === 0) return [];
-
-  const metricNames = new Set<string>();
-
-  timeline.forEach(item => {
-    if (item.metrics) {
-      Object.keys(item.metrics).forEach(metricName => {
-        metricNames.add(metricName);
-      });
+/** ---- Utilities ---- */
+const extractUniqueMetrics = (timeline?: ReadonlyArray<TimelineDataItem>): string[] => {
+    if (!timeline || timeline.length === 0) return [];
+    const names = new Set<string>();
+    for (const item of timeline) {
+        const m = item.metrics;
+        if (m && typeof m === 'object') {
+            for (const key of Object.keys(m)) names.add(key);
+        }
     }
-  });
-
-  return Array.from(metricNames).sort();
+    return Array.from(names).sort();
 };
 
 export default function MetricTimelineChartsGrid({
-  sessionToken,
-  filters,
-}: MetricTimelineChartsGridProps) {
-  const theme = useTheme();
-  const [stats, setStats] = useState<TestResultsStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+                                                     filters,
+                                                 }: MetricTimelineChartsGridProps) {
+    const theme = useTheme();
 
-  const fetchData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const clientFactory = new ApiClientFactory(sessionToken);
-      const testResultsClient = clientFactory.getTestResultsClient();
+    const queryParams = useMemo(
+        () => ({
+            mode: 'timeline' as const,
+            months: filters.months ?? 6,
+        }),
+        [filters.months],
+    );
 
-      const options: TestResultsStatsOptions = {
-        mode: 'timeline', // Use timeline mode to get metric breakdown
-        months: filters.months || 6,
-        ...filters,
-      };
+    const statsQuery = useQuery({
+        ...generateTestResultStatsTestResultsStatsGetOptions({
+            query: queryParams,
+        }),
+        staleTime: 60_000,
+    });
 
-      const statsData =
-        await testResultsClient.getComprehensiveTestResultsStats(options);
-      if (statsData && typeof statsData === 'object') {
-        console.log('Metrics Timeline API Response:', statsData);
-        console.log('Timeline data for metrics:', statsData.timeline);
-        setStats(statsData);
-        setError(null);
-      } else {
-        setStats(null);
-        setError('Invalid timeline data received');
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : 'Failed to load metrics timeline data';
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
+    const stats = statsQuery.data as TestResultStatsAll | undefined;
+    const timeline = useMemo<TimelineDataItem[]>(() => {
+        const t = stats?.timeline;
+        return Array.isArray(t) ? (t as TimelineDataItem[]) : [];
+    }, [stats?.timeline]);
+
+    const uniqueMetrics = useMemo(() => extractUniqueMetrics(timeline), [timeline]);
+
+    /** ---- Render states ---- */
+    if (statsQuery.isLoading) {
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: 400,
+                    gap: 2,
+                }}
+            >
+                <CircularProgress size={24} />
+                <Typography variant="caption">Loading metrics timeline…</Typography>
+            </Box>
+        );
     }
-  }, [sessionToken, filters]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (statsQuery.isError) {
+        const msg =statsQuery.error.message;
+        return (
+            <Alert severity="error" sx={{ mb: 2 }}>
+                {msg}
+            </Alert>
+        );
+    }
 
-  const uniqueMetrics = useMemo(() => {
-    return extractUniqueMetrics(stats?.timeline);
-  }, [stats?.timeline]);
+    if (timeline.length === 0 || uniqueMetrics.length === 0) {
+        return (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="h6" color="text.secondary">
+                    No metric timeline data available
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Timeline data does not contain metric breakdowns for the selected period.
+                </Typography>
+            </Box>
+        );
+    }
 
-  if (isLoading) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: 400,
-        }}
-      >
-        <CircularProgress size={24} />
-        <Typography variant="helperText" sx={{ ml: 2 }}>
-          Loading metrics timeline...
-        </Typography>
-      </Box>
+        <Box>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+                Individual Metric Performance Over Time
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Track pass rates for each metric across the selected time period. Found {uniqueMetrics.length} metrics.
+            </Typography>
+
+            {/* Responsive grid for metric charts */}
+            <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                        xs: '1fr',
+                        sm: '1fr 1fr',
+                        md: '1fr 1fr',
+                        lg: '1fr 1fr 1fr',
+                        xl: '1fr 1fr 1fr 1fr',
+                    },
+                    gap:
+                        (theme).customSpacing?.section?.medium ?? 2,
+                }}
+            >
+                {uniqueMetrics.map((metricName) => (
+                    <MetricTimelineChart
+                        key={metricName}
+                        metricName={metricName}
+                        timelineData={timeline}
+                    />
+                ))}
+            </Box>
+        </Box>
     );
-  }
-
-  if (error) {
-    return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
-      </Alert>
-    );
-  }
-
-  if (!stats?.timeline || uniqueMetrics.length === 0) {
-    return (
-      <Box sx={{ textAlign: 'center', py: 4 }}>
-        <Typography variant="h6" color="text.secondary">
-          No metric timeline data available
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Timeline data does not contain metric breakdowns for the selected
-          period.
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Box>
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        Individual Metric Performance Over Time
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Track pass rates for each metric across the selected time period. Found{' '}
-        {uniqueMetrics.length} metrics.
-      </Typography>
-
-      {/* Responsive grid for metric charts */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr', // 1 column on mobile
-            sm: '1fr 1fr', // 2 columns on small screens
-            md: '1fr 1fr', // 2 columns on medium screens
-            lg: '1fr 1fr 1fr', // 3 columns on large screens
-            xl: '1fr 1fr 1fr 1fr', // 4 columns on extra large screens
-          },
-          gap: theme.customSpacing.section.medium,
-        }}
-      >
-        {uniqueMetrics.map(metricName => (
-          <MetricTimelineChart
-            key={metricName}
-            metricName={metricName}
-            timelineData={stats.timeline || []}
-          />
-        ))}
-      </Box>
-    </Box>
-  );
 }

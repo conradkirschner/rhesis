@@ -12,19 +12,14 @@ import {
   ListItemText,
   Box,
   Typography,
-  SelectChangeEvent,
   Paper,
   ToggleButton,
   ToggleButtonGroup,
+  Chip,
 } from '@mui/material';
-import { Project } from '@/utils/api-client/interfaces/project';
-import { User } from '@/utils/api-client/interfaces/user';
-import { UsersClient } from '@/utils/api-client/users-client';
+import { SelectChangeEvent } from '@mui/material/Select';
 import PersonIcon from '@mui/icons-material/Person';
-import BaseDrawer from '@/components/common/BaseDrawer';
-import styles from '@/styles/ProjectEditDrawer.module.css';
 
-// Import icons for selection
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import DevicesIcon from '@mui/icons-material/Devices';
 import WebIcon from '@mui/icons-material/Web';
@@ -46,8 +41,41 @@ import SchoolIcon from '@mui/icons-material/School';
 import ScienceIcon from '@mui/icons-material/Science';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 
-// Define available icons for selection
-const PROJECT_ICONS = [
+import BaseDrawer from '@/components/common/BaseDrawer';
+import styles from '@/styles/ProjectEditDrawer.module.css';
+
+// API types only
+import type { ProjectDetail, ProjectUpdate } from '@/api-client/types.gen';
+// UI-only view model types
+import type { ProjectMeta } from '../types/project-ui';
+
+type IconKey =
+    | 'SmartToy'
+    | 'Devices'
+    | 'Web'
+    | 'Storage'
+    | 'Code'
+    | 'DataObject'
+    | 'Cloud'
+    | 'Analytics'
+    | 'ShoppingCart'
+    | 'Terminal'
+    | 'VideogameAsset'
+    | 'Chat'
+    | 'Psychology'
+    | 'Dashboard'
+    | 'Search'
+    | 'AutoFixHigh'
+    | 'PhoneIphone'
+    | 'School'
+    | 'Science'
+    | 'AccountTree';
+
+const PROJECT_ICONS: ReadonlyArray<{
+  name: IconKey;
+  component: React.ElementType;
+  label: string;
+}> = [
   { name: 'SmartToy', component: SmartToyIcon, label: 'AI Assistant' },
   { name: 'Psychology', component: PsychologyIcon, label: 'AI Brain' },
   { name: 'Chat', component: ChatIcon, label: 'Chatbot' },
@@ -70,280 +98,281 @@ const PROJECT_ICONS = [
   { name: 'AccountTree', component: AccountTreeIcon, label: 'Workflow' },
 ];
 
-// IconSelector component
+type Owner = NonNullable<ProjectDetail['owner']>;
+
+export interface ProjectEditDrawerProps {
+  open: boolean;
+  onClose: () => void;
+
+  /** API object (server shape) */
+  project: ProjectDetail;
+
+  /** UI-only meta (client shape) */
+  meta?: ProjectMeta;
+
+  /**
+   * Persist handler.
+   * Your parent should call the API with `updatedProject`,
+   * and store `updatedMeta` wherever you keep UI meta.
+   */
+  onSave: (updatedProject: Partial<ProjectUpdate>, updatedMeta: ProjectMeta) => Promise<void>;
+
+  /** Optional: already-fetched users to choose an owner from */
+  users?: Owner[];
+
+  /** Optional: show loading state while parent loads users */
+  usersLoading?: boolean;
+}
+
+/** Local, strictly-typed form state */
+interface FormState {
+  name: string;
+  description: string;
+  owner_id?: string;
+  // UI-only fields:
+  environment?: ProjectMeta['environment'];
+  useCase?: ProjectMeta['useCase'];
+  icon: IconKey;
+  tags: string[];
+}
+
 const IconSelector = ({
-  selectedIcon,
-  onChange,
-}: {
-  selectedIcon: string;
-  onChange: (icon: string) => void;
+                        selectedIcon,
+                        onChange,
+                      }: {
+  selectedIcon: IconKey;
+  onChange: (icon: IconKey) => void;
 }) => {
   return (
-    <Box className={styles.iconSelectorContainer}>
-      <Typography
-        variant="subtitle1"
-        gutterBottom
-        className={styles.iconSelectorTitle}
-      >
-        Project Icon
-      </Typography>
-      <Paper variant="outlined" className={styles.iconSelectorPaper}>
-        <ToggleButtonGroup
-          value={selectedIcon}
-          exclusive
-          onChange={(_, newIcon) => {
-            if (newIcon) onChange(newIcon);
-          }}
-          aria-label="project icon"
-          className={styles.toggleButtonGroup}
-        >
-          {PROJECT_ICONS.map(icon => {
-            const IconComponent = icon.component;
-            return (
-              <ToggleButton
-                key={icon.name}
-                value={icon.name}
-                aria-label={icon.label}
-                className={styles.toggleButton}
-              >
-                <IconComponent fontSize="medium" />
-                <Typography
-                  variant="caption"
-                  noWrap
-                  className={styles.toggleButtonLabel}
-                >
-                  {icon.label}
-                </Typography>
-              </ToggleButton>
-            );
-          })}
-        </ToggleButtonGroup>
-      </Paper>
-    </Box>
+      <Box className={styles.iconSelectorContainer}>
+        <Typography variant="subtitle1" gutterBottom className={styles.iconSelectorTitle}>
+          Project Icon
+        </Typography>
+        <Paper variant="outlined" className={styles.iconSelectorPaper}>
+          <ToggleButtonGroup
+              value={selectedIcon}
+              exclusive
+              onChange={(_, newIcon: IconKey | null) => {
+                if (newIcon) onChange(newIcon);
+              }}
+              aria-label="project icon"
+              className={styles.toggleButtonGroup}
+          >
+            {PROJECT_ICONS.map((icon) => {
+              const IconComponent = icon.component;
+              return (
+                  <ToggleButton
+                      key={icon.name}
+                      value={icon.name}
+                      aria-label={icon.label}
+                      className={styles.toggleButton}
+                  >
+                    <IconComponent fontSize="medium" />
+                    <Typography variant="caption" noWrap className={styles.toggleButtonLabel}>
+                      {icon.label}
+                    </Typography>
+                  </ToggleButton>
+              );
+            })}
+          </ToggleButtonGroup>
+        </Paper>
+      </Box>
   );
 };
 
-interface ProjectEditDrawerProps {
-  open: boolean;
-  onClose: () => void;
-  project: Project;
-  onSave: (updatedProject: Partial<Project>) => Promise<void>;
-  sessionToken: string;
-}
-
 export default function ProjectEditDrawer({
-  open,
-  onClose,
-  project,
-  onSave,
-  sessionToken,
-}: ProjectEditDrawerProps) {
-  const [users, setUsers] = React.useState<User[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [formData, setFormData] = React.useState({
-    name: project.name,
-    description: project.description || '',
-    environment: project.environment,
-    useCase: project.useCase,
-    owner_id: project.owner?.id,
-    tags: project.tags || [],
-    icon: project.icon || 'SmartToy', // Default icon if not set
-  });
-
-  React.useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const usersClient = new UsersClient(sessionToken);
-        const fetchedUsers = await usersClient.getUsers();
-        setUsers(fetchedUsers.data);
-      } catch (error) {
-        console.error('Failed to fetch users:', error);
-      }
-    };
-
-    if (open) {
-      fetchUsers();
-    }
-  }, [open, sessionToken]);
-
-  const handleTextChange =
-    (field: string) =>
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setFormData(prev => ({
-        ...prev,
-        [field]: event.target.value,
-      }));
-    };
-
-  const handleSelectChange =
-    (field: string) => (event: SelectChangeEvent<string>) => {
-      setFormData(prev => ({
-        ...prev,
-        [field]: event.target.value,
-      }));
-    };
-
-  const handleIconChange = (icon: string) => {
-    setFormData(prev => ({
-      ...prev,
-      icon: icon,
-    }));
+                                            open,
+                                            onClose,
+                                            project,
+                                            meta,
+                                            onSave,
+                                            users,
+                                            usersLoading = false,
+                                          }: ProjectEditDrawerProps) {
+  const initialForm: FormState = {
+    name: project.name ?? '',
+    description: project.description ?? '',
+    owner_id: project.owner_id ?? project.owner?.id ?? undefined,
+    environment: meta?.environment,
+    useCase: meta?.useCase,
+    icon: (meta?.icon as IconKey) ?? 'SmartToy',
+    tags: meta?.tags ?? [],
   };
 
-  const handleSaveWrapper = async () => {
-    setLoading(true);
+  const [form, setForm] = React.useState<FormState>(initialForm);
+  const [saving, setSaving] = React.useState(false);
+
+  // Reset when drawer opens with a different project
+  React.useEffect(() => {
+    if (open) {
+      setForm({
+        name: project.name ?? '',
+        description: project.description ?? '',
+        owner_id: project.owner_id ?? project.owner?.id ?? undefined,
+        environment: meta?.environment,
+        useCase: meta?.useCase,
+        icon: (meta?.icon as IconKey) ?? 'SmartToy',
+        tags: meta?.tags ?? [],
+      });
+    }
+  }, [open, project, meta]);
+
+  const handleChange =
+      <K extends keyof FormState>(key: K) =>
+          (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+            setForm((prev) => ({ ...prev, [key]: e.target.value as FormState[K] }));
+          };
+
+  // ✅ Correct MUI Select typing: use SelectChangeEvent and include the (event, child) signature
+  const handleSelect =
+      <K extends keyof FormState>(key: K) =>
+          (event: SelectChangeEvent<string>, _child: React.ReactNode) => {
+            setForm((prev) => ({ ...prev, [key]: event.target.value as FormState[K] }));
+          };
+
+  const handleIconChange = (icon: IconKey) => {
+    setForm((prev) => ({ ...prev, icon }));
+  };
+
+  const handleTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const tags = e.target.value
+        .split(',')
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+    setForm((prev) => ({ ...prev, tags }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
     try {
-      // Create a clean update object with only the fields we want to update
-      const projectUpdate: Partial<Project> = {};
+      const updatedProject: Partial<ProjectUpdate> = {};
+      if (form.name !== project.name) updatedProject.name = form.name;
+      if (form.description !== project.description) updatedProject.description = form.description;
+      if (form.owner_id !== project.owner_id) updatedProject.owner_id = form.owner_id;
 
-      if (formData.name) {
-        projectUpdate.name = formData.name;
-      }
+      const updatedMeta: ProjectMeta = {
+        environment: form.environment,
+        useCase: form.useCase,
+        icon: form.icon,
+        tags: form.tags,
+      };
 
-      if (formData.description !== undefined) {
-        projectUpdate.description = formData.description;
-      }
-
-      // Always include owner_id if it's set (even if empty string to clear owner)
-      if (formData.owner_id !== undefined) {
-        projectUpdate.owner_id = formData.owner_id;
-      }
-
-      if (formData.environment) {
-        projectUpdate.environment = formData.environment;
-      }
-
-      if (formData.useCase) {
-        projectUpdate.useCase = formData.useCase;
-      }
-
-      if (formData.icon) {
-        projectUpdate.icon = formData.icon;
-      }
-
-      if (formData.tags) {
-        projectUpdate.tags = formData.tags;
-      }
-
-      await onSave(projectUpdate);
+      await onSave(updatedProject, updatedMeta);
       onClose();
-    } catch (error) {
-      console.error('Failed to save project:', error);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
-    <BaseDrawer
-      open={open}
-      onClose={onClose}
-      title="Edit Project"
-      loading={loading}
-      onSave={handleSaveWrapper}
-    >
-      <FormControl fullWidth>
-        <InputLabel>Owner</InputLabel>
-        <Select
-          value={formData.owner_id}
-          label="Owner"
-          onChange={handleSelectChange('owner_id')}
-          renderValue={selected => {
-            const selectedUser = users.find(u => u.id === selected);
-            return selectedUser ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Avatar
-                  src={selectedUser.picture}
-                  alt={selectedUser.name || selectedUser.email}
-                  sx={{ width: 24, height: 24 }}
-                >
-                  <PersonIcon />
-                </Avatar>
-                <Typography>
-                  {selectedUser.name || selectedUser.email}
-                </Typography>
-              </Box>
-            ) : null;
-          }}
-        >
-          {users.map(user => (
-            <MenuItem key={user.id} value={user.id}>
-              <ListItemAvatar>
-                <Avatar
-                  src={user.picture}
-                  alt={user.name || user.email}
-                  sx={{ width: 32, height: 32 }}
-                >
-                  <PersonIcon />
-                </Avatar>
-              </ListItemAvatar>
-              <ListItemText
-                primary={user.name || user.email}
-                secondary={user.email}
+      <BaseDrawer open={open} onClose={onClose} title="Edit Project" loading={saving} onSave={handleSave}>
+        {/* Owner */}
+        <FormControl fullWidth>
+          <InputLabel id="owner-label">Owner</InputLabel>
+          <Select<string>
+              labelId="owner-label"
+              value={form.owner_id ?? ''}
+              label="Owner"
+              onChange={handleSelect('owner_id')}
+              displayEmpty
+              disabled={usersLoading || !users || users.length === 0}
+              renderValue={(selected) => {
+                const selectedUser = (users ?? []).find((u) => u.id === String(selected));
+                return selectedUser ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Avatar
+                          src={selectedUser.picture ?? undefined}
+                          alt={selectedUser.name ?? selectedUser.email ?? 'Owner'}
+                          sx={{ width: 24, height: 24 }}
+                      >
+                        <PersonIcon />
+                      </Avatar>
+                      <Typography>{selectedUser.name ?? selectedUser.email}</Typography>
+                    </Box>
+                ) : (
+                    <Typography color="text.secondary">Select owner</Typography>
+                );
+              }}
+          >
+            {(users ?? []).map((user) => (
+                <MenuItem key={user.id} value={user.id}>
+                  <ListItemAvatar>
+                    <Avatar
+                        src={user.picture ?? undefined}
+                        alt={user.name ?? user.email ?? 'User'}
+                        sx={{ width: 32, height: 32 }}
+                    >
+                      <PersonIcon />
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText primary={user.name ?? user.email} secondary={user.email} />
+                </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        {/* Icon selection (UI-only) */}
+        <IconSelector selectedIcon={form.icon} onChange={handleIconChange} />
+
+        {/* Name */}
+        <TextField fullWidth label="Project Name" value={form.name} onChange={handleChange('name')} required />
+
+        {/* Description */}
+        <TextField fullWidth label="Description" multiline rows={4} value={form.description} onChange={handleChange('description')} />
+
+        {/* Environment (UI-only) */}
+        <FormControl fullWidth>
+          <InputLabel id="env-label">Environment</InputLabel>
+          <Select<string>
+              labelId="env-label"
+              value={form.environment ?? ''}
+              label="Environment"
+              onChange={handleSelect('environment')}
+          >
+            <MenuItem value="development">Development</MenuItem>
+            <MenuItem value="staging">Staging</MenuItem>
+            <MenuItem value="production">Production</MenuItem>
+          </Select>
+        </FormControl>
+
+        {/* Use Case (UI-only) */}
+        <FormControl fullWidth>
+          <InputLabel id="usecase-label">Use Case</InputLabel>
+          <Select<string>
+              labelId="usecase-label"
+              value={form.useCase ?? ''}
+              label="Use Case"
+              onChange={handleSelect('useCase')}
+          >
+            <MenuItem value="chatbot">Chatbot</MenuItem>
+            <MenuItem value="assistant">Assistant</MenuItem>
+            <MenuItem value="advisor">Advisor</MenuItem>
+            <MenuItem value="other">Other</MenuItem>
+          </Select>
+        </FormControl>
+
+        {/* Tags (UI-only) */}
+        <TextField
+            fullWidth
+            label="Tags"
+            value={form.tags.join(', ')}
+            onChange={handleTagsChange}
+            helperText="Separate tags with commas"
+        />
+
+        {/* Quick tags helper */}
+        <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {['nextjs', 'ai', 'demo'].map((t) => (
+              <Chip
+                  key={t}
+                  label={`+ ${t}`}
+                  size="small"
+                  onClick={() =>
+                      setForm((prev) => ({ ...prev, tags: Array.from(new Set([...prev.tags, t])) }))
+                  }
               />
-            </MenuItem>
           ))}
-        </Select>
-      </FormControl>
-
-      <IconSelector selectedIcon={formData.icon} onChange={handleIconChange} />
-
-      <TextField
-        fullWidth
-        label="Project Name"
-        value={formData.name}
-        onChange={handleTextChange('name')}
-        required
-      />
-
-      <TextField
-        fullWidth
-        label="Description"
-        multiline
-        rows={4}
-        value={formData.description}
-        onChange={handleTextChange('description')}
-      />
-
-      <FormControl fullWidth>
-        <InputLabel>Environment</InputLabel>
-        <Select
-          value={formData.environment}
-          label="Environment"
-          onChange={handleSelectChange('environment')}
-        >
-          <MenuItem value="development">Development</MenuItem>
-          <MenuItem value="staging">Staging</MenuItem>
-          <MenuItem value="production">Production</MenuItem>
-        </Select>
-      </FormControl>
-
-      <FormControl fullWidth>
-        <InputLabel>Use Case</InputLabel>
-        <Select
-          value={formData.useCase}
-          label="Use Case"
-          onChange={handleSelectChange('useCase')}
-        >
-          <MenuItem value="chatbot">Chatbot</MenuItem>
-          <MenuItem value="assistant">Assistant</MenuItem>
-          <MenuItem value="advisor">Advisor</MenuItem>
-        </Select>
-      </FormControl>
-
-      <TextField
-        fullWidth
-        label="Tags"
-        value={formData.tags.join(', ')}
-        onChange={e => {
-          const tags = e.target.value
-            .split(',')
-            .map(tag => tag.trim())
-            .filter(Boolean);
-          setFormData(prev => ({ ...prev, tags }));
-        }}
-        helperText="Separate tags with commas"
-      />
-    </BaseDrawer>
+        </Box>
+      </BaseDrawer>
   );
 }

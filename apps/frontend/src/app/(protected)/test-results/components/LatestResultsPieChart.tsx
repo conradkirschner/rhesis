@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   Paper,
   Typography,
@@ -9,24 +9,26 @@ import {
   Box,
   useTheme,
 } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
 import { BasePieChart } from '@/components/common/BaseCharts';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import {
-  TestResultsStats,
-  PassFailStats,
-} from '@/utils/api-client/interfaces/test-results';
-import { TestResultsStatsOptions } from '@/utils/api-client/interfaces/common';
+
+import type { TestResultStatsAll } from '@/api-client/types.gen';
+
+import { generateTestResultStatsTestResultsStatsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 
 interface LatestResultsPieChartProps {
-  sessionToken: string;
-  filters: Partial<TestResultsStatsOptions>;
+  // We only need months for this query; keep it simple and typed
+  filters: Partial<{ months: number }>;
 }
 
-const transformPassFailToChartData = (stats?: PassFailStats) => {
+// Inline pass/fail entry shape (schema doesn’t export a dedicated type)
+type PassFailEntry = { passed?: number | null; failed?: number | null };
+
+const transformPassFailToChartData = (stats?: PassFailEntry) => {
   if (!stats) return [{ name: 'No Data', value: 1 }];
 
-  const passed = stats.passed || 0;
-  const failed = stats.failed || 0;
+  const passed = stats.passed ?? 0;
+  const failed = stats.failed ?? 0;
 
   if (passed === 0 && failed === 0) {
     return [{ name: 'No Data', value: 1 }];
@@ -35,183 +37,166 @@ const transformPassFailToChartData = (stats?: PassFailStats) => {
   return [
     { name: 'Passed', value: passed },
     { name: 'Failed', value: failed },
-  ].filter(item => item.value > 0);
+  ].filter((d) => d.value > 0);
 };
 
 export default function LatestResultsPieChart({
-  sessionToken,
-  filters,
-}: LatestResultsPieChartProps) {
+                                                filters,
+                                              }: LatestResultsPieChartProps) {
   const theme = useTheme();
-  const [stats, setStats] = useState<TestResultsStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const clientFactory = new ApiClientFactory(sessionToken);
-      const testResultsClient = clientFactory.getTestResultsClient();
+  // Build query params in a stable way
+  const queryParams = useMemo(
+      () => ({
+        mode: 'summary' as const, // API enum value
+        months: filters.months ?? 6,
+      }),
+      [filters.months],
+  );
 
-      const options: TestResultsStatsOptions = {
-        mode: 'summary', // Specific mode for overall stats
-        months: filters.months || 6,
-        ...filters,
-      };
+  const statsQuery = useQuery({
+    ...generateTestResultStatsTestResultsStatsGetOptions({
+      query: queryParams,
+    }),
+    staleTime: 60_000,
+  });
 
-      const statsData =
-        await testResultsClient.getComprehensiveTestResultsStats(options);
-      if (statsData && typeof statsData === 'object') {
-        setStats(statsData);
-        setError(null);
-      } else {
-        setStats(null);
-        setError('Invalid summary data received');
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load summary data';
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sessionToken, filters]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const stats = statsQuery.data as TestResultStatsAll | undefined;
 
   const latestRunData = useMemo(() => {
-    const data = transformPassFailToChartData(stats?.overall_pass_rates);
-    return data.map(item => ({
+    const data = transformPassFailToChartData(
+        stats?.overall_pass_rates as PassFailEntry | undefined,
+    );
+    // Guard against any NaN values
+    return data.map((item) => ({
       ...item,
-      value: isNaN(item.value) ? 0 : item.value,
+      value: Number.isNaN(item.value) ? 0 : item.value,
     }));
   }, [stats?.overall_pass_rates]);
 
-  const getContextInfo = () => {
-    return 'Distribution of passed and failed tests in the selected period';
-  };
+  const heading = stats?.metadata?.test_run_id ? 'Test Run Results' : 'Overall Results';
+  const subheading = 'Distribution of passed and failed tests in the selected period';
 
-  if (isLoading) {
+  if (statsQuery.isLoading) {
     return (
-      <Paper
-        elevation={theme.elevation.standard}
-        sx={{
-          p: theme.customSpacing.container.medium,
-          height: 400,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <Typography variant="h6" sx={{ mb: theme.customSpacing.section.small }}>
-          Overall Results
-        </Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mb: theme.customSpacing.section.small }}
+        <Paper
+            elevation={theme.elevation?.standard ?? 1}
+            sx={{
+              p: theme.customSpacing?.container?.medium ?? 2,
+              height: 400,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
         >
-          Distribution of passed and failed tests in the selected period
-        </Typography>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            flex: 1,
-          }}
-        >
-          <CircularProgress size={24} />
-          <Typography
-            variant="helperText"
-            sx={{ ml: theme.customSpacing.container.small }}
-          >
-            Loading results...
+          <Typography variant="h6" sx={{ mb: theme.customSpacing?.section?.small ?? 1.5 }}>
+            Overall Results
           </Typography>
-        </Box>
-      </Paper>
+          <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: theme.customSpacing?.section?.small ?? 1.5 }}
+          >
+            {subheading}
+          </Typography>
+          <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                flex: 1,
+                gap: 1.5,
+              }}
+          >
+            <CircularProgress size={24} />
+            <Typography variant="caption">Loading results…</Typography>
+          </Box>
+        </Paper>
     );
   }
 
-  if (error) {
+  if (statsQuery.isError) {
+    const msg =
+        statsQuery.error instanceof Error
+            ? statsQuery.error.message
+            : 'Failed to load summary data';
     return (
-      <Paper
-        elevation={theme.elevation.standard}
-        sx={{
-          p: theme.customSpacing.container.medium,
-          height: 400,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <Typography variant="h6" sx={{ mb: theme.customSpacing.section.small }}>
-          Overall Results
-        </Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mb: theme.customSpacing.section.small }}
+        <Paper
+            elevation={theme.elevation?.standard ?? 1}
+            sx={{
+              p: theme.customSpacing?.container?.medium ?? 2,
+              height: 400,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
         >
-          Error occurred
-        </Typography>
-        <Alert severity="error">{error}</Alert>
-      </Paper>
+          <Typography variant="h6" sx={{ mb: theme.customSpacing?.section?.small ?? 1.5 }}>
+            Overall Results
+          </Typography>
+          <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: theme.customSpacing?.section?.small ?? 1.5 }}
+          >
+            Error occurred
+          </Typography>
+          <Alert severity="error">{msg}</Alert>
+        </Paper>
     );
   }
 
   return (
-    <Paper
-      elevation={theme.elevation.standard}
-      sx={{
-        p: theme.customSpacing.container.medium,
-        height: 400,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <Typography variant="h6" sx={{ mb: theme.customSpacing.section.small }}>
-        {stats?.metadata?.test_run_id ? 'Test Run Results' : 'Overall Results'}
-      </Typography>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{
-          mb: theme.customSpacing.section.small,
-          minHeight: '2.5rem', // Ensure consistent height for 2 lines
-          display: 'flex',
-          alignItems: 'flex-start',
-        }}
-      >
-        Distribution of passed and failed tests in the selected period
-      </Typography>
-      <Box sx={{ flex: 1, minHeight: 0 }}>
-        <BasePieChart
-          title=""
-          data={latestRunData}
-          useThemeColors={true}
-          colorPalette="pie"
-          height={300}
-          innerRadius={40}
-          outerRadius={90}
-          showPercentage={true}
-          elevation={0}
-          preventLegendOverflow={true}
-          variant="test-results"
-          legendProps={{
-            wrapperStyle: {
-              fontSize: theme.typography.chartTick.fontSize,
-              marginTop: theme.spacing(1.875),
-              marginBottom: theme.spacing(1.25),
-              paddingBottom: theme.spacing(1.25),
-            },
-            iconSize: 8,
-            layout: 'horizontal',
-            verticalAlign: 'bottom',
-            align: 'center',
+      <Paper
+          elevation={theme.elevation?.standard ?? 1}
+          sx={{
+            p: theme.customSpacing?.container?.medium ?? 2,
+            height: 400,
+            display: 'flex',
+            flexDirection: 'column',
           }}
-        />
-      </Box>
-    </Paper>
+      >
+        <Typography variant="h6" sx={{ mb: theme.customSpacing?.section?.small ?? 1.5 }}>
+          {heading}
+        </Typography>
+        <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mb: theme.customSpacing?.section?.small ?? 1.5,
+              minHeight: '2.5rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+            }}
+        >
+          {subheading}
+        </Typography>
+
+        <Box sx={{ flex: 1, minHeight: 0 }}>
+          <BasePieChart
+              title=""
+              data={latestRunData}
+              useThemeColors
+              colorPalette="pie"
+              height={300}
+              innerRadius={40}
+              outerRadius={90}
+              showPercentage
+              elevation={0}
+              preventLegendOverflow
+              variant="test-results"
+              legendProps={{
+                wrapperStyle: {
+                  fontSize: theme.typography.chartTick?.fontSize ?? theme.typography.caption.fontSize,
+                  marginTop: theme.spacing(1.875),
+                  marginBottom: theme.spacing(1.25),
+                  paddingBottom: theme.spacing(1.25),
+                },
+                iconSize: 8,
+                layout: 'horizontal',
+                verticalAlign: 'bottom',
+                align: 'center',
+              }}
+          />
+        </Box>
+      </Paper>
   );
 }

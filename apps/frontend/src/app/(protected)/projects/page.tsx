@@ -1,53 +1,47 @@
 export const dynamic = 'force-dynamic';
 
+import { Paper, Alert } from '@mui/material';
 import { auth } from '@/auth';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
+
+import { readProjectsProjectsGet } from '@/api-client/sdk.gen';
+
 import ProjectsClientWrapper from './components/ProjectsClientWrapper';
-import { Box, Typography, Alert, Paper } from '@mui/material';
 
-/**
- * Server component for the Projects page
- * Fetches projects data and renders the client wrapper component
- */
 export default async function ProjectsPage() {
-  try {
-    const session = await auth();
+    try {
+        const session = await auth();
 
-    if (!session?.session_token) {
-      return (
-        <Paper sx={{ p: 3 }}>
-          <Alert severity="error">
-            Authentication required. Please sign in to view projects.
-          </Alert>
-        </Paper>
-      );
+        if (!session?.session_token) {
+            return (
+                <Paper sx={{ p: 3 }}>
+                    <Alert severity="error">
+                        Authentication required. Please sign in to view projects.
+                    </Alert>
+                </Paper>
+            );
+        }
+
+        const projects = await readProjectsProjectsGet({
+            headers: { Authorization: `Bearer ${session.session_token}` },
+            baseUrl: process.env.BACKEND_URL
+        });
+
+        return (
+            <ProjectsClientWrapper
+                initialProjects={projects?.data?.data}
+                sessionToken={session.session_token}
+            />
+        );
+    } catch (error) {
+        console.error('Error loading projects:', error);
+        return (
+            <Paper sx={{ p: 3 }}>
+                <Alert severity="error">
+                    {error instanceof Error
+                        ? error.message
+                        : 'Failed to load projects. Please try again.'}
+                </Alert>
+            </Paper>
+        );
     }
-
-    const apiFactory = new ApiClientFactory(session.session_token);
-    const projectsClient = apiFactory.getProjectsClient();
-    const response = await projectsClient.getProjects();
-
-    // Handle both array and paginated response formats
-    const projects = Array.isArray(response) ? response : response?.data || [];
-
-    return (
-      <ProjectsClientWrapper
-        initialProjects={projects}
-        sessionToken={session.session_token}
-      />
-    );
-  } catch (error) {
-    console.error('Error loading projects:', error);
-
-    // Show error state instead of empty projects
-    return (
-      <Paper sx={{ p: 3 }}>
-        <Alert severity="error">
-          {error instanceof Error
-            ? error.message
-            : 'Failed to load projects. Please try again.'}
-        </Alert>
-      </Paper>
-    );
-  }
 }

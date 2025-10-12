@@ -1,257 +1,134 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import {
-  Task,
-  TaskCreate,
-  TaskUpdate,
-  TasksQueryParams,
-} from '@/utils/api-client/interfaces/task';
+'use client';
+
+import { useMemo } from 'react';
+import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { useNotifications } from '@/components/common/NotificationContext';
 
-interface UseTasksOptions {
-  entityType?: string;
-  entityId?: string;
-  autoFetch?: boolean;
+import {
+  listTasksTasksGetOptions,
+  getTaskTasksTaskIdGetOptions,
+  createTaskTasksPostMutation,
+  updateTaskTasksTaskIdPatchMutation,
+  deleteTaskTasksTaskIdDeleteMutation,
+} from '@/api-client/@tanstack/react-query.gen';
+
+/** Shared cache key helpers */
+const taskKey  = (taskId: string)=> ['task', taskId];
+
+/** Query params you commonly pass to /tasks. Adjust keys to your API if needed. */
+export type TasksListQuery = {
+  skip?: number;
+  limit?: number;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
+  entity_type?: string;
+  entity_id?: string;
+  comment_id?: string;
+};
+
+/**
+ * List tasks (optionally filtered).
+ * Example:
+ *   const { data, isLoading } = useTasksList({ entity_type: 'Test', entity_id: 'abc' });
+ *   const rows = data?.data ?? [];
+ */
+export function useTasksList(query?: TasksListQuery, enabled = true) {
+  return useQuery({
+    ...listTasksTasksGetOptions({ query: query }),
+    enabled,
+  });
 }
 
-export function useTasks(options: UseTasksOptions = {}) {
-  const { entityType, entityId, autoFetch = true } = options;
-  const { data: session, status } = useSession();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * Fetch tasks for a specific comment id via /tasks?comment_id=...
+ * Example:
+ *   const q = useTasksByCommentId(commentId, { limit: 50 });
+ *   const tasks = q.data?.data ?? [];
+ */
+export function useTasksByCommentId(commentId: string | null | undefined, extras?: Omit<TasksListQuery, 'comment_id'>) {
+  const enabled = Boolean(commentId);
+  const query = useMemo<TasksListQuery>(
+      () => ({ ...(extras ?? {}), comment_id: commentId ?? undefined }),
+      [commentId, extras],
+  );
+
+  return useQuery({
+    ...listTasksTasksGetOptions({ query }),
+    enabled,
+  });
+}
+
+/**
+ * Get a single task
+ */
+export function useTask(taskId: string) {
+  return useQuery({
+    ...(getTaskTasksTaskIdGetOptions({ path: { task_id: taskId } })),
+    enabled: Boolean(taskId),
+  });
+}
+
+/**
+ * Create Task
+ */
+export function useCreateTask() {
+  const qc   = useQueryClient();
   const { show } = useNotifications();
 
-  const fetchTasks = useCallback(
-    async (params: TasksQueryParams = {}) => {
-      if (status === 'loading') {
-        return; // Wait for session to load
-      }
-
-      if (!session?.session_token) {
-        setError('No session token available');
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        console.log('[DEBUG] Fetching tasks...', {
-          entityType,
-          entityId,
-          params,
-        });
-        const clientFactory = new ApiClientFactory(session.session_token);
-        const tasksClient = clientFactory.getTasksClient();
-
-        let fetchedTasks: Task[];
-        if (entityType && entityId) {
-          console.log(
-            '[DEBUG] Fetching tasks by entity:',
-            entityType,
-            entityId
-          );
-          const response = await tasksClient.getTasksByEntity(
-            entityType,
-            entityId,
-            params
-          );
-          fetchedTasks = response.data;
-        } else {
-          console.log('[DEBUG] Fetching all tasks');
-          const response = await tasksClient.getTasks(params);
-          fetchedTasks = response.data;
-        }
-
-        console.log(
-          '[SUCCESS] Tasks fetched successfully:',
-          fetchedTasks.length,
-          'tasks'
-        );
-        setTasks(fetchedTasks);
-      } catch (err) {
-        console.error('[ERROR] Error fetching tasks:', err);
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to fetch tasks';
-        setError(errorMessage);
-        show(errorMessage, { severity: 'error' });
-      } finally {
-        setIsLoading(false);
-      }
+  return useMutation({
+    ...createTaskTasksPostMutation(),
+    onSuccess: async () => {
+      show('Task created successfully', { severity: 'success' });
+      await qc.invalidateQueries({ queryKey: ['tasks'] });
     },
-    [entityType, entityId, session?.session_token, status]
-  );
-
-  const createTask = useCallback(
-    async (taskData: TaskCreate): Promise<Task | null> => {
-      if (!session?.session_token) {
-        setError('No session token available');
-        return null;
-      }
-
-      try {
-        console.log('[DEBUG] Creating task...', taskData);
-        const clientFactory = new ApiClientFactory(session.session_token);
-        const tasksClient = clientFactory.getTasksClient();
-
-        const newTask = await tasksClient.createTask(taskData);
-
-        console.log('[SUCCESS] Task created successfully:', newTask);
-        // Add the new task to the current list
-        setTasks(prev => [newTask, ...prev]);
-
-        show('Task created successfully', { severity: 'success' });
-        return newTask;
-      } catch (err) {
-        console.error('[ERROR] Error creating task:', err);
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to create task';
-        setError(errorMessage);
-        show(errorMessage, { severity: 'error' });
-        return null;
-      }
+    onError: (err: unknown) => {
+      const msg = (err as Error)?.message ?? 'Failed to create task';
+      show(msg, { severity: 'error' });
     },
-    [session?.session_token]
-  );
+  });
+}
 
-  const updateTask = useCallback(
-    async (taskId: string, taskData: TaskUpdate): Promise<Task | null> => {
-      if (!session?.session_token) {
-        setError('No session token available');
-        return null;
-      }
+/**
+ * Update Task
+ */
+export function useUpdateTask() {
+  const qc   = useQueryClient();
+  const { show } = useNotifications();
 
-      try {
-        const clientFactory = new ApiClientFactory(session.session_token);
-        const tasksClient = clientFactory.getTasksClient();
-
-        const updatedTask = await tasksClient.updateTask(taskId, taskData);
-
-        // Update the task in the current list
-        setTasks(prev =>
-          prev.map(task => (task.id === taskId ? updatedTask : task))
-        );
-
-        show('Task updated successfully', { severity: 'success' });
-        return updatedTask;
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to update task';
-        setError(errorMessage);
-        show(errorMessage, { severity: 'error' });
-        return null;
-      }
+  return useMutation({
+    ...updateTaskTasksTaskIdPatchMutation(),
+    onSuccess: async (_data, vars) => {
+      // vars should carry path: { task_id }
+      const taskId = (vars as { path: { task_id: string } }).path.task_id;
+      show('Task updated successfully', { severity: 'success' });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: taskKey(taskId) }),
+        qc.invalidateQueries({ queryKey: ['tasks'] }),
+      ]);
     },
-    [session?.session_token]
-  );
-
-  const deleteTask = useCallback(
-    async (taskId: string): Promise<boolean> => {
-      if (!session?.session_token) {
-        setError('No session token available');
-        return false;
-      }
-
-      try {
-        const clientFactory = new ApiClientFactory(session.session_token);
-        const tasksClient = clientFactory.getTasksClient();
-
-        await tasksClient.deleteTask(taskId);
-
-        // Remove the task from the current list
-        setTasks(prev => prev.filter(task => task.id !== taskId));
-
-        show('Task deleted successfully', { severity: 'success' });
-        return true;
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to delete task';
-        setError(errorMessage);
-        show(errorMessage, { severity: 'error' });
-        return false;
-      }
+    onError: (err: unknown) => {
+      const msg = (err as Error)?.message ?? 'Failed to update task';
+      show(msg, { severity: 'error' });
     },
-    [session?.session_token]
-  );
+  });
+}
 
-  const getTask = useCallback(
-    async (taskId: string): Promise<Task | null> => {
-      if (!session?.session_token) {
-        setError('No session token available');
-        return null;
-      }
+/**
+ * Delete Task
+ */
+export function useDeleteTask() {
+  const qc   = useQueryClient();
+  const { show } = useNotifications();
 
-      try {
-        const clientFactory = new ApiClientFactory(session.session_token);
-        const tasksClient = clientFactory.getTasksClient();
-
-        return await tasksClient.getTask(taskId);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to fetch task';
-        setError(errorMessage);
-        show(errorMessage, { severity: 'error' });
-        return null;
-      }
+  return useMutation({
+    ...deleteTaskTasksTaskIdDeleteMutation(),
+    onSuccess: async () => {
+      show('Task deleted successfully', { severity: 'success' });
+      await qc.invalidateQueries({ queryKey: ['tasks'] });
     },
-    [session?.session_token]
-  );
-
-  const fetchTasksByCommentId = useCallback(
-    async (
-      commentId: string,
-      params: TasksQueryParams = {}
-    ): Promise<Task[]> => {
-      if (status === 'loading') {
-        return []; // Wait for session to load
-      }
-
-      if (!session?.session_token) {
-        setError('No session token available');
-        return [];
-      }
-
-      try {
-        console.log('[DEBUG] Fetching tasks by comment ID:', commentId);
-        const clientFactory = new ApiClientFactory(session.session_token);
-        const tasksClient = clientFactory.getTasksClient();
-
-        const fetchedTasks = await tasksClient.getTasksByCommentId(
-          commentId,
-          params
-        );
-        console.log(
-          '[SUCCESS] Tasks fetched by comment ID:',
-          fetchedTasks.length,
-          'tasks'
-        );
-        return fetchedTasks;
-      } catch (err) {
-        console.error('[ERROR] Failed to fetch tasks by comment ID:', err);
-        return [];
-      }
+    onError: (err: unknown) => {
+      const msg = (err as Error)?.message ?? 'Failed to delete task';
+      show(msg, { severity: 'error' });
     },
-    [session?.session_token, status]
-  );
-
-  // Auto-fetch tasks when component mounts or dependencies change
-  useEffect(() => {
-    if (autoFetch) {
-      fetchTasks();
-    }
-  }, [autoFetch, fetchTasks]);
-
-  return {
-    tasks,
-    isLoading,
-    error,
-    fetchTasks,
-    createTask,
-    updateTask,
-    deleteTask,
-    getTask,
-    fetchTasksByCommentId,
-  };
+  });
 }

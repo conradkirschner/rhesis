@@ -49,8 +49,7 @@ import { createEndpoint } from '@/actions/endpoints';
 
 // Generated API query options + types
 import { readProjectsProjectsGetOptions } from '@/api-client/@tanstack/react-query.gen';
-import type { PaginatedProjectDetail, ProjectDetail } from '@/api-client/types.gen';
-import type { Endpoint } from '@/utils/api-client/interfaces/endpoint';
+import type {Endpoint, PaginatedProjectDetail, ProjectDetail } from '@/api-client/types.gen';
 
 // Map of icon names to components for easy lookup
 const ICON_MAP: Record<string, React.ComponentType> = {
@@ -162,20 +161,20 @@ export default function SwaggerEndpointForm() {
       return;
     }
 
-    // Build payload with **narrow** literal types and validate against Endpoint
     const payload = {
       name: formData.name,
       description: formData.description,
       project_id: formData.project_id,
       environment: formData.environment,
-      config_source: 'openapi',           // <- literal, NOT string
+      config_source: 'openapi',
       openapi_spec_url: formData.openapi_spec_url,
 
       // Minimum required extras to satisfy Omit<Endpoint, 'id'>
+      // @todo adjust form
       url: '',
-      protocol: 'REST',                   // <- literal
-      method: 'POST',                     // <- literal (use your allowed set)
-      response_format: 'json',            // <- literal
+      protocol: 'REST',
+      method: 'POST',
+      response_format: 'json',
       endpoint_path: '',
     } satisfies Omit<Endpoint, 'id'>;
 

@@ -29,21 +29,6 @@ export function LayoutContent({
   authentication,
 }: Omit<LayoutProps, 'theme'>) {
   const theme = useTheme();
-  const pathname = usePathname();
-  const protectedSegments = React.useMemo(
-    () => getAllSegments(navigation),
-    [navigation]
-  );
-
-  const isProtectedRoute = React.useMemo(() => {
-    if (!pathname) return false;
-    // Remove leading slash for comparison
-    const currentPath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
-    return protectedSegments.some(
-      segment =>
-        currentPath === segment || currentPath.startsWith(`${segment}/`)
-    );
-  }, [pathname, protectedSegments]);
 
   return (
     <SessionProvider session={session}>

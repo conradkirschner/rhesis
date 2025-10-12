@@ -1,47 +1,42 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { Box, useTheme } from '@mui/material';
-import { TestResultsStatsOptions } from '@/utils/api-client/interfaces/common';
+import * as React from 'react';
+import { Box } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+
 import TestResultsFilters from './TestResultsFilters';
 import TestResultsCharts from './TestResultsCharts';
 
-interface TestResultsDashboardProps {
-  sessionToken: string;
-}
 
-export default function TestResultsDashboard({
-  sessionToken,
-}: TestResultsDashboardProps) {
-  const theme = useTheme();
-  const [filters, setFilters] = useState<Partial<TestResultsStatsOptions>>({
-    months: 6,
-  });
+// Keep filters simple and aligned with the rest of the charts (months only)
+type Filters = Partial<{ months: number }>;
 
-  const handleFiltersChange = useCallback(
-    (newFilters: Partial<TestResultsStatsOptions>) => {
-      setFilters(newFilters);
-    },
-    []
-  );
+export default function TestResultsDashboard() {
+    const theme = useTheme();
+    const sectionMedium = theme.customSpacing?.section?.medium ?? 3;
 
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.customSpacing.section.medium,
-      }}
-    >
-      {/* Filters */}
-      <TestResultsFilters
-        onFiltersChange={handleFiltersChange}
-        initialFilters={filters}
-        sessionToken={sessionToken}
-      />
+    const [filters, setFilters] = React.useState<Filters>({ months: 6 });
 
-      {/* Charts - Each chart makes its own API call in parallel */}
-      <TestResultsCharts sessionToken={sessionToken} filters={filters} />
-    </Box>
-  );
+    const handleFiltersChange = React.useCallback((newFilters: Filters) => {
+        setFilters(newFilters);
+    }, []);
+
+    return (
+        <Box
+            sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: sectionMedium,
+            }}
+        >
+            {/* Filters */}
+            <TestResultsFilters
+                onFiltersChange={handleFiltersChange}
+                initialFilters={filters}
+            />
+
+            {/* Charts - Each chart makes its own API call in parallel */}
+            <TestResultsCharts filters={filters} />
+        </Box>
+    );
 }

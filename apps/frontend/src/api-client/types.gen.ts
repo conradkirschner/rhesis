@@ -133,11 +133,19 @@ export type Behavior = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -167,11 +175,19 @@ export type BehaviorCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -207,6 +223,14 @@ export type BehaviorReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -236,11 +260,19 @@ export type BehaviorUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -332,11 +364,19 @@ export type Category = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -374,11 +414,19 @@ export type CategoryCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -421,6 +469,14 @@ export type CategoryDetail = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -470,6 +526,14 @@ export type CategoryReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -499,11 +563,19 @@ export type CategoryUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -566,6 +638,14 @@ export type Comment = {
      */
     nano_id?: string | null;
     /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
      * Content
      * The comment content
      */
@@ -576,7 +656,7 @@ export type Comment = {
      */
     emojis?: {
         [key: string]: Array<EmojiReaction>;
-    } | null;
+    };
     /**
      * Entity Id
      * ID of the entity this comment belongs to
@@ -585,23 +665,16 @@ export type Comment = {
     /**
      * Type of entity: 'Test', 'TestSet', 'TestRun', 'TestResult', 'Metric', 'Model', 'Prompt', 'Behavior', 'Category', 'Task', 'Source'
      */
-    entity_type: EntityTypeOutput;
+    entity_type: EntityType;
     /**
      * User Id
      */
     user_id: string;
+    user: User;
     /**
      * Organization Id
      */
     organization_id?: string | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
 };
 
 /**
@@ -622,7 +695,7 @@ export type CommentCreate = {
     /**
      * Type of entity: 'Test', 'TestSet', 'TestRun', 'TestResult', 'Metric', 'Model', 'Prompt', 'Behavior', 'Category', 'Task', 'Source'
      */
-    entity_type: RhesisBackendAppConstantsEntityType;
+    entity_type: EntityType;
 };
 
 /**
@@ -638,6 +711,14 @@ export type CommentDetail = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
      * Content
      */
     content?: string | null;
@@ -647,7 +728,7 @@ export type CommentDetail = {
      */
     emojis?: {
         [key: string]: Array<EmojiReaction>;
-    } | null;
+    };
     /**
      * Entity Id
      * ID of the entity this comment belongs to
@@ -656,24 +737,16 @@ export type CommentDetail = {
     /**
      * Type of entity: 'Test', 'TestSet', 'TestRun', 'TestResult', 'Metric', 'Model', 'Prompt', 'Behavior', 'Category', 'Task', 'Source'
      */
-    entity_type: EntityTypeOutput;
+    entity_type: EntityType;
     /**
      * User Id
      */
     user_id?: string | null;
+    user?: UserReference | null;
     /**
      * Organization Id
      */
     organization_id?: string | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-    user?: UserReference | null;
     organization?: OrganizationReference | null;
 };
 
@@ -741,11 +814,19 @@ export type Demographic = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -775,11 +856,19 @@ export type DemographicCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -809,11 +898,19 @@ export type DemographicUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -843,11 +940,19 @@ export type Dimension = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -873,11 +978,19 @@ export type DimensionCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -923,11 +1036,19 @@ export type DimensionUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -1032,6 +1153,14 @@ export type Endpoint = {
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -1186,11 +1315,19 @@ export type EndpointCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -1340,6 +1477,14 @@ export type EndpointDetail = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -1507,11 +1652,19 @@ export type EndpointUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -1675,7 +1828,7 @@ export type EntityStats = {
 /**
  * EntityType
  */
-export type EntityTypeOutput = 'General' | 'Test' | 'TestSet' | 'TestRun' | 'TestResult' | 'Metric' | 'Model' | 'Prompt' | 'Behavior' | 'Category' | 'Topic' | 'Dimension' | 'Demographic' | 'Task' | 'Project' | 'Source';
+export type EntityType = 'General' | 'Test' | 'TestSet' | 'TestRun' | 'TestResult' | 'Metric' | 'Model' | 'Prompt' | 'Behavior' | 'Category' | 'Topic' | 'Dimension' | 'Demographic' | 'Task' | 'Project' | 'Source';
 
 /**
  * ExecuteTestConfigurationResponse
@@ -1776,15 +1929,47 @@ export type GenerateContentRequest = {
 };
 
 /**
+ * GenerateTestsPrompt
+ */
+export type GenerateTestsPrompt = {
+    /**
+     * Project Context
+     */
+    project_context?: string;
+    /**
+     * Test Behaviors
+     */
+    test_behaviors?: Array<string>;
+    /**
+     * Test Purposes
+     */
+    test_purposes?: Array<string>;
+    /**
+     * Key Topics
+     */
+    key_topics?: Array<string>;
+    /**
+     * Specific Requirements
+     */
+    specific_requirements?: string | null;
+    /**
+     * Test Type
+     */
+    test_type: 'Single interaction tests' | 'Multi-turn conversation tests';
+    /**
+     * Output Format
+     */
+    output_format: 'Generate only user inputs' | 'Generate both user inputs and expected responses';
+};
+
+/**
  * GenerateTestsRequest
  */
 export type GenerateTestsRequest = {
     /**
      * Prompt
      */
-    prompt: {
-        [key: string]: JsonInput;
-    };
+    prompt: GenerateTestsPrompt | ImproveTestPrompt;
     /**
      * Num Tests
      */
@@ -1809,6 +1994,10 @@ export type GenerateTestsResponse = {
  * GenerationSample
  */
 export type GenerationSample = {
+    /**
+     * Id
+     */
+    id: number;
     /**
      * Text
      */
@@ -1897,6 +2086,36 @@ export type HomePublicResponse = {
      * Login Url
      */
     login_url?: string | null;
+};
+
+/**
+ * ImproveTestPrompt
+ */
+export type ImproveTestPrompt = {
+    /**
+     * Original Test
+     */
+    original_test: string;
+    /**
+     * Test Type
+     */
+    test_type: string;
+    /**
+     * Topic
+     */
+    topic: string;
+    /**
+     * User Rating
+     */
+    user_rating?: string;
+    /**
+     * Improvement Feedback
+     */
+    improvement_feedback?: string | null;
+    /**
+     * Instruction
+     */
+    instruction?: string;
 };
 
 export type JsonInput = {
@@ -2032,6 +2251,14 @@ export type Metric = {
      */
     nano_id?: string | null;
     /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
      * Name
      */
     name: string;
@@ -2122,14 +2349,6 @@ export type Metric = {
      */
     user_id?: string | null;
     /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-    /**
      * Tags
      */
     tags?: Array<Tag> | null;
@@ -2142,11 +2361,19 @@ export type MetricCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -2252,6 +2479,14 @@ export type MetricReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -2278,6 +2513,44 @@ export type MetricReference = {
     tags?: Array<TagRead> | null;
     metric_type?: TypeLookupReference | null;
     backend_type?: TypeLookupReference | null;
+};
+
+/**
+ * MetricResult
+ */
+export type MetricResult = {
+    /**
+     * Id
+     */
+    id?: string | null;
+    /**
+     * Nano Id
+     */
+    nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
+     * Is Successful
+     */
+    is_successful?: boolean | null;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+    /**
+     * Score
+     */
+    score?: number | null;
+    /**
+     * Threshold
+     */
+    threshold?: number | null;
 };
 
 /**
@@ -2309,11 +2582,19 @@ export type MetricUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -2420,6 +2701,14 @@ export type Model = {
      */
     nano_id?: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name: string;
@@ -2491,11 +2780,19 @@ export type ModelCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -2564,6 +2861,14 @@ export type ModelDetail = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -2670,6 +2975,14 @@ export type ModelReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -2716,11 +3029,19 @@ export type ModelUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -2994,11 +3315,19 @@ export type Organization = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -3072,11 +3401,19 @@ export type OrganizationCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -3156,6 +3493,14 @@ export type OrganizationReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -3184,11 +3529,19 @@ export type OrganizationUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -3509,6 +3862,17 @@ export type PaginatedTestSetDetail = {
 };
 
 /**
+ * Paginated[TokenRead]
+ */
+export type PaginatedTokenRead = {
+    /**
+     * Data
+     */
+    data: Array<TokenRead>;
+    pagination: Pagination;
+};
+
+/**
  * Paginated[TopicDetail]
  */
 export type PaginatedTopicDetail = {
@@ -3593,6 +3957,14 @@ export type Project = {
      */
     nano_id?: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name: string;
@@ -3633,11 +4005,19 @@ export type ProjectCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -3684,6 +4064,14 @@ export type ProjectDetail = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -3739,6 +4127,14 @@ export type ProjectReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -3775,11 +4171,19 @@ export type ProjectUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -3821,11 +4225,19 @@ export type Prompt = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Content
      */
@@ -3895,11 +4307,19 @@ export type PromptCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Content
      */
@@ -3975,6 +4395,14 @@ export type PromptReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Content
      */
     content?: string | null;
@@ -4022,11 +4450,19 @@ export type PromptTemplate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Content
      */
@@ -4080,11 +4516,19 @@ export type PromptTemplateCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Content
      */
@@ -4138,11 +4582,19 @@ export type PromptTemplateUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Content
      */
@@ -4196,11 +4648,19 @@ export type PromptUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Content
      */
@@ -4270,11 +4730,19 @@ export type PromptView = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Content
      */
@@ -4362,11 +4830,19 @@ export type ResponsePattern = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Text
      */
@@ -4396,11 +4872,19 @@ export type ResponsePatternCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Text
      */
@@ -4430,11 +4914,19 @@ export type ResponsePatternUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Text
      */
@@ -4501,11 +4993,19 @@ export type Risk = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -4539,11 +5039,19 @@ export type RiskCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -4577,11 +5085,19 @@ export type RiskUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -4660,11 +5176,19 @@ export type Source = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Title
      */
@@ -4716,11 +5240,19 @@ export type SourceCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Title
      */
@@ -4778,6 +5310,14 @@ export type SourceReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Title
      */
     title?: string | null;
@@ -4811,11 +5351,19 @@ export type SourceUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Title
      */
@@ -4872,11 +5420,19 @@ export type Status = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -4906,11 +5462,19 @@ export type StatusCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -4945,6 +5509,14 @@ export type StatusDetail = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -5015,6 +5587,14 @@ export type StatusReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -5039,11 +5619,19 @@ export type StatusUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -5073,11 +5661,19 @@ export type Tag = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -5103,11 +5699,19 @@ export type TagCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -5139,6 +5743,14 @@ export type TagRead = {
      */
     nano_id?: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name: string;
@@ -5155,11 +5767,19 @@ export type TagUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -5186,11 +5806,19 @@ export type Task = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Title
      */
@@ -5300,6 +5928,14 @@ export type TaskDetail = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Title
      */
@@ -5518,11 +6154,19 @@ export type TestConfiguration = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Endpoint Id
      */
@@ -5574,11 +6218,19 @@ export type TestConfigurationCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Endpoint Id
      */
@@ -5636,6 +6288,14 @@ export type TestConfigurationDetail = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Endpoint Id
      */
     endpoint_id?: string | null;
@@ -5671,7 +6331,12 @@ export type TestConfigurationDetail = {
      * Status Id
      */
     status_id?: string | null;
-    attributes?: TestSetAttributesDict | null;
+    /**
+     * Attributes
+     */
+    attributes?: {
+        [key: string]: JsonOutput;
+    } | null;
     category?: CategoryReference | null;
     topic?: TopicReference | null;
     prompt?: PromptReference | null;
@@ -5690,11 +6355,19 @@ export type TestConfigurationUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Endpoint Id
      */
@@ -5766,6 +6439,14 @@ export type TestContext = {
      */
     nano_id?: string | null;
     /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
      * Test Id
      */
     test_id: string;
@@ -5791,14 +6472,6 @@ export type TestContext = {
      * User Id
      */
     user_id?: string | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
 };
 
 /**
@@ -5808,11 +6481,19 @@ export type TestContextCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Test Id
      */
@@ -5848,11 +6529,19 @@ export type TestContextUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Test Id
      */
@@ -5888,15 +6577,23 @@ export type TestCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Prompt Id
      */
-    prompt_id: string;
+    prompt_id?: string | null;
     /**
      * Test Set Id
      */
@@ -5955,12 +6652,7 @@ export type TestCreate = {
      * Organization Id
      */
     organization_id?: string | null;
-    /**
-     * Test Metadata
-     */
-    test_metadata?: {
-        [key: string]: JsonInput;
-    } | null;
+    test_metadata?: TestMetadataInput | null;
 };
 
 /**
@@ -6023,6 +6715,14 @@ export type TestDetail = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
      * Prompt Id
      */
     prompt_id: string;
@@ -6084,20 +6784,7 @@ export type TestDetail = {
      * Organization Id
      */
     organization_id?: string | null;
-    /**
-     * Test Metadata
-     */
-    test_metadata?: {
-        [key: string]: JsonOutput;
-    } | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
+    test_metadata?: RhesisBackendAppSchemasTestTestMetadata | null;
     counts?: CountsDict | null;
     /**
      * Tags
@@ -6120,17 +6807,81 @@ export type TestDetail = {
 /**
  * TestMetadata
  */
-export type TestMetadata = {
+export type TestMetadataInput = {
     /**
-     * Generated By
+     * Id
      */
-    generated_by: string;
+    id?: string | null;
     /**
-     * Additional Info
+     * Nano Id
      */
-    additional_info?: {
-        [key: string]: JsonOutput;
+    nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
+     * Sources
+     */
+    sources?: Array<RhesisBackendAppSchemasTestSourceItem> | null;
+};
+
+/**
+ * TestMetrics
+ */
+export type TestMetrics = {
+    /**
+     * Id
+     */
+    id?: string | null;
+    /**
+     * Nano Id
+     */
+    nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
+     * Metrics
+     */
+    metrics?: {
+        [key: string]: MetricResult;
     } | null;
+};
+
+/**
+ * TestOutput
+ */
+export type TestOutput = {
+    /**
+     * Id
+     */
+    id?: string | null;
+    /**
+     * Nano Id
+     */
+    nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
+     * Output
+     */
+    output?: string | null;
 };
 
 /**
@@ -6211,6 +6962,14 @@ export type TestReference = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     counts?: CountsDict | null;
     /**
      * User Id
@@ -6237,11 +6996,19 @@ export type TestResult = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string | null;
     /**
      * Test Configuration Id
      */
@@ -6262,18 +7029,8 @@ export type TestResult = {
      * Status Id
      */
     status_id?: string | null;
-    /**
-     * Test Metrics
-     */
-    test_metrics?: {
-        [key: string]: JsonOutput;
-    } | null;
-    /**
-     * Test Output
-     */
-    test_output?: string | {
-        [key: string]: JsonOutput;
-    } | null;
+    test_metrics?: TestMetrics | null;
+    test_output?: TestOutput | null;
     /**
      * User Id
      */
@@ -6291,11 +7048,19 @@ export type TestResultCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string | null;
     /**
      * Test Configuration Id
      */
@@ -6316,18 +7081,8 @@ export type TestResultCreate = {
      * Status Id
      */
     status_id?: string | null;
-    /**
-     * Test Metrics
-     */
-    test_metrics?: {
-        [key: string]: JsonInput;
-    } | null;
-    /**
-     * Test Output
-     */
-    test_output?: string | {
-        [key: string]: JsonInput;
-    } | null;
+    test_metrics?: TestMetrics | null;
+    test_output?: TestOutput | null;
     /**
      * User Id
      */
@@ -6351,6 +7106,14 @@ export type TestResultDetail = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string | null;
+    /**
      * Test Configuration Id
      */
     test_configuration_id: string;
@@ -6370,18 +7133,8 @@ export type TestResultDetail = {
      * Status Id
      */
     status_id?: string | null;
-    /**
-     * Test Metrics
-     */
-    test_metrics?: {
-        [key: string]: JsonOutput;
-    } | null;
-    /**
-     * Test Output
-     */
-    test_output?: string | {
-        [key: string]: JsonOutput;
-    } | null;
+    test_metrics?: TestMetrics | null;
+    test_output?: TestOutput | null;
     /**
      * User Id
      */
@@ -6612,11 +7365,19 @@ export type TestResultUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string | null;
     /**
      * Test Configuration Id
      */
@@ -6637,18 +7398,8 @@ export type TestResultUpdate = {
      * Status Id
      */
     status_id?: string | null;
-    /**
-     * Test Metrics
-     */
-    test_metrics?: {
-        [key: string]: JsonInput;
-    } | null;
-    /**
-     * Test Output
-     */
-    test_output?: string | {
-        [key: string]: JsonInput;
-    } | null;
+    test_metrics?: TestMetrics | null;
+    test_output?: TestOutput | null;
     /**
      * User Id
      */
@@ -6666,11 +7417,19 @@ export type TestRun = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -6687,12 +7446,7 @@ export type TestRun = {
      * Status Id
      */
     status_id?: string | null;
-    /**
-     * Attributes
-     */
-    attributes?: {
-        [key: string]: JsonOutput;
-    } | null;
+    attributes?: TestRunAttributes | null;
     /**
      * Test Configuration Id
      */
@@ -6708,17 +7462,64 @@ export type TestRun = {
 };
 
 /**
+ * TestRunAttributes
+ * Extra metadata for a test run.
+ */
+export type TestRunAttributes = {
+    /**
+     * Id
+     */
+    id?: string | null;
+    /**
+     * Nano Id
+     */
+    nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
+     * Started At
+     */
+    started_at?: string | null;
+    /**
+     * Completed At
+     */
+    completed_at?: string | null;
+    /**
+     * Environment
+     */
+    environment?: string | null;
+    /**
+     * Total Tests
+     */
+    total_tests?: string | null;
+};
+
+/**
  * TestRunCreate
  */
 export type TestRunCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -6735,12 +7536,7 @@ export type TestRunCreate = {
      * Status Id
      */
     status_id?: string | null;
-    /**
-     * Attributes
-     */
-    attributes?: {
-        [key: string]: JsonInput;
-    } | null;
+    attributes?: TestRunAttributes | null;
     /**
      * Test Configuration Id
      */
@@ -6768,6 +7564,14 @@ export type TestRunDetail = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -6783,7 +7587,7 @@ export type TestRunDetail = {
      * Status Id
      */
     status_id?: string | null;
-    attributes?: TestSetAttributesDict | null;
+    attributes?: TestRunAttributes | null;
     /**
      * Test Configuration Id
      */
@@ -6848,6 +7652,14 @@ export type TestRunReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -6864,7 +7676,6 @@ export type TestRunReference = {
      * Status Id
      */
     status_id?: string | null;
-    attributes?: TestSetAttributesDict | null;
     /**
      * Tags
      */
@@ -7076,11 +7887,19 @@ export type TestRunUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -7097,12 +7916,7 @@ export type TestRunUpdate = {
      * Status Id
      */
     status_id?: string | null;
-    /**
-     * Attributes
-     */
-    attributes?: {
-        [key: string]: JsonInput;
-    } | null;
+    attributes?: TestRunAttributes | null;
     /**
      * Test Configuration Id
      */
@@ -7124,11 +7938,19 @@ export type TestSet = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -7152,17 +7974,12 @@ export type TestSet = {
     /**
      * Tags
      */
-    tags?: Array<Tag> | null;
+    tags?: Array<Tag>;
     /**
      * License Type Id
      */
     license_type_id?: string | null;
-    /**
-     * Attributes
-     */
-    attributes?: {
-        [key: string]: JsonOutput;
-    } | null;
+    attributes?: TestSetAttributesOutput | null;
     /**
      * User Id
      */
@@ -7178,11 +7995,11 @@ export type TestSet = {
     /**
      * Priority
      */
-    priority?: number | null;
+    priority?: number;
     /**
      * Is Published
      */
-    is_published?: boolean | null;
+    is_published?: boolean;
     /**
      * Organization Id
      */
@@ -7194,25 +8011,67 @@ export type TestSet = {
 };
 
 /**
- * TestSetAttributesDict
+ * TestSetAttributes
+ * Structured attributes as seen in the payload.
  */
-export type TestSetAttributesDict = {
+export type TestSetAttributesInput = {
     /**
      * Categories
      */
-    categories?: Array<string>;
+    categories?: Array<string> | null;
     /**
      * Topics
      */
-    topics?: Array<string>;
+    topics?: Array<string> | null;
     /**
      * Behaviors
      */
-    behaviors?: Array<string>;
+    behaviors?: Array<string> | null;
     /**
      * Use Cases
      */
-    use_cases?: Array<string>;
+    use_cases?: Array<string> | null;
+    /**
+     * Sources
+     */
+    sources?: Array<RhesisBackendAppSchemasTestSetSourceItem> | null;
+    /**
+     * Total Tests
+     */
+    total_tests?: number | null;
+    metadata?: TestSetLabelBuckets | null;
+};
+
+/**
+ * TestSetAttributes
+ * Structured attributes as seen in the payload.
+ */
+export type TestSetAttributesOutput = {
+    /**
+     * Categories
+     */
+    categories?: Array<string> | null;
+    /**
+     * Topics
+     */
+    topics?: Array<string> | null;
+    /**
+     * Behaviors
+     */
+    behaviors?: Array<string> | null;
+    /**
+     * Use Cases
+     */
+    use_cases?: Array<string> | null;
+    /**
+     * Sources
+     */
+    sources?: Array<RhesisBackendAppSchemasTestSetSourceItem> | null;
+    /**
+     * Total Tests
+     */
+    total_tests?: number | null;
+    metadata?: TestSetLabelBuckets | null;
 };
 
 /**
@@ -7376,11 +8235,19 @@ export type TestSetCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -7404,17 +8271,12 @@ export type TestSetCreate = {
     /**
      * Tags
      */
-    tags?: Array<Tag> | null;
+    tags?: Array<Tag>;
     /**
      * License Type Id
      */
     license_type_id?: string | null;
-    /**
-     * Attributes
-     */
-    attributes?: {
-        [key: string]: JsonInput;
-    } | null;
+    attributes?: TestSetAttributesInput | null;
     /**
      * User Id
      */
@@ -7430,11 +8292,11 @@ export type TestSetCreate = {
     /**
      * Priority
      */
-    priority?: number | null;
+    priority?: number;
     /**
      * Is Published
      */
-    is_published?: boolean | null;
+    is_published?: boolean;
     /**
      * Organization Id
      */
@@ -7457,6 +8319,14 @@ export type TestSetDetail = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -7485,7 +8355,7 @@ export type TestSetDetail = {
      * License Type Id
      */
     license_type_id?: string | null;
-    attributes?: TestSetAttributesDict | null;
+    attributes?: TestSetAttributesOutput | null;
     /**
      * User Id
      */
@@ -7501,11 +8371,11 @@ export type TestSetDetail = {
     /**
      * Priority
      */
-    priority?: number | null;
+    priority?: number;
     /**
      * Is Published
      */
-    is_published?: boolean | null;
+    is_published?: boolean;
     /**
      * Organization Id
      */
@@ -7525,13 +8395,13 @@ export type TestSetDetail = {
 
 /**
  * TestSetExecutionRequest
- * Request model for test set execution with flexible execution options.
+ * Request model for test set execution.
  */
 export type TestSetExecutionRequest = {
     /**
-     * Execution Options
+     * Execution Mode
      */
-    execution_options?: 'Parallel' | 'Sequential';
+    execution_mode?: 'Parallel' | 'Sequential';
 };
 
 /**
@@ -7640,6 +8510,29 @@ export type TestSetGenerationResponse = {
 };
 
 /**
+ * TestSetLabelBuckets
+ * Human-readable label buckets (NOT UUIDs).
+ */
+export type TestSetLabelBuckets = {
+    /**
+     * Categories
+     */
+    categories?: Array<string> | null;
+    /**
+     * Topics
+     */
+    topics?: Array<string> | null;
+    /**
+     * Behaviors
+     */
+    behaviors?: Array<string> | null;
+    /**
+     * Sources
+     */
+    sources?: Array<RhesisBackendAppSchemasTestSetSourceItem> | null;
+};
+
+/**
  * TestSetReference
  */
 export type TestSetReference = {
@@ -7651,6 +8544,14 @@ export type TestSetReference = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -7672,7 +8573,6 @@ export type TestSetReference = {
      * Status Id
      */
     status_id?: string | null;
-    attributes?: TestSetAttributesDict | null;
     /**
      * Tags
      */
@@ -7700,15 +8600,23 @@ export type TestSetUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
-    name?: string;
+    name?: string | null;
     /**
      * Description
      */
@@ -7728,17 +8636,12 @@ export type TestSetUpdate = {
     /**
      * Tags
      */
-    tags?: Array<Tag> | null;
+    tags?: Array<Tag>;
     /**
      * License Type Id
      */
     license_type_id?: string | null;
-    /**
-     * Attributes
-     */
-    attributes?: {
-        [key: string]: JsonInput;
-    } | null;
+    attributes?: TestSetAttributesInput | null;
     /**
      * User Id
      */
@@ -7754,11 +8657,11 @@ export type TestSetUpdate = {
     /**
      * Priority
      */
-    priority?: number | null;
+    priority?: number;
     /**
      * Is Published
      */
-    is_published?: boolean | null;
+    is_published?: boolean;
     /**
      * Organization Id
      */
@@ -7913,11 +8816,19 @@ export type TestUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Prompt Id
      */
@@ -7980,12 +8891,7 @@ export type TestUpdate = {
      * Organization Id
      */
     organization_id?: string | null;
-    /**
-     * Test Metadata
-     */
-    test_metadata?: {
-        [key: string]: JsonInput;
-    } | null;
+    test_metadata?: TestMetadataInput | null;
 };
 
 /**
@@ -8049,6 +8955,14 @@ export type TokenCreateResponse = {
      */
     nano_id?: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Access Token
      */
     access_token: string;
@@ -8087,6 +9001,14 @@ export type TokenRead = {
      */
     nano_id?: string | null;
     /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
      * Name
      */
     name: string;
@@ -8118,14 +9040,6 @@ export type TokenRead = {
      * Last Refreshed At
      */
     last_refreshed_at: string | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
 };
 
 /**
@@ -8146,11 +9060,19 @@ export type TokenUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -8200,11 +9122,19 @@ export type Topic = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -8242,11 +9172,19 @@ export type TopicCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -8289,6 +9227,14 @@ export type TopicDetail = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -8337,6 +9283,14 @@ export type TopicReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -8365,11 +9319,19 @@ export type TopicUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -8407,11 +9369,19 @@ export type TypeLookup = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Type Name
      */
@@ -8441,11 +9411,19 @@ export type TypeLookupCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Type Name
      */
@@ -8481,6 +9459,14 @@ export type TypeLookupReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Description
      */
     description?: string | null;
@@ -8509,11 +9495,19 @@ export type TypeLookupUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Type Name
      */
@@ -8543,11 +9537,19 @@ export type UseCase = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -8589,11 +9591,19 @@ export type UseCaseCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -8641,6 +9651,14 @@ export type UseCaseReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -8669,11 +9687,19 @@ export type UseCaseUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -8715,11 +9741,19 @@ export type User = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Email
      * Email address cannot be empty
@@ -8770,11 +9804,19 @@ export type UserCreate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Email
      * Email address cannot be empty
@@ -8835,6 +9877,14 @@ export type UserReference = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -8867,11 +9917,19 @@ export type UserUpdate = {
     /**
      * Id
      */
-    id?: string;
+    id?: string | null;
     /**
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Email
      */
@@ -8959,11 +10017,6 @@ export type VerifyAuthResponse = {
 };
 
 /**
- * EntityType
- */
-export type RhesisBackendAppConstantsEntityType = 'General' | 'Test' | 'TestSet' | 'TestRun' | 'TestResult' | 'Metric' | 'Model' | 'Prompt' | 'Behavior' | 'Category' | 'Topic' | 'Dimension' | 'Demographic' | 'Task' | 'Project' | 'Source';
-
-/**
  * Paginated[BehaviorDetail]
  */
 export type RhesisBackendAppSchemasPaginationPaginatedBehaviorDetail1 = {
@@ -9024,13 +10077,58 @@ export type RhesisBackendAppSchemasServicesTest = {
      * Topic
      */
     topic: string;
-    metadata: TestMetadata;
+    metadata: RhesisBackendAppSchemasServicesTestMetadata;
 };
 
 /**
- * EntityType
+ * TestMetadata
  */
-export type RhesisBackendAppSchemasTagEntityType = 'Test' | 'TestSet' | 'TestRun' | 'TestResult' | 'Prompt' | 'PromptTemplate' | 'Behavior' | 'Category' | 'Endpoint' | 'UseCase' | 'ResponsePattern' | 'Project' | 'Organization' | 'Model' | 'Metric';
+export type RhesisBackendAppSchemasServicesTestMetadata = {
+    /**
+     * Generated By
+     */
+    generated_by: string;
+    /**
+     * Additional Info
+     */
+    additional_info?: {
+        [key: string]: JsonOutput;
+    } | null;
+};
+
+/**
+ * SourceItem
+ */
+export type RhesisBackendAppSchemasTestSourceItem = {
+    /**
+     * Id
+     */
+    id?: string | null;
+    /**
+     * Nano Id
+     */
+    nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
+     * Document
+     */
+    document?: string | null;
+    /**
+     * Source
+     */
+    source?: string | null;
+    /**
+     * Content
+     */
+    content?: string | null;
+};
 
 /**
  * Test
@@ -9044,6 +10142,14 @@ export type RhesisBackendAppSchemasTestTest = {
      * Nano Id
      */
     nano_id?: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
     /**
      * Prompt Id
      */
@@ -9106,20 +10212,51 @@ export type RhesisBackendAppSchemasTestTest = {
      * Organization Id
      */
     organization_id?: string | null;
+    test_metadata?: RhesisBackendAppSchemasTestTestMetadata | null;
+};
+
+/**
+ * TestMetadata
+ */
+export type RhesisBackendAppSchemasTestTestMetadata = {
     /**
-     * Test Metadata
+     * Id
      */
-    test_metadata?: {
-        [key: string]: JsonOutput;
-    } | null;
+    id?: string | null;
+    /**
+     * Nano Id
+     */
+    nano_id?: string | null;
     /**
      * Created At
      */
-    created_at: string;
+    created_at?: string | null;
     /**
      * Updated At
      */
-    updated_at: string;
+    updated_at?: string | null;
+    /**
+     * Sources
+     */
+    sources?: Array<RhesisBackendAppSchemasTestSourceItem> | null;
+};
+
+/**
+ * SourceItem
+ */
+export type RhesisBackendAppSchemasTestSetSourceItem = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Document
+     */
+    document?: string | null;
+    /**
+     * Description
+     */
+    description?: string | null;
 };
 
 /**
@@ -9134,6 +10271,14 @@ export type RhesisBackendAppUtilsSchemaFactoryBehaviorDetail1 = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -9177,6 +10322,14 @@ export type RhesisBackendAppUtilsSchemaFactoryBehaviorDetail2 = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * Name
      */
     name?: string | null;
@@ -9214,6 +10367,14 @@ export type RhesisBackendAppUtilsSchemaFactoryEndpointReference1 = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -9256,6 +10417,14 @@ export type RhesisBackendAppUtilsSchemaFactoryEndpointReference2 = {
      * Nano Id
      */
     nano_id: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
     /**
      * Name
      */
@@ -9300,6 +10469,14 @@ export type RhesisBackendAppUtilsSchemaFactoryMetricDetail1 = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
      * Name
      */
     name?: string | null;
@@ -9389,14 +10566,6 @@ export type RhesisBackendAppUtilsSchemaFactoryMetricDetail1 = {
      * User Id
      */
     user_id?: string | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
     /**
      * Tags
      */
@@ -9425,6 +10594,14 @@ export type RhesisBackendAppUtilsSchemaFactoryMetricDetail2 = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
      * Name
      */
     name?: string | null;
@@ -9514,14 +10691,6 @@ export type RhesisBackendAppUtilsSchemaFactoryMetricDetail2 = {
      * User Id
      */
     user_id?: string | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
     /**
      * Tags
      */
@@ -9554,6 +10723,14 @@ export type RhesisBackendAppUtilsSchemaFactoryTestConfigurationReference1 = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * User Id
      */
     user_id?: string | null;
@@ -9565,7 +10742,6 @@ export type RhesisBackendAppUtilsSchemaFactoryTestConfigurationReference1 = {
      * Status Id
      */
     status_id?: string | null;
-    attributes?: TestSetAttributesDict | null;
     /**
      * Endpoint Id
      */
@@ -9585,6 +10761,14 @@ export type RhesisBackendAppUtilsSchemaFactoryTestConfigurationReference2 = {
      */
     nano_id: string | null;
     /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Updated At
+     */
+    updated_at?: string | null;
+    /**
      * User Id
      */
     user_id?: string | null;
@@ -9596,7 +10780,6 @@ export type RhesisBackendAppUtilsSchemaFactoryTestConfigurationReference2 = {
      * Status Id
      */
     status_id?: string | null;
-    attributes?: TestSetAttributesDict | null;
     /**
      * Endpoint Id
      */
@@ -14036,7 +15219,7 @@ export type UpdateTagTagsTagIdPutResponse = UpdateTagTagsTagIdPutResponses[keyof
 export type AssignTagToEntityTagsEntityTypeEntityIdPostData = {
     body: TagCreate;
     path: {
-        entity_type: RhesisBackendAppSchemasTagEntityType;
+        entity_type: EntityType;
         /**
          * Entity Id
          */
@@ -14071,7 +15254,7 @@ export type AssignTagToEntityTagsEntityTypeEntityIdPostResponse = AssignTagToEnt
 export type RemoveTagFromEntityTagsEntityTypeEntityIdTagIdDeleteData = {
     body?: never;
     path: {
-        entity_type: RhesisBackendAppSchemasTagEntityType;
+        entity_type: EntityType;
         /**
          * Entity Id
          */
@@ -16330,10 +17513,9 @@ export type ReadTokensTokensGetError = ReadTokensTokensGetErrors[keyof ReadToken
 
 export type ReadTokensTokensGetResponses = {
     /**
-     * Response Read Tokens Tokens  Get
      * Successful Response
      */
-    200: Array<TokenRead>;
+    200: PaginatedTokenRead;
 };
 
 export type ReadTokensTokensGetResponse = ReadTokensTokensGetResponses[keyof ReadTokensTokensGetResponses];

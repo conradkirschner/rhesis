@@ -8,13 +8,14 @@ from rhesis.backend.app.constants import EntityType
 
 from .base import Base
 from .emoji_reaction import EmojiReaction
+from .user import User
 
 
 class CommentBase(Base):
     """Base Comment schema with common fields"""
 
     content: str = Field(..., description="The comment content")
-    emojis: Optional[Dict[str, List[EmojiReaction]]] = Field(
+    emojis: Dict[str, List[EmojiReaction]] = Field(
         default_factory=dict,
         description="Emoji reactions stored as {emoji_character: [list_of_user_reactions]}. "
         "Example: {'🚀': [{'user_id': 'uuid1', 'user_name': 'John'}], "
@@ -64,6 +65,7 @@ class Comment(CommentBase):
 
     id: UUID
     user_id: UUID
+    user: User
     organization_id: Optional[UUID] = None
     created_at: Union[datetime.datetime, str]
     updated_at: Union[datetime.datetime, str]

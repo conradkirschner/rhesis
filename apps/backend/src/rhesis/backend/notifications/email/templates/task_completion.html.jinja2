@@ -55,7 +55,8 @@
                 <td style="padding: 8px 0;">{{ execution_time }}</td>
             </tr>
             {%- endif %}
-            {%- if test_run_id %}
+            {# Somehow test_run_id is N/A, since it was set to required potential bug #}
+            {%- if test_run_id is defined and test_run_id and test_run_id != 'N/A' %}
             <tr>
                 <td style="padding: 8px 0; font-weight: bold;">Test Run ID:</td>
                 <td style="padding: 8px 0; font-family: monospace; font-size: 0.9em;">{{ test_run_id }}</td>
@@ -90,9 +91,10 @@
     {%- endif %}
 
     {%- if frontend_url %}
-        {%- if test_run_id %}
+        {# Somehow test_run_id is N/A, since it was set to required potential bug #}
+        {%- if test_run_id is defined and test_run_id and test_run_id != 'N/A' %}
         <div style="text-align: center; margin: 30px 0;">
-            <a href="{{ frontend_url }}/test-runs/{{ test_run_id }}" 
+            <a href="{{ frontend_url }}/test-runs/{{ test_run_id }}"
                style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                 View Results
             </a>

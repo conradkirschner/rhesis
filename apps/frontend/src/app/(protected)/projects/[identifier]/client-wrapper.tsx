@@ -1,186 +1,157 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import {
-  Box,
-  Button,
-  Breadcrumbs,
-  Typography,
-  Alert,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-} from '@mui/material';
-import Link from 'next/link';
-import { ArrowBackIcon, EditIcon, DeleteIcon } from '@/components/icons';
-import ProjectContent from '../components/ProjectContent';
-import ProjectEditDrawer from './edit-drawer';
-import { Project } from '@/utils/api-client/interfaces/project';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
+import { Box, Button } from '@mui/material';
 import { useRouter, useParams } from 'next/navigation';
 import { useActivePage } from '@toolpad/core/useActivePage';
-import { PageContainer, Breadcrumb } from '@toolpad/core/PageContainer';
-import invariant from 'invariant';
+import { PageContainer, type Breadcrumb } from '@toolpad/core/PageContainer';
+import { EditIcon, DeleteIcon } from '@/components/icons';
+import ProjectContent from '../components/ProjectContent';
+import ProjectEditDrawer from './edit-drawer';
 import { useNotifications } from '@/components/common/NotificationContext';
 import { DeleteModal } from '@/components/common/DeleteModal';
 
+import type { ProjectDetail, ProjectUpdate } from '@/api-client/types.gen';
+import {
+    updateProjectProjectsProjectIdPutMutation,
+    deleteProjectProjectsProjectIdDeleteMutation,
+} from '@/api-client/@tanstack/react-query.gen';
+import { useMutation } from '@tanstack/react-query';
+
+// UI view-model wrapper (API kept separate from UI-only fields)
+import { toProjectView, type ProjectView, type ProjectMeta } from '../types/project-ui';
+
 interface ClientWrapperProps {
-  project: Project;
-  sessionToken: string;
-  projectId: string;
+    project: ProjectDetail;
+    sessionToken: string;
+    projectId: string;
 }
 
 export default function ClientWrapper({
-  project,
-  sessionToken,
-  projectId,
-}: ClientWrapperProps) {
-  const router = useRouter();
-  const params = useParams<{ identifier: string }>();
-  const activePage = useActivePage();
+                                          project,
+                                          sessionToken,
+                                          projectId,
+                                      }: ClientWrapperProps) {
+    const router = useRouter();
+    const params = useParams<{ identifier: string }>();
+    const activePage = useActivePage();
+    const notifications = useNotifications();
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [currentProject, setCurrentProject] = useState<Project>(project);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const notifications = useNotifications();
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [currentProject, setCurrentProject] = useState<ProjectView>(toProjectView(project));
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-  // Create dynamic breadcrumbs based on the current project (reactive to currentProject changes)
-  const title = currentProject.name || `Project ${params.identifier}`;
+    const title = currentProject.api.name || `Project ${params.identifier}`;
 
-  // Create fallback breadcrumbs when activePage is null (reactive to currentProject changes)
-  let breadcrumbs: Breadcrumb[] = [];
-  if (activePage) {
-    const path = `${activePage.path}/${params.identifier}`;
-    breadcrumbs = [...activePage.breadcrumbs, { title, path }];
-  } else {
-    // Fallback breadcrumbs
-    breadcrumbs = [
-      { title: 'Projects', path: '/projects' },
-      { title, path: `/projects/${params.identifier}` },
-    ];
-  }
-
-  const handleUpdateProject = useCallback(
-    async (updatedProject: Partial<Project>) => {
-      setIsUpdating(true);
-      try {
-        const apiFactory = new ApiClientFactory(sessionToken);
-        const projectsClient = apiFactory.getProjectsClient();
-        const response = await projectsClient.updateProject(
-          projectId,
-          updatedProject
-        );
-
-        // Preserve the owner object from currentProject if response doesn't include it
-        const updatedProjectWithOwner = {
-          ...response,
-          owner: response.owner || currentProject.owner,
-          owner_id: response.owner_id || currentProject.owner_id,
-        };
-
-        setCurrentProject(updatedProjectWithOwner);
-        setIsDrawerOpen(false);
-        notifications.show('Project updated successfully', {
-          severity: 'success',
-        });
-      } catch (error) {
-        notifications.show(
-          error instanceof Error ? error.message : 'Failed to update project',
-          { severity: 'error' }
-        );
-      } finally {
-        setIsUpdating(false);
-      }
-    },
-    [projectId, sessionToken, notifications, currentProject]
-  );
-
-  const handleDeleteClick = () => {
-    setDeleteConfirmOpen(true);
-  };
-
-  const handleDeleteCancel = () => {
-    setDeleteConfirmOpen(false);
-  };
-
-  const handleDeleteConfirm = async () => {
-    setIsDeleting(true);
-    try {
-      const apiFactory = new ApiClientFactory(sessionToken);
-      const projectsClient = apiFactory.getProjectsClient();
-      await projectsClient.deleteProject(projectId);
-      notifications.show('Project deleted successfully', {
-        severity: 'success',
-      });
-      router.push('/projects');
-    } catch (error) {
-      notifications.show(
-        error instanceof Error ? error.message : 'Failed to delete project',
-        { severity: 'error' }
-      );
-      setDeleteConfirmOpen(false);
-    } finally {
-      setIsDeleting(false);
+    let breadcrumbs: Breadcrumb[] = [];
+    if (activePage) {
+        const path = `${activePage.path}/${params.identifier}`;
+        breadcrumbs = [...activePage.breadcrumbs, { title, path }];
+    } else {
+        breadcrumbs = [
+            { title: 'Projects', path: '/projects' },
+            { title, path: `/projects/${params.identifier}` },
+        ];
     }
-  };
 
-  return (
-    <PageContainer title={title} breadcrumbs={breadcrumbs}>
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          mb: 3,
-        }}
-      >
-        <Button
-          variant="contained"
-          startIcon={<EditIcon />}
-          onClick={() => setIsDrawerOpen(true)}
-          disabled={isUpdating || isDeleting}
-          sx={{ mr: 2 }}
-        >
-          Edit Project
-        </Button>
-        <Button
-          variant="outlined"
-          color="error"
-          startIcon={<DeleteIcon />}
-          onClick={handleDeleteClick}
-          disabled={isUpdating || isDeleting}
-        >
-          Delete
-        </Button>
-      </Box>
+    // Mutations using generated TanStack helpers
+    const updateProjectMutation = useMutation(
+        updateProjectProjectsProjectIdPutMutation({
+            headers: { Authorization: `Bearer ${sessionToken}` },
+        })
+    );
 
-      {/* Project Content */}
-      <ProjectContent project={currentProject} />
+    const deleteProjectMutation = useMutation(
+        deleteProjectProjectsProjectIdDeleteMutation({
+            headers: { Authorization: `Bearer ${sessionToken}` },
+        })
+    );
 
-      {/* Edit Drawer */}
-      <ProjectEditDrawer
-        project={currentProject}
-        sessionToken={sessionToken}
-        open={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        onSave={handleUpdateProject}
-      />
+    const isUpdating = updateProjectMutation.isPending;
+    const isDeleting = deleteProjectMutation.isPending;
 
-      {/* Delete Confirmation Dialog */}
-      <DeleteModal
-        open={deleteConfirmOpen}
-        onClose={handleDeleteCancel}
-        onConfirm={handleDeleteConfirm}
-        isLoading={isDeleting}
-        itemType="project"
-        itemName={currentProject.name}
-        title="Delete Project"
-      />
-    </PageContainer>
-  );
+    const handleUpdateProject = useCallback(
+        async (updatedProject: Partial<ProjectUpdate>, updatedMeta: ProjectMeta) => {
+            try {
+                const updated = await updateProjectMutation.mutateAsync({
+                    path: { project_id: projectId },
+                    body: updatedProject,
+                });
+
+                setCurrentProject(prev => toProjectView(updated as ProjectDetail, { ...prev.meta, ...updatedMeta }));
+                setIsDrawerOpen(false);
+                notifications.show('Project updated successfully', { severity: 'success' });
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Failed to update project';
+                notifications.show(message, { severity: 'error' });
+                throw err; // preserve rejection to satisfy Promise contract if caller awaits
+            }
+        },
+        [projectId, updateProjectMutation, notifications]
+    );
+
+    const handleDeleteClick = () => setDeleteConfirmOpen(true);
+    const handleDeleteCancel = () => setDeleteConfirmOpen(false);
+    const handleDeleteConfirm = () => {
+        deleteProjectMutation.mutate(
+            { path: { project_id: projectId } },
+            {
+                onSuccess: () => {
+                    notifications.show('Project deleted successfully', { severity: 'success' });
+                    router.push('/projects');
+                },
+                onError: (err) => {
+                    const message = err instanceof Error ? err.message : 'Failed to delete project';
+                    notifications.show(message, { severity: 'error' });
+                    setDeleteConfirmOpen(false);
+                },
+            }
+        );
+    };
+
+    return (
+        <PageContainer title={title} breadcrumbs={breadcrumbs}>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 3 }}>
+                <Button
+                    variant="contained"
+                    startIcon={<EditIcon />}
+                    onClick={() => setIsDrawerOpen(true)}
+                    disabled={isUpdating || isDeleting}
+                    sx={{ mr: 2 }}
+                >
+                    Edit Project
+                </Button>
+                <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={handleDeleteClick}
+                    disabled={isUpdating || isDeleting}
+                >
+                    Delete
+                </Button>
+            </Box>
+
+            {/* API+UI view model */}
+            <ProjectContent project={currentProject} />
+
+            <ProjectEditDrawer
+                project={currentProject.api}
+                meta={currentProject.meta}
+                open={isDrawerOpen}
+                onClose={() => setIsDrawerOpen(false)}
+                onSave={handleUpdateProject}
+            />
+
+            <DeleteModal
+                open={deleteConfirmOpen}
+                onClose={handleDeleteCancel}
+                onConfirm={handleDeleteConfirm}
+                isLoading={isDeleting}
+                itemType="project"
+                itemName={currentProject.api.name ?? ''}
+                title="Delete Project"
+            />
+        </PageContainer>
+    );
 }

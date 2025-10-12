@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse, JSONResponse, PlainTextResponse, Response
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from rhesis.backend.app.auth.user_utils import require_current_user_or_token
 from rhesis.backend.app.dependencies import get_tenant_context, get_tenant_db_session
@@ -22,7 +23,7 @@ from rhesis.backend.app.schemas.services import (
     TestConfigResponse,
     TextResponse,
 )
-from rhesis.backend.app.services.document_handler import DocumentHandler
+from rhesis.backend.app.services.document_handler import DocumentHandler, DocumentMetadata
 from rhesis.backend.app.services.gemini_client import (
     create_chat_completion,
     get_chat_response,
@@ -192,8 +193,46 @@ async def generate_content_endpoint(request: GenerateContentRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+def _improve_to_generation_payload(p: dict) -> dict:
+    """
+    Map ImproveTestPrompt -> GenerateTestsPrompt (labels allowed).
+    Chooses test_type via a tiny heuristic; default output_format keeps responses.
+    """
+    original = (p.get("original_test") or "").strip()
+    feedback = (p.get("improvement_feedback") or "").strip()
+    instruction = (p.get("instruction") or "").strip()
+    topic = (p.get("topic") or "").strip()
+    behavior_label = (p.get("test_type") or "").strip()  # in ImproveTestPrompt this is a free-text label
 
-# ----- Generate Tests -----
+    # Heuristic: if it looks like dialogue, treat as multi-turn
+    lower = original.lower()
+    is_multi = ("user:" in lower) or ("assistant:" in lower) or (original.count("\n") > 2)
+
+    test_type_literal = "Multi-turn conversation tests" if is_multi else "Single interaction tests"
+
+    rating = p.get("user_rating")
+    if isinstance(rating, (int, float)):
+        rating_str = f"{rating:.1f}/5"
+    else:
+        rating_str = str(rating or "N/A")
+
+    specific = (
+        "Regenerate the test using the original content and feedback.\n\n"
+        f"--- Original Test ---\n{original}\n\n"
+        f"--- Feedback (rating {rating_str}) ---\n{feedback or 'No detailed feedback provided.'}\n\n"
+        f"Instruction: {instruction or 'Please generate a new version that addresses the feedback.'}"
+    )
+
+    return {
+        "project_context": "Regeneration",
+        # We allow labels or UUIDs in these lists; using labels here:
+        "test_behaviors": [behavior_label] if behavior_label else [],
+        "test_purposes": ["Regenerate existing test from feedback"],
+        "key_topics": [topic] if topic else [],
+        "specific_requirements": specific,
+        "test_type": test_type_literal,  # Literal expected by GenerationConfig
+        "output_format": "Generate both user inputs and expected responses",
+    }
 @router.post("/generate/tests", response_model=GenerateTestsResponse)
 async def generate_tests_endpoint(
     request: GenerateTestsRequest,
@@ -211,10 +250,29 @@ async def generate_tests_endpoint(
         if not prompt:
             raise HTTPException(status_code=400, detail="prompt is required")
 
-        documents_sdk = [Document(**doc.dict()) for doc in documents] if documents else None
+        # --- normalize prompt to a plain dict (JSON-safe) ---
+        if isinstance(prompt, BaseModel):
+            prompt_payload = prompt.model_dump(mode="json", exclude_none=True)
+        else:
+            prompt_payload = prompt  # already a dict
+        if isinstance(prompt_payload, dict) and "original_test" in prompt_payload:
+            prompt_payload = _improve_to_generation_payload(prompt_payload)
+        # --- normalize documents (handle pydantic v2/v1) ---
+        def to_dict(obj):
+            if hasattr(obj, "model_dump"):
+                return obj.model_dump(exclude_none=True)
+            if hasattr(obj, "dict"):
+                return obj.dict(exclude_none=True)
+            return obj
 
-        test_cases = await generate_tests(db, current_user, prompt, num_tests, documents_sdk)
+        documents_sdk = (
+            [Document(**to_dict(doc)) for doc in documents] if documents else None
+        )
+
+        # pass plain dict into your synthesizer
+        test_cases = await generate_tests(db, current_user, prompt_payload, num_tests, documents_sdk)
         return GenerateTestsResponse(tests=test_cases)
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -266,21 +324,20 @@ async def generate_text(prompt_request: PromptRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ----- Documents: upload -----
 @router.post("/documents/upload", response_model=DocumentUploadResponse)
 async def upload_document(
     document: UploadFile = File(...),
     tenant_context=Depends(get_tenant_context),
 ):
-    """
-    Upload a document to persistent storage.
-    """
     organization_id, user_id = tenant_context
     handler = DocumentHandler()
 
-    path, _metadata = await handler.save_document(document, organization_id, user_id)
-    return DocumentUploadResponse(path=path)
+    metadata: DocumentMetadata = await handler.save_document(document, organization_id, user_id)
+    path = metadata.get("path")
+    if not path:
+        raise HTTPException(status_code=500, detail="Storage did not return a path")
 
+    return DocumentUploadResponse(path=path)
 
 # ----- Documents: extract -----
 @router.post("/documents/extract", response_model=ExtractDocumentResponse)

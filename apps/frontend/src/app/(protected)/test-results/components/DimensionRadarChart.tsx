@@ -1,136 +1,118 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Paper, Typography, CircularProgress, Alert, Box } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import {
+  ResponsiveContainer,
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
-  ResponsiveContainer,
-  Legend,
 } from 'recharts';
-import { useTheme } from '@mui/material/styles';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import {
-  TestResultsStats,
-  PassFailStats,
-} from '@/utils/api-client/interfaces/test-results';
-import {
-  TestResultsStatsOptions,
-  TestResultsStatsMode,
-} from '@/utils/api-client/interfaces/common';
+import { useQuery } from '@tanstack/react-query';
+
+import type { TestResultStatsAll, TestResultStatsMode } from '@/api-client/types.gen';
+
+import { generateTestResultStatsTestResultsStatsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 
 interface DimensionRadarChartProps {
-  sessionToken: string;
-  filters: Partial<TestResultsStatsOptions>;
+  // Only `months` is used from filters for this query
+  filters: Partial<{ months: number }>;
   dimension: 'behavior' | 'category' | 'topic';
   title: string;
 }
 
-// Helper function to calculate number of lines for a given text
-const calculateLineCount = (
-  text: string,
-  maxLineLength: number = 14
-): number => {
+/** -------- Utilities -------- **/
+
+const calculateLineCount = (text: string, maxLineLength: number = 14): number => {
   if (!text) return 1;
-
   const words = text.split(' ');
-  let currentLine = '';
-  let lineCount = 0;
-
-  for (const word of words) {
-    if ((currentLine + word).length <= maxLineLength) {
-      currentLine += (currentLine ? ' ' : '') + word;
+  let line = '';
+  let count = 0;
+  for (const w of words) {
+    if ((line + w).length <= maxLineLength) {
+      line += (line ? ' ' : '') + w;
     } else {
-      if (currentLine) lineCount++;
-      currentLine = word;
+      if (line) count++;
+      line = w;
     }
   }
-  if (currentLine) lineCount++;
-
-  return Math.max(lineCount, 1); // Ensure at least 1 line
+  if (line) count++;
+  return Math.max(count, 1);
 };
 
-// Custom tick component for wrapping text with dynamic positioning
-// Custom tick factory function that takes theme as parameter
-const createCustomTick = (
-  chartTickFontSize: string,
-  textColor: string = 'text.secondary'
-) => {
-  // Convert rem to pixels for the CustomTick component
-  const getPixelFontSize = (remSize: string): number => {
-    const remValue = parseFloat(remSize);
-    return remValue * 16;
-  };
+const remToPx = (remLike: string | number): number =>
+    typeof remLike === 'number' ? remLike : parseFloat(remLike) * 16;
 
-  const CustomTick = ({ payload, x, y, textAnchor, cx, cy, ...rest }: any) => {
-    const maxLineLength = 14; // Max characters per line (increased for pass rate)
-    const lines = [];
+type TickProps = {
+  payload?: { value?: string };
+  x?: number;
+  y?: number;
+  textAnchor?: 'start' | 'middle' | 'end';
+  cx?: number;
+  cy?: number;
+};
 
-    if (payload?.value) {
-      const words = payload.value.split(' ');
-      let currentLine = '';
+const createCustomTick = (chartTickFontSize: string | number, fillColor: string) => {
+  const fontSizePx = remToPx(chartTickFontSize);
 
-      for (const word of words) {
-        if ((currentLine + word).length <= maxLineLength) {
-          currentLine += (currentLine ? ' ' : '') + word;
-        } else {
-          if (currentLine) lines.push(currentLine);
-          currentLine = word;
-        }
+  const CustomTick: React.FC<TickProps> = ({ payload, x, y, cx, cy }) => {
+    const value = payload?.value ?? '';
+    const words = value.split(' ');
+    const lines: string[] = [];
+    let line = '';
+    const maxLineLength = 14;
+
+    for (const w of words) {
+      if ((line + w).length <= maxLineLength) {
+        line += (line ? ' ' : '') + w;
+      } else {
+        if (line) lines.push(line);
+        line = w;
       }
-      if (currentLine) lines.push(currentLine);
     }
+    if (line) lines.push(line);
 
-    // Calculate distance from center and push labels further out based on line count
-    const centerX = cx || 0;
-    const centerY = cy || 0;
-    const distanceFromCenter = Math.sqrt(
-      (x - centerX) ** 2 + (y - centerY) ** 2
-    );
+    const X = x ?? 0;
+    const Y = y ?? 0;
+    const CX = cx ?? 0;
+    const CY = cy ?? 0;
 
-    // Additional offset based on number of lines (more lines = push further out)
-    // Reduced offsets for better space efficiency
+    const dx = X - CX;
+    const dy = Y - CY;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
     const baseOffset = 5;
-    const additionalOffset = (lines.length - 1) * 4;
-    const totalOffset = baseOffset + additionalOffset;
+    const extraOffset = (lines.length - 1) * 4;
+    const totalOffset = baseOffset + extraOffset;
 
-    // Calculate the direction vector from center to original position
-    const directionX = (x - centerX) / distanceFromCenter;
-    const directionY = (y - centerY) / distanceFromCenter;
+    const ux = dx / dist;
+    const uy = dy / dist;
 
-    // Apply offset in the same direction
-    const adjustedX = x + directionX * totalOffset;
-    const adjustedY = y + directionY * totalOffset;
+    const ax = X + ux * totalOffset;
+    const ay = Y + uy * totalOffset;
 
-    // Adjust text anchor based on position relative to center
-    let adjustedTextAnchor = textAnchor;
-    if (adjustedX < centerX - 10) {
-      adjustedTextAnchor = 'end';
-    } else if (adjustedX > centerX + 10) {
-      adjustedTextAnchor = 'start';
-    } else {
-      adjustedTextAnchor = 'middle';
-    }
+    let anchor: 'start' | 'middle' | 'end' = 'middle';
+    if (ax < CX - 10) anchor = 'end';
+    else if (ax > CX + 10) anchor = 'start';
 
     return (
-      <g>
-        {lines.map((line, index) => (
-          <text
-            key={index}
-            x={adjustedX}
-            y={adjustedY + index * 12 - (lines.length - 1) * 6} // Center multi-line text vertically
-            textAnchor={adjustedTextAnchor}
-            fontSize={getPixelFontSize(chartTickFontSize)}
-            fill={textColor}
-            dominantBaseline="middle"
-          >
-            {line}
-          </text>
-        ))}
-      </g>
+        <g>
+          {lines.map((ln, i) => (
+              <text
+                  key={i}
+                  x={ax}
+                  y={ay + i * 12 - (lines.length - 1) * 6}
+                  textAnchor={anchor}
+                  fontSize={fontSizePx}
+                  fill={fillColor}
+                  dominantBaseline="middle"
+              >
+                {ln}
+              </text>
+          ))}
+        </g>
     );
   };
 
@@ -138,12 +120,14 @@ const createCustomTick = (
   return CustomTick;
 };
 
+// Inline pass/fail entry (your schema doesn’t export a PassFail type)
+type PassFailEntry = { passed?: number | null; failed?: number | null };
+
 const transformDimensionDataForRadar = (
-  dimensionData?: Record<string, PassFailStats>,
-  dimensionName: string = 'Item'
+    dimensionData?: Record<string, PassFailEntry>,
+    dimensionName: string = 'Item',
 ) => {
   if (!dimensionData) {
-    // Generate mock data for demonstration
     return [
       { subject: `${dimensionName} A (90%)`, passRate: 90 },
       { subject: `${dimensionName} B (76%)`, passRate: 76 },
@@ -154,252 +138,145 @@ const transformDimensionDataForRadar = (
   }
 
   return Object.entries(dimensionData)
-    .map(([name, stats]) => {
-      const total = (stats?.passed || 0) + (stats?.failed || 0);
-      const passRate =
-        total > 0 ? Math.round(((stats?.passed || 0) / total) * 100) : 0;
-
-      return {
-        subject: `${name || 'Unknown'} (${passRate}%)`, // Include pass rate in the label
-        passRate: passRate,
-      };
-    })
-    .filter(item => item.passRate > 0) // Filter out items with no pass rate
-    .sort((a, b) => b.passRate - a.passRate) // Sort by pass rate descending
-    .slice(0, 5); // Top 5
+      .map(([name, s]) => {
+        const total = (s?.passed ?? 0) + (s?.failed ?? 0);
+        const passRate = total > 0 ? Math.round(((s?.passed ?? 0) / total) * 100) : 0;
+        return { subject: `${name || 'Unknown'} (${passRate}%)`, passRate };
+      })
+      .filter((d) => d.passRate > 0)
+      .sort((a, b) => b.passRate - a.passRate)
+      .slice(0, 5);
 };
 
+/** -------- Component -------- **/
+
 export default function DimensionRadarChart({
-  sessionToken,
-  filters,
-  dimension,
-  title,
-}: DimensionRadarChartProps) {
+                                              filters,
+                                              dimension,
+                                              title,
+                                            }: DimensionRadarChartProps) {
   const theme = useTheme();
 
-  // Convert rem to pixels for Recharts (assuming 1rem = 16px)
-  const getPixelFontSize = (remSize: string): number => {
-    const remValue = parseFloat(remSize);
-    return remValue * 16;
-  };
-
-  // Create CustomTick component with theme access
-  const CustomTick = useMemo(
-    () =>
-      createCustomTick(
-        String(theme.typography.chartTick.fontSize),
-        theme.palette.text.primary
-      ),
-    [theme.typography.chartTick.fontSize, theme.palette.text.primary]
+  const queryParams = useMemo(
+      () => ({
+        mode: dimension as TestResultStatsMode,
+        months: filters.months ?? 6,
+      }),
+      [dimension, filters.months],
   );
 
-  const [stats, setStats] = useState<TestResultsStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const statsQuery = useQuery({
+    ...generateTestResultStatsTestResultsStatsGetOptions({
+      query: queryParams,
+    }),
+    staleTime: 60_000,
+  });
 
-  const fetchData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const clientFactory = new ApiClientFactory(sessionToken);
-      const testResultsClient = clientFactory.getTestResultsClient();
+  const tickFontSize = theme.typography.caption.fontSize ?? 12;
+  const CustomTick = useMemo(
+      () => createCustomTick(tickFontSize, theme.palette.text.primary),
+      [tickFontSize, theme.palette.text.primary],
+  );
 
-      const options: TestResultsStatsOptions = {
-        mode: dimension as TestResultsStatsMode, // Use specific mode for each dimension
-        months: filters.months || 6,
-        ...filters,
-      };
-
-      const statsData =
-        await testResultsClient.getComprehensiveTestResultsStats(options);
-      if (statsData && typeof statsData === 'object') {
-        setStats(statsData);
-        setError(null);
-      } else {
-        setStats(null);
-        setError(`Invalid ${dimension} data received`);
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : `Failed to load ${dimension} data`;
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sessionToken, filters, dimension]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const stats = statsQuery.data as TestResultStatsAll | undefined;
 
   const chartData = useMemo(() => {
-    let dimensionData: Record<string, PassFailStats> | undefined;
+    const source: Record<string, PassFailEntry> | undefined =
+        dimension === 'behavior'
+            ? (stats?.behavior_pass_rates as Record<string, PassFailEntry> | undefined)
+            : dimension === 'category'
+                ? (stats?.category_pass_rates as Record<string, PassFailEntry> | undefined)
+                : (stats?.topic_pass_rates as Record<string, PassFailEntry> | undefined);
 
-    switch (dimension) {
-      case 'behavior':
-        dimensionData = stats?.behavior_pass_rates;
-        break;
-      case 'category':
-        dimensionData = stats?.category_pass_rates;
-        break;
-      case 'topic':
-        dimensionData = stats?.topic_pass_rates;
-        break;
-    }
-
-    return transformDimensionDataForRadar(dimensionData, dimension);
+    return transformDimensionDataForRadar(source, dimension);
   }, [stats, dimension]);
 
-  // Calculate dynamic spacing based on label complexity
   const chartSpacing = useMemo(() => {
-    const maxLines = Math.max(
-      ...chartData.map(item => calculateLineCount(item.subject)),
-      1 // Ensure at least 1 line
-    );
-
-    // Base margin for single-line labels - reduced for better space usage
+    const maxLines = Math.max(...chartData.map((d) => calculateLineCount(d.subject)), 1);
     const baseMargin = 20;
-
-    // Additional spacing per extra line - labels are pushed further out
-    const extraSpacingPerLine = 6;
-
-    // Calculate margin based on maximum line count across all labels
-    const marginSize = baseMargin + (maxLines - 1) * extraSpacingPerLine;
-
-    return {
-      margin: Math.min(marginSize, 50), // Reduced cap for more chart space
-      maxLines,
-    };
+    const extraPerLine = 6;
+    const margin = Math.min(baseMargin + (maxLines - 1) * extraPerLine, 50);
+    return { margin, maxLines };
   }, [chartData]);
 
-  if (isLoading) {
+  if (statsQuery.isLoading) {
     return (
-      <Paper
-        elevation={theme.elevation.standard}
-        sx={{
-          p: theme.customSpacing.container.medium,
-          height: 400,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <Typography variant="h6" sx={{ mb: theme.customSpacing.section.small }}>
-          {title}
-        </Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mb: theme.customSpacing.section.small }}
-        >
-          Pass rates for the top 5 performing{' '}
-          {dimension === 'category' ? 'categories' : `${dimension}s`}
-        </Typography>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            flex: 1,
-          }}
-        >
-          <CircularProgress size={24} />
-          <Typography
-            variant="helperText"
-            sx={{ ml: theme.customSpacing.container.small }}
-          >
-            Loading {dimension}...
+        <Paper elevation={1} sx={{ p: 2, height: 400, display: 'flex', flexDirection: 'column' }}>
+          <Typography variant="h6" sx={{ mb: 1.5 }}>
+            {title}
           </Typography>
-        </Box>
-      </Paper>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Pass rates for the top 5 performing {dimension === 'category' ? 'categories' : `${dimension}s`}
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+            <CircularProgress size={24} />
+            <Typography variant="caption" sx={{ ml: 1.5 }}>
+              Loading {dimension}…
+            </Typography>
+          </Box>
+        </Paper>
     );
   }
 
-  if (error) {
+  if (statsQuery.isError) {
+    const msg = statsQuery.error.message;
     return (
-      <Paper
-        elevation={theme.elevation.standard}
-        sx={{
-          p: theme.customSpacing.container.medium,
-          height: 400,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <Typography variant="h6" sx={{ mb: theme.customSpacing.section.small }}>
-          {title}
-        </Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mb: theme.customSpacing.section.small }}
-        >
-          Error occurred
-        </Typography>
-        <Alert severity="error">{error}</Alert>
-      </Paper>
+        <Paper elevation={1} sx={{ p: 2, height: 400, display: 'flex', flexDirection: 'column' }}>
+          <Typography variant="h6" sx={{ mb: 1.5 }}>
+            {title}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Error occurred
+          </Typography>
+          <Alert severity="error">{msg}</Alert>
+        </Paper>
     );
   }
 
   return (
-    <Paper
-      elevation={theme.elevation.standard}
-      sx={{
-        p: theme.customSpacing.container.medium,
-        height: 400,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <Typography variant="h6" sx={{ mb: theme.customSpacing.section.small }}>
-        {title}
-      </Typography>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mb: theme.customSpacing.section.small }}
-      >
-        Pass rates for the top 5 performing{' '}
-        {dimension === 'category' ? 'categories' : `${dimension}s`}
-      </Typography>
-      <Box sx={{ flex: 1, minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart
-            data={chartData}
-            margin={{
-              top: chartSpacing.margin,
-              right: chartSpacing.margin,
-              bottom: chartSpacing.margin,
-              left: chartSpacing.margin,
-            }}
-          >
-            <PolarGrid />
-            <PolarAngleAxis dataKey="subject" tick={<CustomTick />} />
-            <PolarRadiusAxis
-              angle={90}
-              domain={[0, 100]}
-              tick={{
-                fontSize: Math.max(
-                  8,
-                  getPixelFontSize(
-                    String(theme.typography.chartTick.fontSize)
-                  ) - 2
-                ),
-                fill: theme.palette.text.primary,
-              }}
-              tickFormatter={value => `${value}%`}
-              tickCount={4}
-            />
-            <Radar
-              name="Pass Rate"
-              dataKey="passRate"
-              stroke={theme.palette.primary.main}
-              fill={theme.palette.primary.main}
-              fillOpacity={0.3}
-              strokeWidth={2}
-              dot={false}
-            />
-          </RadarChart>
-        </ResponsiveContainer>
-      </Box>
-    </Paper>
+      <Paper elevation={1} sx={{ p: 2, height: 400, display: 'flex', flexDirection: 'column' }}>
+        <Typography variant="h6" sx={{ mb: 1.5 }}>
+          {title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          Pass rates for the top 5 performing {dimension === 'category' ? 'categories' : `${dimension}s`}
+        </Typography>
+
+        <Box sx={{ flex: 1, minHeight: 0 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart
+                data={chartData}
+                margin={{
+                  top: chartSpacing.margin,
+                  right: chartSpacing.margin,
+                  bottom: chartSpacing.margin,
+                  left: chartSpacing.margin,
+                }}
+            >
+              <PolarGrid />
+              <PolarAngleAxis dataKey="subject" tick={<CustomTick />} />
+              <PolarRadiusAxis
+                  angle={90}
+                  domain={[0, 100]}
+                  tick={{
+                    fontSize: Math.max(8, remToPx(tickFontSize) - 2),
+                    fill: theme.palette.text.primary,
+                  }}
+                  tickFormatter={(v) => `${v}%`}
+                  tickCount={4}
+              />
+              <Radar
+                  name="Pass Rate"
+                  dataKey="passRate"
+                  stroke={theme.palette.primary.main}
+                  fill={theme.palette.primary.main}
+                  fillOpacity={0.3}
+                  strokeWidth={2}
+                  dot={false}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
+        </Box>
+      </Paper>
   );
 }

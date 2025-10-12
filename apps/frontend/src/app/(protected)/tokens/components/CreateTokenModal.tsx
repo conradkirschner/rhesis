@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -14,123 +14,138 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material/Select';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { TokenResponse } from '@/utils/api-client/interfaces/token';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
+
+type ExpiryOption = '30' | '60' | '90' | 'custom' | 'never';
 
 interface CreateTokenModalProps {
   open: boolean;
   onClose: () => void;
-  onCreateToken: (
-    name: string,
-    expiresInDays: number | null
-  ) => Promise<TokenResponse>;
+  onCreateToken: (name: string, expiresInDays: number | null) => Promise<void>;
 }
 
 export default function CreateTokenModal({
-  open,
-  onClose,
-  onCreateToken,
-}: CreateTokenModalProps) {
+                                           open,
+                                           onClose,
+                                           onCreateToken,
+                                         }: CreateTokenModalProps) {
   const [name, setName] = useState('');
-  const [expiryOption, setExpiryOption] = useState<
-    '30' | '60' | '90' | 'custom' | 'never'
-  >('30');
-  const [customDate, setCustomDate] = useState<dayjs.Dayjs | null>(
-    dayjs().add(1, 'day')
-  );
+  const [expiryOption, setExpiryOption] = useState<ExpiryOption>('30');
+  const [customDate, setCustomDate] = useState<Dayjs | null>(dayjs().add(1, 'day'));
+  const [submitting, setSubmitting] = useState(false);
+
+  const minCustomDate = useMemo(() => dayjs().startOf('day').add(1, 'day'), []);
+
+  const resetForm = useCallback(() => {
+    setName('');
+    setExpiryOption('30');
+    setCustomDate(dayjs().add(1, 'day'));
+    setSubmitting(false);
+  }, []);
 
   useEffect(() => {
-    if (open) {
-      setName('');
-      setExpiryOption('30');
-      setCustomDate(dayjs().add(1, 'day'));
+    if (open) resetForm();
+  }, [open, resetForm]);
+
+  const computeExpiresInDays = useCallback((): number | null => {
+    if (expiryOption === 'never') return null;
+    if (expiryOption === 'custom') {
+      if (!customDate) return null;
+      const diff = customDate.startOf('day').diff(dayjs().startOf('day'), 'day');
+      return Math.max(1, diff);
     }
-  }, [open]);
+    return parseInt(expiryOption, 10);
+  }, [expiryOption, customDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name.trim()) return;
+    if (expiryOption === 'custom' && !customDate) return;
+
     try {
-      let expiresInDays: number | null = null;
-
-      if (expiryOption === 'custom' && customDate) {
-        const diffDays = customDate.diff(dayjs(), 'day');
-        expiresInDays = Math.max(1, diffDays);
-      } else if (expiryOption !== 'never') {
-        expiresInDays = parseInt(expiryOption);
-      }
-
-      await onCreateToken(name, expiresInDays);
+      setSubmitting(true);
+      const expiresInDays = computeExpiresInDays();
+      await onCreateToken(name.trim(), expiresInDays);
       handleClose();
-    } catch (error) {
-      console.error('Error creating token:', error);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Error creating token:', err);
+      setSubmitting(false);
     }
   };
 
   const handleClose = () => {
-    setName('');
-    setExpiryOption('30');
-    setCustomDate(dayjs().add(1, 'day'));
+    resetForm();
     onClose();
   };
 
+  const handleExpiryChange = (e: SelectChangeEvent<ExpiryOption>) => {
+    setExpiryOption(e.target.value as ExpiryOption);
+  };
+
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
-        <DialogTitle>Create New Token</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              autoFocus
-              label="Token Name"
-              fullWidth
-              value={name}
-              onChange={e => setName(e.target.value)}
-              required
-            />
-            <FormControl fullWidth>
-              <InputLabel>Token Expiration</InputLabel>
-              <Select
-                value={expiryOption}
-                label="Token Expiration"
-                onChange={e =>
-                  setExpiryOption(e.target.value as typeof expiryOption)
-                }
-              >
-                <MenuItem value="30">30 days</MenuItem>
-                <MenuItem value="60">60 days</MenuItem>
-                <MenuItem value="90">90 days</MenuItem>
-                <MenuItem value="custom">Custom date</MenuItem>
-                <MenuItem value="never">Never expire</MenuItem>
-              </Select>
-            </FormControl>
-            {expiryOption === 'custom' && (
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DatePicker
-                  label="Expiration Date"
-                  value={customDate}
-                  onChange={newValue => setCustomDate(newValue)}
-                  minDate={dayjs().add(1, 'day')}
-                  slotProps={{
-                    textField: {
-                      required: true,
-                      fullWidth: true,
-                    },
-                  }}
-                />
-              </LocalizationProvider>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button type="submit" variant="contained">
-            Create
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+        <form onSubmit={handleSubmit} noValidate>
+          <DialogTitle>Create New Token</DialogTitle>
+          <DialogContent>
+            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                  autoFocus
+                  label="Token Name"
+                  fullWidth
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+              />
+
+              <FormControl fullWidth>
+                <InputLabel id="token-expiration-label">Token Expiration</InputLabel>
+                <Select
+                    labelId="token-expiration-label"
+                    value={expiryOption}
+                    label="Token Expiration"
+                    onChange={handleExpiryChange}
+                >
+                  <MenuItem value="30">30 days</MenuItem>
+                  <MenuItem value="60">60 days</MenuItem>
+                  <MenuItem value="90">90 days</MenuItem>
+                  <MenuItem value="custom">Custom date</MenuItem>
+                  <MenuItem value="never">Never expire</MenuItem>
+                </Select>
+              </FormControl>
+
+              {expiryOption === 'custom' && (
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    <DatePicker
+                        label="Expiration Date"
+                        value={customDate}
+                        onChange={(newValue) => setCustomDate(newValue)}
+                        minDate={minCustomDate}
+                        slotProps={{
+                          textField: {
+                            required: true,
+                            fullWidth: true,
+                          },
+                        }}
+                    />
+                  </LocalizationProvider>
+              )}
+            </Box>
+          </DialogContent>
+
+          <DialogActions>
+            <Button onClick={handleClose} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" disabled={submitting || !name.trim()}>
+              {submitting ? 'Creating…' : 'Create'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
   );
 }

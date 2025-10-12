@@ -1,71 +1,61 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { TestResultsStats } from '@/utils/api-client/interfaces/test-results';
-import { TestResultsStatsOptions } from '@/utils/api-client/interfaces/common';
+import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
 import BaseTimelineChart from './BaseTimelineChart';
-import { extractOverallData } from './timelineUtils';
+import { extractOverallData, type TimelineDataItem } from './timelineUtils';
+
+import type { TestResultStatsAll } from '@/api-client/types.gen';
+
+import { generateTestResultStatsTestResultsStatsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 
 interface PassRateTimelineChartProps {
-  sessionToken: string;
-  filters: Partial<TestResultsStatsOptions>;
+  // We only need months for this query
+  filters: Partial<{ months: number }>;
 }
 
 export default function PassRateTimelineChart({
-  sessionToken,
-  filters,
-}: PassRateTimelineChartProps) {
-  const [stats, setStats] = useState<TestResultsStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+                                                filters,
+                                              }: PassRateTimelineChartProps) {
+  const queryParams = useMemo(
+      () => ({
+        mode: 'timeline' as const,
+        months: filters.months ?? 6,
+      }),
+      [filters.months],
+  );
 
-  const fetchData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const clientFactory = new ApiClientFactory(sessionToken);
-      const testResultsClient = clientFactory.getTestResultsClient();
+  const statsQuery = useQuery({
+    ...generateTestResultStatsTestResultsStatsGetOptions({
+      query: queryParams,
+    }),
+    staleTime: 60_000,
+  });
 
-      const options: TestResultsStatsOptions = {
-        mode: 'timeline', // Specific mode for timeline data
-        months: filters.months || 6,
-        ...filters,
-      };
+  const stats = statsQuery.data as TestResultStatsAll | undefined;
 
-      const statsData =
-        await testResultsClient.getComprehensiveTestResultsStats(options);
-      if (statsData && typeof statsData === 'object') {
-        console.log('Timeline API Response:', statsData);
-        console.log('Timeline data:', statsData.timeline);
-        setStats(statsData);
-        setError(null);
-      } else {
-        setStats(null);
-        setError('Invalid timeline data received');
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load timeline data';
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sessionToken, filters]);
+  // Stable, typed timeline array (avoid recreating [] each render)
+  const timeline = useMemo<TimelineDataItem[]>(() => {
+    const t = stats?.timeline as unknown;
+    return Array.isArray(t) ? (t as TimelineDataItem[]) : [];
+  }, [stats?.timeline]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const errorMessage =
+      statsQuery.isError
+          ? (statsQuery.error.message)
+          : null;
 
   return (
-    <BaseTimelineChart
-      title="Pass Rate by Month"
-      data={stats?.timeline || []}
-      dataExtractor={extractOverallData}
-      height={400}
-      contextInfo="Monthly pass rate trends showing test performance over time"
-      showMockDataFallback={true}
-      isLoading={isLoading}
-      error={error}
-    />
+      <BaseTimelineChart
+          title="Pass Rate by Month"
+          data={timeline}
+          dataExtractor={extractOverallData}
+          height={400}
+          contextInfo="Monthly pass rate trends showing test performance over time"
+          showMockDataFallback={true}
+          isLoading={statsQuery.isLoading}
+          error={errorMessage}
+      />
   );
 }

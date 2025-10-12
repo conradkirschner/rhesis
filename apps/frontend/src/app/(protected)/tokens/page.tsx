@@ -10,7 +10,7 @@ export default async function TokensPage() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <TokensPageClient sessionToken={session.session_token} />
+      <TokensPageClient />
     </Box>
   );
 }

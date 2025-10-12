@@ -5,7 +5,6 @@ import CreateTestRun from './CreateTestRun';
 interface TestRunDrawerProps {
   open: boolean;
   onClose: () => void;
-  sessionToken: string;
   selectedTestSetIds: string[];
   onSuccess?: () => void;
 }
@@ -13,7 +12,6 @@ interface TestRunDrawerProps {
 export default function TestRunDrawer({
   open,
   onClose,
-  sessionToken,
   selectedTestSetIds,
   onSuccess,
 }: TestRunDrawerProps) {
@@ -49,7 +47,6 @@ export default function TestRunDrawer({
     >
       <CreateTestRun
         open={open}
-        sessionToken={sessionToken}
         selectedTestSetIds={selectedTestSetIds}
         onSuccess={onSuccess}
         onError={setError}

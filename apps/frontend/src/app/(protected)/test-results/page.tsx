@@ -1,17 +1,17 @@
 import * as React from 'react';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import { auth } from '@/auth';
 import { PageContainer } from '@toolpad/core/PageContainer';
 import TestResultsDashboard from './components/TestResultsDashboard';
+import { redirect } from 'next/navigation';
 
 export default async function TestResultsPage() {
   try {
     const session = await auth();
 
     if (!session?.session_token) {
-      throw new Error('No session token available');
+      return redirect('/login');
     }
 
     return (
@@ -19,7 +19,7 @@ export default async function TestResultsPage() {
         title="Test Results"
         breadcrumbs={[{ title: 'Test Results', path: '/test-results' }]}
       >
-        <TestResultsDashboard sessionToken={session.session_token} />
+        <TestResultsDashboard/>
       </PageContainer>
     );
   } catch (error) {

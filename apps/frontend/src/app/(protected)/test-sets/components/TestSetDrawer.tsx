@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useRef, useCallback } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import BaseDrawer from '@/components/common/BaseDrawer';
-import { TestSet } from '@/utils/api-client/interfaces/test-set';
 import {
   Autocomplete,
   TextField,
@@ -13,10 +12,18 @@ import {
   Divider,
   Stack,
 } from '@mui/material';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { User } from '@/utils/api-client/interfaces/user';
-import { Status } from '@/utils/api-client/interfaces/status';
 import PersonIcon from '@mui/icons-material/Person';
+import { useMutation, useQuery } from '@tanstack/react-query';
+
+import type { TestSet, User, Status, TestSetCreate } from '@/api-client/types.gen';
+
+import {
+  readStatusesStatusesGetOptions,
+  readUsersUsersGetOptions,
+  createTestSetTestSetsPostMutation,
+  updateTestSetTestSetsTestSetIdPutMutation,
+} from '@/api-client/@tanstack/react-query.gen';
+import { useSession } from 'next-auth/react';
 
 // Priority levels mapping (same as in TestDrawer)
 const PRIORITY_LEVELS = [
@@ -29,283 +36,295 @@ const PRIORITY_LEVELS = [
 interface TestSetDrawerProps {
   open: boolean;
   onClose: () => void;
-  sessionToken: string;
   testSet?: TestSet;
   onSuccess?: () => void;
 }
 
 export default function TestSetDrawer({
-  open,
-  onClose,
-  sessionToken,
-  testSet,
-  onSuccess,
-}: TestSetDrawerProps) {
-  const [error, setError] = React.useState<string>();
-  const [loading, setLoading] = React.useState(false);
-  const [name, setName] = React.useState(testSet?.name || '');
-  const [description, setDescription] = React.useState(
-    testSet?.description || ''
-  );
-  const [shortDescription, setShortDescription] = React.useState(
-    testSet?.short_description || ''
-  );
-  const [status, setStatus] = React.useState<Status | null>(null);
-  const [assignee, setAssignee] = React.useState<User | null>(null);
-  const [owner, setOwner] = React.useState<User | null>(null);
-  const [priority, setPriority] = React.useState<number>(
-    testSet?.priority || 1
-  ); // Default to Medium (1)
-  const [statuses, setStatuses] = React.useState<Status[]>([]);
-  const [users, setUsers] = React.useState<User[]>([]);
+                                        open,
+                                        onClose,
+                                        testSet,
+                                        onSuccess,
+                                      }: TestSetDrawerProps) {
+  const session = useSession()
+  const sessionToken = session.data?.session_token
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [name, setName] = useState(testSet?.name || '');
+  const [description, setDescription] = useState(testSet?.description || '');
+  const [shortDescription, setShortDescription] = useState(testSet?.short_description || '');
+  const [status, setStatus] = useState<Status | null>(null);
+  const [assignee, setAssignee] = useState<User | null>(null);
+  const [owner, setOwner] = useState<User | null>(null);
+  const [priority, setPriority] = useState<number>(testSet?.priority ?? 1);
 
-  // Load statuses and users
-  React.useEffect(() => {
-    const loadData = async () => {
-      if (!sessionToken) return;
+  // ---- queries
+  const statusesQuery = useQuery({
+    ...readStatusesStatusesGetOptions(
+        { query: { entity_type: 'TestSet', sort_by: 'name', sort_order: 'asc' }},
+    ),
+    enabled: open ,
+  });
 
-      const clientFactory = new ApiClientFactory(sessionToken);
-      const statusClient = clientFactory.getStatusClient();
-      const usersClient = clientFactory.getUsersClient();
+  const usersQuery = useQuery({
+    ...readUsersUsersGetOptions(),
+    enabled: open ,
+  });
 
-      try {
-        const [fetchedStatuses, fetchedUsers] = await Promise.all([
-          statusClient.getStatuses({
-            entity_type: 'TestSet',
-            sort_by: 'name',
-            sort_order: 'asc',
-          }),
-          usersClient.getUsers(),
-        ]);
+  // unwrap responses (supports T[] or {data:T[]})
+  const statuses: Status[] = useMemo(() => {
+    const raw = statusesQuery.data as Status[] | { data?: Status[] } | undefined;
+    if (!raw) return [];
+    return Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
+  }, [statusesQuery.data]);
 
-        setStatuses(fetchedStatuses);
-        setUsers(fetchedUsers.data);
+  const users: User[] = useMemo(() => {
+    const raw = usersQuery.data as User[] | { data?: User[] } | undefined;
+    if (!raw) return [];
+    return Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
+  }, [usersQuery.data]);
 
-        // Get current user ID from JWT token
-        const getCurrentUserIdFromToken = () => {
-          try {
-            const [, payloadBase64] = sessionToken.split('.');
-            // Add padding if needed
-            const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
-            const pad = base64.length % 4;
-            const paddedBase64 = pad ? base64 + '='.repeat(4 - pad) : base64;
-
-            const payload = JSON.parse(
-              Buffer.from(paddedBase64, 'base64').toString('utf-8')
-            );
-            return payload.user?.id;
-          } catch (err) {
-            console.error('Error decoding JWT token:', err);
-            return undefined;
-          }
-        };
-
-        const currentUserId = getCurrentUserIdFromToken();
-
-        // Set initial values if editing
-        if (testSet) {
-          if (testSet.status_id) {
-            const currentStatus = fetchedStatuses.find(
-              s => s.id === testSet.status_id
-            );
-            setStatus(currentStatus || null);
-          }
-          if (testSet.assignee_id) {
-            const currentAssignee = fetchedUsers.data.find(
-              u => u.id === testSet.assignee_id
-            );
-            setAssignee(currentAssignee || null);
-          }
-          if (testSet.owner_id) {
-            const currentOwner = fetchedUsers.data.find(
-              u => u.id === testSet.owner_id
-            );
-            setOwner(currentOwner || null);
-          }
-        } else {
-          // Set default owner as current user for new test sets
-          if (currentUserId) {
-            const currentUser = fetchedUsers.data.find(
-              u => u.id === currentUserId
-            );
-            setOwner(currentUser || null);
-          }
-        }
-      } catch (err) {
-        console.error('Error loading data:', err);
-        setError('Failed to load required data');
-      }
-    };
-
-    loadData();
-  }, [sessionToken, testSet]);
-
-  const handleSave = async () => {
-    if (!sessionToken) return;
-
-    try {
-      setLoading(true);
-      setError(undefined);
-
-      const clientFactory = new ApiClientFactory(sessionToken);
-      const testSetsClient = clientFactory.getTestSetsClient();
-
-      const testSetData = {
-        name,
-        description,
-        short_description: shortDescription,
-        status_id: status?.id,
-        assignee_id: assignee?.id,
-        owner_id: owner?.id,
-        priority,
-        visibility: 'organization' as const,
-        is_published: false,
-        attributes: {},
-      };
-
-      if (testSet) {
-        await testSetsClient.updateTestSet(testSet.id, testSetData);
-      } else {
-        await testSetsClient.createTestSet(testSetData);
-      }
-
+  // ---- mutations
+  const createMutation = useMutation({
+    ...createTestSetTestSetsPostMutation(),
+    onSuccess: () => {
       onSuccess?.();
       onClose();
-    } catch (err) {
-      console.error('Error saving test set:', err);
+    },
+    onError: (err) => {
+      console.error('Error creating test set:', err);
       setError('Failed to save test set');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
-  const getUserDisplayName = (user: User) => {
-    return (
+  const updateMutation = useMutation({
+    ...updateTestSetTestSetsTestSetIdPutMutation(),
+    onSuccess: () => {
+      onSuccess?.();
+      onClose();
+    },
+    onError: (err) => {
+      console.error('Error updating test set:', err);
+      setError('Failed to save test set');
+    },
+  });
+
+  const loading =
+      statusesQuery.isFetching ||
+      usersQuery.isFetching ||
+      createMutation.isPending ||
+      updateMutation.isPending;
+
+  // ---- decode current user id from JWT for default owner (when creating)
+  const currentUserId = useMemo(() => {
+    try {
+      if (!sessionToken) return undefined;
+      const [, payloadBase64] = sessionToken.split('.');
+      const base64 = (payloadBase64 ?? '').replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '==='.slice((base64.length + 3) % 4); // pad to length % 4 === 0
+      const payload = JSON.parse(atob(padded));
+      return payload?.user?.id as string | undefined;
+    } catch {
+      return undefined;
+    }
+  }, [sessionToken]);
+
+  // ---- initialize field values once data arrives
+  useEffect(() => {
+    if (!open) return;
+
+    // status default (edit mode uses testSet.status_id)
+    if (statuses.length) {
+      if (testSet?.status_id) {
+        const found = statuses.find((s) => s.id === testSet.status_id) ?? null;
+        setStatus(found);
+      } else {
+        setStatus((prev) => prev ?? null);
+      }
+    }
+
+    // assignee default (edit mode uses testSet.assignee_id)
+    if (users.length) {
+      if (testSet?.assignee_id) {
+        const found = users.find((u) => u.id === testSet.assignee_id) ?? null;
+        setAssignee(found);
+      } else {
+        setAssignee((prev) => prev ?? null);
+      }
+
+      // owner default: edit -> testSet.owner_id, create -> current user if present
+      if (testSet?.owner_id) {
+        const found = users.find((u) => u.id === testSet.owner_id) ?? null;
+        setOwner(found);
+      } else if (!testSet && currentUserId) {
+        const me = users.find((u) => u.id === currentUserId) ?? null;
+        setOwner(me);
+      }
+    }
+  }, [open, statuses.length, users.length, testSet, currentUserId, statuses, users]);
+
+  // ---- save
+  const handleSave = useCallback(async () => {
+    setError(undefined);
+
+    const body: TestSetCreate = {
+      name,
+      description,
+      short_description: shortDescription,
+      status_id: status?.id ?? undefined,
+      assignee_id: assignee?.id ?? undefined,
+      owner_id: owner?.id ?? undefined,
+      priority,
+      visibility: 'organization',
+      is_published: false,
+      attributes: {},
+      // include tags etc. here if needed by your schema
+    };
+
+    if (testSet?.id) {
+      await updateMutation.mutateAsync({
+        path: { test_set_id: testSet.id },
+        body,
+      });
+    } else {
+      await createMutation.mutateAsync({ body });
+    }
+  }, [
+    name,
+    description,
+    shortDescription,
+    status?.id,
+    assignee?.id,
+    owner?.id,
+    priority,
+    testSet?.id,
+    updateMutation,
+    createMutation,
+  ]);
+
+  const getUserDisplayName = (user: User) =>
       user.name ||
-      `${user.given_name || ''} ${user.family_name || ''}`.trim() ||
-      user.email
-    );
-  };
+      `${user.given_name ?? ''} ${user.family_name ?? ''}`.trim() ||
+      user.email ||
+      '';
 
   const renderUserOption = (
-    props: React.HTMLAttributes<HTMLLIElement> & { key?: string },
-    option: User
+      props: React.HTMLAttributes<HTMLLIElement> & { key?: string },
+      option: User,
   ) => {
     const { key, ...otherProps } = props;
     return (
-      <Box component="li" key={key} {...otherProps}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Avatar src={option.picture} sx={{ width: 24, height: 24 }}>
-            <PersonIcon />
-          </Avatar>
-          {getUserDisplayName(option)}
+        <Box component="li" key={key} {...otherProps}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Avatar src={option.picture ?? undefined} sx={{ width: 24, height: 24 }}>
+              <PersonIcon fontSize="small" />
+            </Avatar>
+            {getUserDisplayName(option)}
+          </Box>
         </Box>
-      </Box>
     );
   };
 
   return (
-    <BaseDrawer
-      open={open}
-      onClose={onClose}
-      title={testSet ? 'Edit Test Set' : 'New Test Set'}
-      loading={loading}
-      error={error}
-      onSave={handleSave}
-    >
-      <Stack spacing={3}>
-        {/* Workflow Section */}
-        <Stack spacing={2}>
-          <Typography variant="subtitle2" color="text.secondary">
-            Workflow
-          </Typography>
-
+      <BaseDrawer
+          open={open}
+          onClose={onClose}
+          title={testSet ? 'Edit Test Set' : 'New Test Set'}
+          loading={loading}
+          error={error}
+          onSave={handleSave}
+      >
+        <Stack spacing={3}>
+          {/* Workflow Section */}
           <Stack spacing={2}>
-            <Autocomplete
-              options={statuses}
-              value={status}
-              onChange={(_, newValue) => setStatus(newValue)}
-              getOptionLabel={option => option.name}
-              fullWidth
-              renderInput={params => (
-                <TextField {...params} label="Status" required />
-              )}
-            />
+            <Typography variant="subtitle2" color="text.secondary">
+              Workflow
+            </Typography>
 
-            <TextField
-              select
-              label="Priority"
-              value={priority}
-              onChange={e => setPriority(Number(e.target.value))}
-              fullWidth
-              required
-            >
-              {PRIORITY_LEVELS.map(option => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Stack spacing={2}>
+              <Autocomplete<Status, false, false, false>
+                  options={statuses}
+                  value={status}
+                  onChange={(_, v) => setStatus(v)}
+                  getOptionLabel={(o) => o?.name ?? ''}
+                  fullWidth
+                  renderInput={(params) => <TextField {...params} label="Status" required />}
+                  loading={statusesQuery.isFetching}
+              />
 
-            <Autocomplete
-              options={users}
-              value={assignee}
-              onChange={(_, newValue) => setAssignee(newValue)}
-              getOptionLabel={getUserDisplayName}
-              renderOption={renderUserOption}
-              fullWidth
-              renderInput={params => <TextField {...params} label="Assignee" />}
-            />
+              <TextField
+                  select
+                  label="Priority"
+                  value={priority}
+                  onChange={(e) => setPriority(Number(e.target.value))}
+                  fullWidth
+                  required
+              >
+                {PRIORITY_LEVELS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                ))}
+              </TextField>
 
-            <Autocomplete
-              options={users}
-              value={owner}
-              onChange={(_, newValue) => setOwner(newValue)}
-              getOptionLabel={getUserDisplayName}
-              renderOption={renderUserOption}
-              fullWidth
-              renderInput={params => (
-                <TextField {...params} label="Owner" required />
-              )}
-            />
+              <Autocomplete<User, false, false, false>
+                  options={users}
+                  value={assignee}
+                  onChange={(_, v) => setAssignee(v)}
+                  getOptionLabel={getUserDisplayName}
+                  renderOption={renderUserOption}
+                  fullWidth
+                  renderInput={(params) => <TextField {...params} label="Assignee" />}
+                  loading={usersQuery.isFetching}
+              />
+
+              <Autocomplete<User, false, false, false>
+                  options={users}
+                  value={owner}
+                  onChange={(_, v) => setOwner(v)}
+                  getOptionLabel={getUserDisplayName}
+                  renderOption={renderUserOption}
+                  fullWidth
+                  renderInput={(params) => <TextField {...params} label="Owner" required />}
+                  loading={usersQuery.isFetching}
+              />
+            </Stack>
+          </Stack>
+
+          <Divider />
+
+          {/* Test Set Details Section */}
+          <Stack spacing={2}>
+            <Typography variant="subtitle2" color="text.secondary">
+              Test Set Details
+            </Typography>
+
+            <Stack spacing={2}>
+              <TextField
+                  label="Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  fullWidth
+              />
+
+              <TextField
+                  label="Short Description"
+                  value={shortDescription}
+                  onChange={(e) => setShortDescription(e.target.value)}
+                  fullWidth
+              />
+
+              <TextField
+                  label="Description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  multiline
+                  rows={4}
+                  fullWidth
+              />
+            </Stack>
           </Stack>
         </Stack>
-
-        <Divider />
-
-        {/* Test Set Details Section */}
-        <Stack spacing={2}>
-          <Typography variant="subtitle2" color="text.secondary">
-            Test Set Details
-          </Typography>
-
-          <Stack spacing={2}>
-            <TextField
-              label="Name"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              required
-              fullWidth
-            />
-
-            <TextField
-              label="Short Description"
-              value={shortDescription}
-              onChange={e => setShortDescription(e.target.value)}
-              fullWidth
-            />
-
-            <TextField
-              label="Description"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              multiline
-              rows={4}
-              fullWidth
-            />
-          </Stack>
-        </Stack>
-      </Stack>
-    </BaseDrawer>
+      </BaseDrawer>
   );
 }

@@ -1,7 +1,5 @@
 'use client';
 
-import { API_CONFIG } from './api-client/config';
-
 export interface User {
   id: string;
   name: string;
@@ -43,7 +41,7 @@ export async function getSession(): Promise<Session | null> {
 
   try {
     const response = await fetch(
-      `${API_CONFIG.baseUrl}/auth/verify?session_token=${token}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/verify?session_token=${token}`,
       {
         headers: {
           Accept: 'application/json',
@@ -111,7 +109,7 @@ export async function clearAllSessionData() {
       console.log(
         `🟡 [DEBUG] Calling backend logout endpoint (attempt ${attempt + 1}/${maxRetries + 1})`
       );
-      const logoutUrl = new URL(`${API_CONFIG.baseUrl}/auth/logout`);
+      const logoutUrl = new URL(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/logout`);
       if (sessionToken) {
         logoutUrl.searchParams.set('session_token', sessionToken);
       }

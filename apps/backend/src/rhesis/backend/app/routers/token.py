@@ -19,6 +19,8 @@ from rhesis.backend.app.schemas.token import (
 )
 from rhesis.backend.app.utils.database_exceptions import handle_database_exceptions
 from rhesis.backend.app.utils.encryption import hash_token
+from rhesis.backend.app.schemas.pagination import Paginated, Pagination
+
 
 router = APIRouter(
     prefix="/tokens",
@@ -92,10 +94,8 @@ def create_token(
         name=created_token.name,
     )
 
-
-@router.get("/", response_model=List[TokenRead])
+@router.get("/", response_model=Paginated[TokenRead])
 async def read_tokens(
-    response: Response,
     skip: int = 0,
     limit: int = 100,
     sort_by: str = "created_at",
@@ -108,13 +108,14 @@ async def read_tokens(
     """List all active API tokens for the current user."""
     organization_id, _user_id = tenant_context
 
-    # Set the count header with user-specific token count
-    count = crud.count_user_tokens(
-        db=db, user_id=current_user.id, filter=filter, organization_id=organization_id
+    total = crud.count_user_tokens(
+        db=db,
+        user_id=current_user.id,
+        filter=filter,
+        organization_id=organization_id,
     )
-    response.headers["X-Total-Count"] = str(count)
 
-    return crud.get_user_tokens(
+    items = crud.get_user_tokens(
         db=db,
         user_id=current_user.id,
         skip=skip,
@@ -124,6 +125,12 @@ async def read_tokens(
         filter=filter,
         organization_id=organization_id,
     )
+
+    return Paginated[TokenRead](
+        data=items,
+        pagination=Pagination(totalCount=total),
+    )
+
 
 
 @router.get("/{token_id}", response_model=TokenRead)

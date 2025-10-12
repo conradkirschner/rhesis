@@ -9,12 +9,12 @@ declare module 'next-auth' {
   }
 
   interface User extends NextAuthUser {
-    id?: string;
+    id?: string | null;
     name?: string | null;
     email?: string | null;
     image?: string | null;
     picture?: string | null;
-    organization_id?: string;
+    organization_id?: string | null;
     session_token?: string;
   }
 }

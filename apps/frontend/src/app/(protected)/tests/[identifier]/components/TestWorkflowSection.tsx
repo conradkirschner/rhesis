@@ -1,18 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { Test } from '@/utils/api-client/interfaces/tests';
-import { User } from '@/utils/api-client/interfaces/user';
+import { useMutation } from '@tanstack/react-query';
 import { useNotifications } from '@/components/common/NotificationContext';
 import BaseWorkflowSection from '@/components/common/BaseWorkflowSection';
+
+import type { TestUpdate, User} from '@/api-client/types.gen';
+import { updateTestTestsTestIdPutMutation } from '@/api-client/@tanstack/react-query.gen';
 
 interface TestWorkflowSectionProps {
   status?: string;
   priority?: number;
-  assignee?: any | null;
-  owner?: any | null;
-  sessionToken: string;
+  assignee?: User | null;
+  owner?: User | null;
   testId: string;
   onStatusChange?: (newStatus: string) => void;
   onPriorityChange?: (newPriority: number) => void;
@@ -21,65 +20,63 @@ interface TestWorkflowSectionProps {
 }
 
 export default function TestWorkflowSection({
-  status = 'In Review',
-  priority = 1,
-  assignee,
-  owner,
-  sessionToken,
-  testId,
-  onStatusChange,
-  onPriorityChange,
-  onAssigneeChange,
-  onOwnerChange,
-}: TestWorkflowSectionProps) {
+                                              status = 'In Review',
+                                              priority = 1,
+                                              assignee,
+                                              owner,
+                                              testId,
+                                              onStatusChange,
+                                              onPriorityChange,
+                                              onAssigneeChange,
+                                              onOwnerChange,
+                                            }: TestWorkflowSectionProps) {
   const notifications = useNotifications();
 
-  // Create API clients exactly once
-  const apiClients = useMemo(() => {
-    if (!sessionToken) return null;
+  const updateMutation = useMutation({
+    ...updateTestTestsTestIdPutMutation(),
+    onSuccess: () => {
+      notifications.show('Test updated successfully', { severity: 'success' });
+    },
+    onError: (err) => {
+      // eslint-disable-next-line no-console
+      console.error('Error updating test:', err);
+      notifications.show('Failed to update test', { severity: 'error' });
+    },
+  });
 
-    const clientFactory = new ApiClientFactory(sessionToken);
-    return {
-      clientFactory,
-      testsClient: clientFactory.getTestsClient(),
+  const onUpdateEntity = async (updateData: Partial<TestUpdate>, fieldName: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id: _id, ...rest } =
+        updateData;
+
+
+    const body: Partial<TestUpdate> = {
+      ...rest,
     };
-  }, [sessionToken]);
 
-  const updateTest = async (updateData: Partial<Test>, fieldName: string) => {
-    if (!apiClients?.testsClient) {
-      notifications.show('Client not initialized', { severity: 'error' });
-      return;
-    }
+    await updateMutation.mutateAsync({
+      path: { test_id: testId },
+      body,
+    });
 
-    try {
-      await apiClients.testsClient.updateTest(testId, updateData);
-      notifications.show(`${fieldName} updated successfully`, {
-        severity: 'success',
-      });
-    } catch (error) {
-      console.error('Error updating test:', error);
-      notifications.show(`Failed to update ${fieldName}`, {
-        severity: 'error',
-      });
-      throw error;
-    }
+    // Field-specific toast to mirror previous behavior
+    notifications.show(`${fieldName} updated successfully`, { severity: 'success' });
   };
 
   return (
-    <BaseWorkflowSection
-      title=""
-      status={status}
-      priority={priority}
-      assignee={assignee}
-      owner={owner}
-      clientFactory={apiClients?.clientFactory}
-      entityId={testId}
-      entityType="Test"
-      onStatusChange={onStatusChange}
-      onPriorityChange={onPriorityChange}
-      onAssigneeChange={onAssigneeChange}
-      onOwnerChange={onOwnerChange}
-      onUpdateEntity={updateTest}
-    />
+      <BaseWorkflowSection
+          title=""
+          status={status}
+          priority={priority}
+          assignee={assignee ?? null}
+          owner={owner ?? null}
+          entityId={testId}
+          entityType="Test"
+          onStatusChange={onStatusChange}
+          onPriorityChange={onPriorityChange}
+          onAssigneeChange={onAssigneeChange}
+          onOwnerChange={onOwnerChange}
+          onUpdateEntity={onUpdateEntity}
+      />
   );
 }

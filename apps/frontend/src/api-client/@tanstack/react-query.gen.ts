@@ -2397,7 +2397,6 @@ export const generateTextServicesGenerateTextPostMutation = (options?: Partial<O
 
 /**
  * Upload Document
- * Upload a document to persistent storage.
  */
 export const uploadDocumentServicesDocumentsUploadPostMutation = (options?: Partial<Options<UploadDocumentServicesDocumentsUploadPostData>>): UseMutationOptions<UploadDocumentServicesDocumentsUploadPostResponse, UploadDocumentServicesDocumentsUploadPostError, Options<UploadDocumentServicesDocumentsUploadPostData>> => {
     const mutationOptions: UseMutationOptions<UploadDocumentServicesDocumentsUploadPostResponse, UploadDocumentServicesDocumentsUploadPostError, Options<UploadDocumentServicesDocumentsUploadPostData>> = {

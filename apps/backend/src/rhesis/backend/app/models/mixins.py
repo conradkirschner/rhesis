@@ -10,11 +10,7 @@ from .guid import GUID
 JSONScalar = Union[str, int, float, bool, None]
 AttributesDict = Dict[str, Union[JSONScalar, List[JSONScalar], Dict[str, JSONScalar]]]
 
-class TestSetAttributesDict(TypedDict, total=False):
-    categories: List[UUID4]
-    topics: List[UUID4]
-    behaviors: List[UUID4]
-    use_cases: List[UUID4]
+
 
 class TagsMixin:
     @declared_attr

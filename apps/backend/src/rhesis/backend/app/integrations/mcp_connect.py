@@ -106,7 +106,7 @@ Provide ONLY the letter A or B, with no additional explanation.
     try:
         response = await asyncio.to_thread(
             client.models.generate_content,
-            model="models/gemini-2.0-flash",
+            model="gemini-2.0-flash-lite",
             contents=thinking_check_content,
         )
 
@@ -245,7 +245,7 @@ IMPORTANT GUIDELINES:
 
     try:
         planning_response = client.models.generate_content(
-            model="models/gemini-2.0-flash", contents=planning_contents
+            model="models/gemini-2.0-flash-lite", contents=planning_contents
         )
         execution_plan = planning_response.candidates[0].content.parts[0].text
         print(f"\n📋 Execution plan:\n{execution_plan}\n")
@@ -439,7 +439,7 @@ even if it's not a complete answer to the original query.
         )
 
         summary_response = client.models.generate_content(
-            model="models/gemini-2.0-flash", contents=contents
+            model="models/gemini-2.0-flash-lite", contents=contents
         )
 
         if (
@@ -474,7 +474,7 @@ async def execute_reasoning_loop(client, session, contents, config, max_steps):
 
             try:
                 response = client.models.generate_content(
-                    model="models/gemini-2.0-flash", config=config, contents=contents
+                    model="models/gemini-2.0-flash-lite", config=config, contents=contents
                 )
 
                 # Check if response is valid

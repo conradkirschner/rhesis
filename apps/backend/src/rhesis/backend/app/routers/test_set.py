@@ -52,6 +52,7 @@ class StatsMode(str, Enum):
 # --- Models ---
 
 class GenerationSample(BaseModel):
+    id: int
     text: str
     behavior: str
     topic: str

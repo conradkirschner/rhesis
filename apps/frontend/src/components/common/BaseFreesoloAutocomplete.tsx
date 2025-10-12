@@ -6,14 +6,13 @@ import {
   TextField,
   createFilterOptions,
   FormControl,
-  AutocompleteProps,
   Popper,
   PopperProps,
 } from '@mui/material';
 import { UUID } from 'crypto';
 
 export interface AutocompleteOption {
-  id: UUID;
+  id: string;
   name: string;
   inputValue?: string;
 }

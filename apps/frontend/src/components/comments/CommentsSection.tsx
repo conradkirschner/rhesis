@@ -5,20 +5,19 @@ import {
   Box,
   Typography,
   TextField,
-  Button,
   CircularProgress,
   Divider,
-  Paper,
   IconButton,
   Tooltip,
 } from '@mui/material';
 import { SendIcon } from '@/components/icons';
-import { Comment, EntityType } from '@/types/comments';
+import { Comment } from '@/types/comments';
 import { CommentItem } from './CommentItem';
 import { UserAvatar } from '@/components/common/UserAvatar';
+import type {RhesisBackendAppSchemasTagEntityType} from "@/api-client";
 
 interface CommentsSectionProps {
-  entityType: EntityType;
+  entityType: RhesisBackendAppSchemasTagEntityType;
   entityId: string;
   comments: Comment[];
   onCreateComment: (text: string) => Promise<void>;
@@ -35,14 +34,12 @@ interface CommentsSectionProps {
 
 export function CommentsSection({
   entityType,
-  entityId,
   comments,
   onCreateComment,
   onEditComment,
   onDeleteComment,
   onReactToComment,
   onCreateTask,
-  onCreateTaskFromEntity,
   currentUserId,
   currentUserName,
   currentUserPicture,
@@ -133,21 +130,6 @@ export function CommentsSection({
     },
     [onReactToComment]
   );
-
-  const getEntityDisplayName = (entityType: EntityType): string => {
-    switch (entityType) {
-      case 'Test':
-        return 'Test';
-      case 'TestSet':
-        return 'Test Set';
-      case 'TestRun':
-        return 'Test Run';
-      case 'TestResult':
-        return 'Test Result';
-      default:
-        return entityType;
-    }
-  };
 
   const sortedComments = [...comments].sort(
     (a, b) =>

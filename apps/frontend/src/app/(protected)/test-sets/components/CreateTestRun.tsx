@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from 'react';
+'use client';
+
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -14,361 +16,294 @@ import {
   FormHelperText,
   CircularProgress,
 } from '@mui/material';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { Project } from '@/utils/api-client/interfaces/project';
-import { Endpoint } from '@/utils/api-client/interfaces/endpoint';
-import { EntityType } from '@/utils/api-client/interfaces/tag';
-import { UUID } from 'crypto';
-
-interface ProjectOption {
-  id: UUID;
-  name: string;
-}
-
-interface EndpointOption {
-  id: UUID;
-  name: string;
-  environment?: 'development' | 'staging' | 'production';
-  project_id?: string;
-}
-
-// Import execution mode icons directly from Material-UI
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
+import {keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
+
+import type {
+  Project,
+  Endpoint,
+  EndpointEnvironment,
+  TestSetExecutionRequest,
+} from '@/api-client/types.gen';
+
+import {
+  readProjectsProjectsGetOptions,
+  readEndpointsEndpointsGetOptions,
+  executeTestSetTestSetsTestSetIdentifierExecuteEndpointIdPostMutation,
+} from '@/api-client/@tanstack/react-query.gen';
+
+type Id = string;
 
 interface CreateTestRunProps {
   open: boolean;
-  sessionToken: string;
   selectedTestSetIds: string[];
   onSuccess?: () => void;
   onError?: (error: string) => void;
   submitRef?: React.MutableRefObject<(() => Promise<void>) | undefined>;
 }
 
+function envChipColor(env?: EndpointEnvironment) {
+  switch (env) {
+    case 'production':
+      return 'error';
+    case 'staging':
+      return 'warning';
+    case 'development':
+      return 'success';
+    default:
+      return 'default';
+  }
+}
+
 export default function CreateTestRun({
-  open,
-  sessionToken,
-  selectedTestSetIds,
-  onSuccess,
-  onError,
-  submitRef,
-}: CreateTestRunProps) {
-  const [loading, setLoading] = useState(false);
-  const [projects, setProjects] = useState<ProjectOption[]>([]);
-  const [endpoints, setEndpoints] = useState<EndpointOption[]>([]);
-  const [filteredEndpoints, setFilteredEndpoints] = useState<EndpointOption[]>(
-    []
-  );
-  const [selectedProject, setSelectedProject] = useState<UUID | null>(null);
-  const [selectedEndpoint, setSelectedEndpoint] = useState<UUID | null>(null);
-  const [executionMode, setExecutionMode] = useState<string>('Parallel');
+                                        open,
+                                        selectedTestSetIds,
+                                        onSuccess,
+                                        onError,
+                                        submitRef,
+                                      }: CreateTestRunProps) {
+  const [selectedProject, setSelectedProject] = useState<Id | null>(null);
+  const [selectedEndpoint, setSelectedEndpoint] = useState<Id | null>(null);
+  const [executionMode, setExecutionMode] =
+      useState<TestSetExecutionRequest['execution_options']>('Parallel');
 
-  // Fetch projects and endpoints when drawer opens
+  // Projects + Endpoints via React Query
+  const projectsQuery = useQuery({
+    ...readProjectsProjectsGetOptions(
+        { query: {sort_by: 'name', sort_order: 'asc', limit: 100 }},
+    ),
+    enabled: open,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  const endpointsQuery = useQuery({
+    ...readEndpointsEndpointsGetOptions(
+        {query: { sort_by: 'name', sort_order: 'asc', limit: 100 }},
+    ),
+    enabled: open,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  // Execute Test Set mutation
+  const executeMutation = useMutation({
+    ...executeTestSetTestSetsTestSetIdentifierExecuteEndpointIdPostMutation(
+    ),
+  });
+
+  // Normalize list responses regardless of T[] vs {data: T[]}
+  const projects: Project[] = useMemo(() => {
+    const raw = projectsQuery.data as Project[] | { data?: Project[] } | undefined;
+    if (!raw) return [];
+    return Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
+  }, [projectsQuery.data]);
+
+  const endpoints: Endpoint[] = useMemo(() => {
+    const raw = endpointsQuery.data as Endpoint[] | { data?: Endpoint[] } | undefined;
+    if (!raw) return [];
+    return Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
+  }, [endpointsQuery.data]);
+
+  // Filter endpoints by selected project
+  const filteredEndpoints = useMemo(() => {
+    if (!selectedProject) return [];
+    return endpoints.filter(ep => (ep.project_id ?? null) === selectedProject);
+  }, [selectedProject, endpoints]);
+
+  // Reset selections when drawer opens
   useEffect(() => {
-    if (!sessionToken || !open) {
-      console.log('Skipping data fetch - drawer not open or no session token');
-      return;
-    }
-
-    const fetchInitialData = async () => {
-      try {
-        console.log('Starting to fetch initial data...');
-        const clientFactory = new ApiClientFactory(sessionToken);
-
-        // Fetch projects with proper response handling
-        const projectsClient = clientFactory.getProjectsClient();
-        console.log('About to call getProjects...');
-
-        const projectsData = await projectsClient.getProjects({
-          sort_by: 'name',
-          sort_order: 'asc',
-          limit: 100,
-        });
-
-        console.log('Projects API response:', projectsData);
-
-        // Handle both response formats: direct array or {data: array}
-        let projectsArray: Project[] = [];
-        if (Array.isArray(projectsData)) {
-          // Direct array response
-          projectsArray = projectsData;
-          console.log('Using direct array response');
-        } else if (projectsData && Array.isArray(projectsData.data)) {
-          // Paginated response with data property
-          projectsArray = projectsData.data;
-          console.log('Using paginated response data');
-        } else {
-          console.warn('Invalid projects response structure:', projectsData);
-        }
-
-        const processedProjects = projectsArray
-          .filter((p: Project) => p.id && p.name && p.name.trim() !== '')
-          .map((p: Project) => ({ id: p.id as UUID, name: p.name }));
-
-        console.log('Final processed projects:', processedProjects);
-        setProjects(processedProjects);
-
-        // Fetch all endpoints
-        try {
-          const endpointsClient = clientFactory.getEndpointsClient();
-          const endpointsResponse = await endpointsClient.getEndpoints({
-            sort_by: 'name',
-            sort_order: 'asc',
-            limit: 100,
-          });
-
-          if (endpointsResponse && Array.isArray(endpointsResponse.data)) {
-            const processedEndpoints = endpointsResponse.data
-              .filter(e => e.id && e.name && e.name.trim() !== '')
-              .map(e => ({
-                id: e.id as UUID,
-                name: e.name,
-                environment: e.environment,
-                project_id: e.project_id,
-              }));
-
-            setEndpoints(processedEndpoints);
-          } else {
-            setEndpoints([]);
-          }
-        } catch (endpointsError) {
-          console.error('Error fetching endpoints:', endpointsError);
-          setEndpoints([]);
-        }
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-        setProjects([]); // Ensure projects remains an empty array on error
-        setEndpoints([]);
-        onError?.('Failed to load initial data');
-      }
-    };
-
     if (open) {
-      fetchInitialData();
-      // Reset selections when drawer opens
       setSelectedProject(null);
       setSelectedEndpoint(null);
     }
-  }, [sessionToken, onError, selectedTestSetIds, open]);
+  }, [open]);
 
-  // Filter endpoints when project changes
-  useEffect(() => {
-    if (!selectedProject) {
-      setFilteredEndpoints([]);
-      setSelectedEndpoint(null);
-      return;
-    }
+  const handleEndpointChange = useCallback((value: Endpoint | null) => {
+    setSelectedEndpoint(value ? value.id : null);
+  }, []);
 
-    // Filter endpoints that belong to the selected project
-    const filtered = endpoints.filter(
-      endpoint => endpoint.project_id === selectedProject
-    );
-    setFilteredEndpoints(filtered);
-
-    // Reset selected endpoint when project changes
-    setSelectedEndpoint(null);
-  }, [selectedProject, endpoints]);
-
-  const handleEndpointChange = (value: EndpointOption | null) => {
-    if (!value) {
-      setSelectedEndpoint(null);
-      return;
-    }
-    setSelectedEndpoint(value.id);
-  };
-
-  const handleSubmit = async () => {
+  // Submit handler wired to parent via ref
+  const handleSubmit = useCallback(async () => {
     if (!selectedEndpoint || selectedTestSetIds.length === 0) {
       onError?.('Please select an endpoint');
       return;
     }
 
-    setLoading(true);
     try {
-      const clientFactory = new ApiClientFactory(sessionToken);
-      const testSetsClient = clientFactory.getTestSetsClient();
-
-      // Prepare test configuration attributes
-      const testConfigurationAttributes = {
-        execution_mode: executionMode,
+      const body: TestSetExecutionRequest = {
+        execution_options: executionMode,
       };
 
-      // Execute each test set individually with test configuration attributes
-      const promises = selectedTestSetIds.map(testSetId =>
-        testSetsClient.executeTestSet(
-          testSetId,
-          selectedEndpoint,
-          testConfigurationAttributes
-        )
+      await Promise.all(
+          selectedTestSetIds.map(id =>
+              executeMutation.mutateAsync({
+                path: { test_set_identifier: id, endpoint_id: selectedEndpoint },
+                body,
+              }),
+          ),
       );
 
-      await Promise.all(promises);
-
       onSuccess?.();
-    } catch (error) {
-      console.error('Error executing test sets:', error);
+    } catch (e) {
       onError?.('Failed to execute test sets');
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [
+    executeMutation,
+    executionMode,
+    onError,
+    onSuccess,
+    selectedEndpoint,
+    selectedTestSetIds,
+  ]);
 
-  // Attach submit handler to ref
-  if (submitRef) {
-    submitRef.current = handleSubmit;
-  }
+  useEffect(() => {
+    if (submitRef) submitRef.current = handleSubmit;
+  }, [submitRef, handleSubmit]);
 
-  const isFormValid = selectedProject && selectedEndpoint;
+  const loading =
+      projectsQuery.isFetching || endpointsQuery.isFetching || executeMutation.isPending;
 
   return (
-    <>
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <Stack spacing={3}>
-          <Typography variant="subtitle2" color="text.secondary">
-            Execution Target
-          </Typography>
+      <>
+        {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress />
+            </Box>
+        ) : (
+            <Stack spacing={3}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Execution Target
+              </Typography>
 
-          <FormControl fullWidth>
-            <Autocomplete
-              options={projects}
-              value={projects.find(p => p.id === selectedProject) || null}
-              onChange={(_, newValue) => {
-                if (!newValue) {
-                  setSelectedProject(null);
-                  return;
-                }
-                setSelectedProject(newValue.id);
-                setSelectedEndpoint(null);
-              }}
-              getOptionLabel={option => option.name}
-              renderOption={(props, option) => {
-                const { key, ...otherProps } = props;
-                return (
-                  <Box component="li" key={option.id} {...otherProps}>
-                    {option.name}
-                  </Box>
-                );
-              }}
-              renderInput={params => (
-                <TextField
-                  {...params}
-                  label="Project"
-                  required
-                  placeholder="Select a project"
-                />
-              )}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-            />
-            {projects.length === 0 && !loading && (
-              <FormHelperText>No projects available</FormHelperText>
-            )}
-          </FormControl>
-
-          <FormControl fullWidth>
-            <Autocomplete
-              options={filteredEndpoints}
-              value={
-                filteredEndpoints.find(e => e.id === selectedEndpoint) || null
-              }
-              onChange={(_, newValue) => handleEndpointChange(newValue)}
-              getOptionLabel={option => option.name}
-              disabled={!selectedProject}
-              renderInput={params => (
-                <TextField
-                  {...params}
-                  label="Endpoint"
-                  required
-                  placeholder={
-                    selectedProject
-                      ? 'Select endpoint'
-                      : 'Select a project first'
-                  }
-                />
-              )}
-              renderOption={(props, option) => {
-                const { key, ...otherProps } = props;
-                return (
-                  <Box
-                    key={option.id}
-                    {...otherProps}
-                    component="li"
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
+              <FormControl fullWidth>
+                <Autocomplete<Project, false, false, false>
+                    options={projects.filter(p => !!p.id && !!p.name?.trim())}
+                    value={projects.find(p => p.id === selectedProject) ?? null}
+                    onChange={(_, newValue) => {
+                      if (!newValue) {
+                        setSelectedProject(null);
+                        setSelectedEndpoint(null);
+                        return;
+                      }
+                      setSelectedProject(newValue.id);
+                      setSelectedEndpoint(null);
                     }}
-                  >
-                    <span>{option.name}</span>
-                    {option.environment && (
-                      <Chip
-                        label={option.environment}
-                        size="small"
-                        color={
-                          option.environment === 'production'
-                            ? 'error'
-                            : option.environment === 'staging'
-                              ? 'warning'
-                              : 'success'
-                        }
-                        sx={{ ml: 1 }}
-                      />
+                    getOptionLabel={option => option.name}
+                    renderOption={(props, option) => {
+                      return (
+                          <Box component="li" {...props} key={option.id}>
+                            {option.name}
+                          </Box>
+                      );
+                    }}
+                    renderInput={params => (
+                        <TextField
+                            {...params}
+                            label="Project"
+                            required
+                            placeholder="Select a project"
+                        />
                     )}
-                  </Box>
-                );
-              }}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-            />
-            {filteredEndpoints.length === 0 && selectedProject && !loading && (
-              <FormHelperText>
-                No endpoints available for this project
-              </FormHelperText>
-            )}
-          </FormControl>
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    loading={projectsQuery.isFetching}
+                />
+                {projects.length === 0 && !projectsQuery.isFetching && (
+                    <FormHelperText>No projects available</FormHelperText>
+                )}
+              </FormControl>
 
-          <Divider />
+              <FormControl fullWidth>
+                <Autocomplete<Endpoint, false, false, false>
+                    options={filteredEndpoints.filter(e => !!e.id && !!e.name?.trim())}
+                    value={filteredEndpoints.find(e => e.id === selectedEndpoint) ?? null}
+                    onChange={(_, newValue) => handleEndpointChange(newValue)}
+                    getOptionLabel={option => option.name}
+                    disabled={!selectedProject}
+                    renderInput={params => (
+                        <TextField
+                            {...params}
+                            label="Endpoint"
+                            required
+                            placeholder={selectedProject ? 'Select endpoint' : 'Select a project first'}
+                        />
+                    )}
+                    renderOption={(props, option) => {
+                      return (
+                          <Box
+                              {...props}
+                              key={option.id}
+                              component="li"
+                              sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                          >
+                            <span>{option.name}</span>
+                            {option.environment && (
+                                <Chip
+                                    label={option.environment}
+                                    size="small"
+                                    color={envChipColor(option.environment)}
+                                    sx={{ ml: 1 }}
+                                />
+                            )}
+                          </Box>
+                      );
+                    }}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    loading={endpointsQuery.isFetching}
+                />
+                {filteredEndpoints.length === 0 && selectedProject && !endpointsQuery.isFetching && (
+                    <FormHelperText>No endpoints available for this project</FormHelperText>
+                )}
+              </FormControl>
 
-          <Typography variant="subtitle2" color="text.secondary">
-            Configuration Options
-          </Typography>
+              <Divider />
 
-          <FormControl fullWidth>
-            <InputLabel>Execution Mode</InputLabel>
-            <Select
-              value={executionMode}
-              onChange={e => setExecutionMode(e.target.value)}
-              label="Execution Mode"
-            >
-              <MenuItem value="Parallel">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CallSplitIcon fontSize="small" />
-                  <Box>
-                    <Typography variant="body1">Parallel</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Tests run simultaneously for faster execution (default)
-                    </Typography>
-                  </Box>
-                </Box>
-              </MenuItem>
-              <MenuItem value="Sequential">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <ArrowForwardIcon fontSize="small" />
-                  <Box>
-                    <Typography variant="body1">Sequential</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Tests run one after another, better for rate-limited
-                      endpoints
-                    </Typography>
-                  </Box>
-                </Box>
-              </MenuItem>
-            </Select>
-          </FormControl>
-        </Stack>
-      )}
-    </>
+              <Typography variant="subtitle2" color="text.secondary">
+                Configuration Options
+              </Typography>
+
+              <FormControl fullWidth>
+                <InputLabel>Execution Mode</InputLabel>
+                <Select
+                    value={executionMode ?? 'Parallel'}
+                    onChange={e =>
+                        setExecutionMode(
+                            (e.target.value as TestSetExecutionRequest['execution_options']) ?? 'Parallel',
+                        )
+                    }
+                    label="Execution Mode"
+                >
+                  <MenuItem value="Parallel">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CallSplitIcon fontSize="small" />
+                      <Box>
+                        <Typography variant="body1">Parallel</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Tests run simultaneously for faster execution (default)
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="Sequential">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <ArrowForwardIcon fontSize="small" />
+                      <Box>
+                        <Typography variant="body1">Sequential</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Tests run one after another, better for rate-limited endpoints
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            </Stack>
+        )}
+      </>
   );
 }

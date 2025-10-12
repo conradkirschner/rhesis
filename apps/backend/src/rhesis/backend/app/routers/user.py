@@ -90,6 +90,8 @@ async def create_user(
         send_invite = user.send_invite
         created_user = crud.create_user(db=db, user=user)
 
+    logger.info(f"Email Configured {email_service.is_configured}")
+
     if send_invite and email_service.is_configured:
         try:
             logger.info(f"Sending invitation email to {created_user.email}")

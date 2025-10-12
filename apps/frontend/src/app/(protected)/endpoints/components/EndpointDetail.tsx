@@ -163,7 +163,6 @@ export default function EndpointDetail({ endpoint: initialEndpoint }: EndpointDe
   "input": "[place your input here]"
 }`);
 
-  // -------- Projects query (generated options; v5 single-arg) --------
   const { data: projectsData, isLoading: loadingProjects } = useQuery({
     ...readProjectsProjectsGetOptions({
       query: { skip: 0, limit: 100, sort_by: 'name', sort_order: 'asc' },
@@ -179,7 +178,6 @@ export default function EndpointDetail({ endpoint: initialEndpoint }: EndpointDe
     return map;
   }, [projectsData]);
 
-  // -------- Update mutation (generated; v5 single-arg) --------
   const updateMutation = useMutation({
     ...updateEndpointEndpointsEndpointIdPutMutation(),
     onSuccess: (updated: Endpoint) => {
@@ -263,9 +261,6 @@ export default function EndpointDetail({ endpoint: initialEndpoint }: EndpointDe
     setIsTestingEndpoint(true);
     try {
       const parsed = JSON.parse(testInput);
-
-      // Enforce the exact shape expected by the generated type:
-      // body: { [key: string]: JsonInput }
       if (
           parsed === null ||
           Array.isArray(parsed) ||

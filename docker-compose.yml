@@ -40,6 +40,7 @@ x-common-environment: &common-environment
   FRONTEND_ENV: ${FRONTEND_ENV}
   WORKER_ENV: ${WORKER_ENV}
   LOG_LEVEL: DEBUG
+  COMPOSE_PROFILES: ${COMPOSE_PROFILES}
 
 x-rhesis-config: &rhesis-config
   RHESIS_BASE_URL: ${RHESIS_BASE_URL:-http://backend:8080}
@@ -143,7 +144,7 @@ services:
       dockerfile: apps/worker/Dockerfile
     container_name: rhesis-worker
     environment:
-      <<: [*common-database, *common-redis, *common-auth0, *common-smtp, *common-jwt, *common-environment, *rhesis-config]
+      <<: [*common-database, *common-redis, *common-auth0, *common-smtp, *common-jwt, *common-environment, *rhesis-config, *gemini-google]
       LOG_LEVEL: INFO
       CELERY_WORKER_CONCURRENCY: 8
       CELERY_WORKER_PREFETCH_MULTIPLIER: 4
@@ -160,6 +161,7 @@ services:
         condition: service_healthy
     volumes:
       - ./sdk:/app/sdk
+      - ./apps/backend/src:/app/backend/src
     networks:
       - rhesis-network
     restart: unless-stopped
@@ -221,6 +223,21 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+  # MailHog (only starts when the 'local-email' profile is active)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: rhesis-mailhog
+    profiles: ["local-email"]
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8025/api/v2/messages"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rhesis-network
 
 volumes:
   postgres_data_rhesis:

@@ -11,7 +11,7 @@ export default async function GenerateTestsPage() {
 
   return (
     <Box sx={{ p: 0 }}>
-      <GenerateTestsStepper sessionToken={session.session_token} />
+      <GenerateTestsStepper />
     </Box>
   );
 }

@@ -1,55 +1,95 @@
 'use client';
 
-import {
-  Box,
-  Button,
-  TextField,
-  Paper,
-  Typography,
-  useTheme,
-} from '@mui/material';
+import { useEffect, useMemo, useState } from 'react';
+import { Box, Button, TextField, Typography } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckIcon from '@mui/icons-material/Check';
-import { useState } from 'react';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNotifications } from '@/components/common/NotificationContext';
 
+import {
+  updatePromptPromptsPromptIdPutMutation,
+  readPromptPromptsPromptIdGetOptions,
+  readTestTestsTestIdGetOptions,
+} from '@/api-client/@tanstack/react-query.gen';
+
 interface TestExecutableFieldProps {
-  sessionToken: string;
-  testId: string;
-  promptId: string;
+  /** prompt id to update; if absent, editing is disabled */
+  promptId?: string;
+  /** optional test id, if provided we also invalidate the test detail query */
+  testId?: string;
   initialContent: string;
   onUpdate?: () => void;
   fieldName?: 'content' | 'expected_response';
 }
 
 export default function TestExecutableField({
-  sessionToken,
-  testId,
-  promptId,
-  initialContent,
-  onUpdate,
-  fieldName = 'content',
-}: TestExecutableFieldProps) {
-  const theme = useTheme();
+                                              promptId,
+                                              testId,
+                                              initialContent,
+                                              onUpdate,
+                                              fieldName = 'content',
+                                            }: TestExecutableFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(initialContent);
-  const [isUpdating, setIsUpdating] = useState(false);
   const { show: showNotification } = useNotifications();
 
-  // Default rows for TextField and minHeight calculation
+  useEffect(() => {
+    if (!isEditing) setEditedContent(initialContent);
+  }, [initialContent, isEditing]);
+
   const displayRows = 4;
-  // Approx line height for monospace font, adjust if necessary
   const lineHeight = '1.4375em';
-  // Padding for the display box (theme.spacing(1) = 8px)
   const boxPadding = '8px';
-  // Min height for display box, considering rows and padding
   const displayMinHeight = `calc(${displayRows} * ${lineHeight} + 2 * ${boxPadding})`;
-  // Space for the edit button
   const editButtonSpace = '80px';
 
+  const canEdit = Boolean(promptId);
+  const trimmedContent = useMemo(() => editedContent.trim(), [editedContent]);
+
+  const queryClient = useQueryClient();
+
+  const updateMutation = useMutation({
+    ...updatePromptPromptsPromptIdPutMutation(),
+    onSuccess: async () => {
+      const tasks: Array<Promise<unknown>> = [];
+
+      if (promptId) {
+        tasks.push(
+            queryClient.invalidateQueries({
+              queryKey: readPromptPromptsPromptIdGetOptions({
+                path: { prompt_id: promptId },
+              }).queryKey,
+            }),
+        );
+      }
+
+      // to refetch the main component we need to invalidate the whole test
+      if (testId) {
+        tasks.push(
+            queryClient.invalidateQueries({
+              queryKey: readTestTestsTestIdGetOptions({
+                path: { test_id: testId },
+              }).queryKey,
+            }),
+        );
+      }
+
+      if (tasks.length) {
+        await Promise.all(tasks);
+      }
+    },
+  });
+
+  const isUpdating = updateMutation.isPending;
+  const confirmDisabled = !canEdit || isUpdating || trimmedContent === initialContent;
+
   const handleEdit = () => {
+    if (!canEdit) {
+      showNotification('No prompt available to edit.', { severity: 'info' });
+      return;
+    }
     setIsEditing(true);
   };
 
@@ -59,114 +99,112 @@ export default function TestExecutableField({
   };
 
   const handleConfirmEdit = async () => {
-    if (!sessionToken) return;
+    if (!promptId) {
+      showNotification('Missing prompt id', { severity: 'error' });
+      return;
+    }
 
-    setIsUpdating(true);
     try {
-      const clientFactory = new ApiClientFactory(sessionToken);
-      const promptsClient = clientFactory.getPromptsClient();
-
-      await promptsClient.updatePrompt(promptId, {
-        [fieldName]: editedContent.trim(),
-        language_code: 'en', // Maintain existing language code
+      await updateMutation.mutateAsync({
+        path: { prompt_id: promptId },
+        body: {
+          [fieldName]: trimmedContent,
+          language_code: 'en',
+        },
       });
 
       setIsEditing(false);
-      showNotification(
-        `Successfully updated test ${fieldName.replace('_', ' ')}`,
-        { severity: 'success' }
-      );
+      showNotification(`Successfully updated test ${fieldName.replace('_', ' ')}`, {
+        severity: 'success',
+      });
       onUpdate?.();
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error(`Error updating test ${fieldName}:`, error);
       showNotification(`Failed to update test ${fieldName.replace('_', ' ')}`, {
         severity: 'error',
       });
-    } finally {
-      setIsUpdating(false);
     }
   };
 
   return (
-    <Box sx={{ position: 'relative' }}>
-      {isEditing ? (
-        <TextField
-          fullWidth
-          multiline
-          rows={displayRows} // Use the constant
-          value={editedContent}
-          onChange={e => setEditedContent(e.target.value)}
-          sx={{ mb: 1 }} // Margin for confirm/cancel buttons
-          autoFocus
-        />
-      ) : (
-        <Typography
-          component="pre"
-          variant="body2"
-          sx={{
-            whiteSpace: 'pre-wrap',
-            fontFamily: 'monospace',
-            bgcolor: 'action.hover',
-            borderRadius: theme => theme.shape.borderRadius * 0.25,
-            padding: boxPadding,
-            minHeight: displayMinHeight,
-            // Ensure text does not go under the absolutely positioned Edit button
-            paddingRight: editButtonSpace,
-            // Break long words to prevent overflow if absolutely necessary,
-            // though pre-wrap should handle most cases.
-            wordBreak: 'break-word',
-          }}
-        >
-          {initialContent || ' '}{' '}
-          {/* Display a space if content is empty to render the box */}
-        </Typography>
-      )}
+      <Box sx={{ position: 'relative' }}>
+        {isEditing ? (
+            <TextField
+                fullWidth
+                multiline
+                rows={displayRows}
+                value={editedContent}
+                onChange={e => setEditedContent(e.target.value)}
+                sx={{ mb: 1 }}
+                autoFocus
+            />
+        ) : (
+            <Typography
+                component="pre"
+                variant="body2"
+                sx={{
+                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'monospace',
+                  bgcolor: 'action.hover',
+                  borderRadius: theme => theme.shape.borderRadius * 0.25,
+                  padding: boxPadding,
+                  minHeight: displayMinHeight,
+                  paddingRight: editButtonSpace,
+                  wordBreak: 'break-word',
+                  opacity: canEdit ? 1 : 0.7,
+                }}
+            >
+              {initialContent || ' '}
+            </Typography>
+        )}
 
-      {!isEditing ? (
-        <Button
-          startIcon={<EditIcon />}
-          onClick={handleEdit}
-          sx={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            zIndex: 1,
-            backgroundColor: theme =>
-              theme.palette.mode === 'dark'
-                ? 'rgba(0, 0, 0, 0.6)'
-                : 'rgba(255, 255, 255, 0.8)',
-            '&:hover': {
-              backgroundColor: theme =>
-                theme.palette.mode === 'dark'
-                  ? 'rgba(0, 0, 0, 0.8)'
-                  : 'rgba(255, 255, 255, 0.9)',
-            },
-          }}
-        >
-          Edit
-        </Button>
-      ) : (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<CancelIcon />}
-            onClick={handleCancelEdit}
-            disabled={isUpdating}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<CheckIcon />}
-            onClick={handleConfirmEdit}
-            disabled={isUpdating}
-          >
-            Confirm
-          </Button>
-        </Box>
-      )}
-    </Box>
+        {!isEditing ? (
+            <Button
+                startIcon={<EditIcon />}
+                onClick={handleEdit}
+                disabled={!canEdit}
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  zIndex: 1,
+                  backgroundColor: theme =>
+                      theme.palette.mode === 'dark'
+                          ? 'rgba(0, 0, 0, 0.6)'
+                          : 'rgba(255, 255, 255, 0.8)',
+                  '&:hover': {
+                    backgroundColor: theme =>
+                        theme.palette.mode === 'dark'
+                            ? 'rgba(0, 0, 0, 0.8)'
+                            : 'rgba(255, 255, 255, 0.9)',
+                  },
+                }}
+            >
+              Edit
+            </Button>
+        ) : (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+              <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<CancelIcon />}
+                  onClick={handleCancelEdit}
+                  disabled={isUpdating}
+              >
+                Cancel
+              </Button>
+              <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<CheckIcon />}
+                  onClick={handleConfirmEdit}
+                  disabled={confirmDisabled}
+              >
+                Confirm
+              </Button>
+            </Box>
+        )}
+      </Box>
   );
 }

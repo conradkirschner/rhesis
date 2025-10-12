@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CircularProgress, Box, Typography } from '@mui/material';
-import { clearAllSessionData } from '@/utils/session';
 
 export default function SignIn() {
   const searchParams = useSearchParams();
@@ -105,7 +104,6 @@ export default function SignIn() {
             console.log('🟢 [DEBUG] All cookies:', cookies);
             console.log('🟢 [DEBUG] Session cookie found:', !!sessionCookie);
           }, 50);
-
           setStatus('Authentication successful, redirecting...');
           const returnTo = searchParams.get('return_to') || '/dashboard';
           console.log('🟢 [DEBUG] Redirecting to:', returnTo);
@@ -137,7 +135,7 @@ export default function SignIn() {
       }
     };
 
-    handleAuth();
+    void handleAuth();
   }, [searchParams]);
 
   return (

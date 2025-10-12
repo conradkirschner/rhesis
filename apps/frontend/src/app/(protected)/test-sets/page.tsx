@@ -1,86 +1,108 @@
 import * as React from 'react';
-import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import TestSetsGrid from './components/TestSetsGrid';
 import TestSetsCharts from './components/TestSetsCharts';
 import { auth } from '@/auth';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
 import { PageContainer } from '@toolpad/core/PageContainer';
 
-export default async function TestSetsPage() {
-  try {
-    const session = await auth();
+import type { TestSet } from '@/api-client/types.gen';
 
-    if (!session?.session_token) {
+import {
+  readTestSetsTestSetsGet,                   // GET /test_sets
+  readStatusStatusesStatusIdGet,      // GET /statuses/{status_identifier}
+} from '@/api-client/sdk.gen';
+
+/* ----------------------------- helper type guards ---------------------------- */
+
+function isPaginatedList<T>(x: unknown): x is { data?: T[]; pagination?: { totalCount?: number } } {
+  return typeof x === 'object' && x !== null && ('data' in (x as Record<string, unknown>) || 'pagination' in (x as Record<string, unknown>));
+}
+
+/* ---------------------------------- page ---------------------------------- */
+
+export default async function TestSetsPage() {
+    const session = await auth();
+    const token = session?.session_token;
+
+    if (!token) {
       throw new Error('No session token available');
     }
 
-    const clientFactory = new ApiClientFactory(session.session_token);
-    const testSetsClient = clientFactory.getTestSetsClient();
+    const reqInit = {
+      headers: { Authorization: `Bearer ${token}` },
+      baseUrl: process.env.BACKEND_URL
+    };
 
-    const response = await testSetsClient.getTestSets({
-      skip: 0,
-      limit: 25,
-      sort_by: 'created_at',
-      sort_order: 'desc',
+    // List test sets (server-side pagination)
+    const listRaw = await readTestSetsTestSetsGet({
+      query: {
+        skip: 0,
+        limit: 25,
+        sort_by: 'created_at',
+        sort_order: 'desc',
+      },
+      ...reqInit,
     });
 
-    // Now, for each test set with a status_id, fetch status details
-    const testSetsWithStatus = await Promise.all(
-      response.data.map(async testSet => {
-        if (testSet.status_id) {
+    // Normalize array vs { data, pagination }
+    let testSets: TestSet[] = [];
+    let totalCount = 0;
+
+    if (Array.isArray(listRaw)) {
+      testSets = listRaw as TestSet[];
+      totalCount = testSets.length;
+    } else if (isPaginatedList<TestSet>(listRaw)) {
+      const obj = listRaw as { data?: TestSet[]; pagination?: { totalCount?: number } };
+      testSets = Array.isArray(obj.data) ? obj.data : [];
+      totalCount = typeof obj.pagination?.totalCount === 'number' ? obj.pagination.totalCount : testSets.length;
+    }
+
+    // Hydrate status names (if status_id present)
+    const testSetsWithStatus: TestSet[] = await Promise.all(
+        testSets.map(async (ts) => {
+          if (!ts.status_id) return ts;
+
           try {
-            // Use the status client to fetch status details
-            const statusClient = clientFactory.getStatusClient();
-            const status = await statusClient.getStatus(
-              testSet.status_id as string
-            );
-            return {
-              ...testSet,
-              status: status.name,
-            };
-          } catch (error) {
-            console.error(
-              `Error fetching status for test set ${testSet.id}:`,
-              error
-            );
-            return testSet;
+            const statusRaw = await readStatusStatusesStatusIdGet({
+              path: { status_id: ts.status_id  },
+              ...reqInit,
+            });
+
+            const statusObj = statusRaw.data;
+            if (!statusObj) {
+              return ts;
+            }
+
+            const name = statusObj.name
+
+            // Provide a stable shape for the grid's status extractor
+            return name ? ({ ...ts, status: { name } } as TestSet) : ts;
+          } catch {
+            return ts; // If status fetch fails, keep the original row
           }
-        }
-        return testSet;
-      })
+        }),
     );
 
     return (
-      <PageContainer
-        title="Test Sets"
-        breadcrumbs={[{ title: 'Test Sets', path: '/test-sets' }]}
-      >
-        {/* Charts Section - Client Component */}
-        <TestSetsCharts />
+        <PageContainer
+            title="Test Sets"
+            breadcrumbs={[{ title: 'Test Sets', path: '/test-sets' }]}
+        >
+          {/* Charts Section - Client Component */}
+          <TestSetsCharts />
 
-        {/* Table Section */}
-        <Paper sx={{ width: '100%', mb: 2, mt: 2 }}>
-          <Box sx={{ p: 2 }}>
-            <TestSetsGrid
-              testSets={testSetsWithStatus}
-              loading={false}
-              sessionToken={session.session_token}
-              initialTotalCount={response.pagination.totalCount}
-            />
-          </Box>
-        </Paper>
-      </PageContainer>
+          {/* Table Section */}
+          <Paper sx={{ width: '100%', mb: 2, mt: 2 }}>
+            <Box sx={{ p: 2 }}>
+              <TestSetsGrid
+                  testSets={testSetsWithStatus}
+                  loading={false}
+                  sessionToken={token}
+                  initialTotalCount={totalCount}
+              />
+            </Box>
+          </Paper>
+        </PageContainer>
     );
-  } catch (error) {
-    const errorMessage = (error as Error).message;
-    return (
-      <Box sx={{ p: 3 }}>
-        <Typography color="error">
-          Error loading test sets: {errorMessage}
-        </Typography>
-      </Box>
-    );
-  }
 }

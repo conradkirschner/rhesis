@@ -1,5 +1,6 @@
+'use client';
+
 import * as React from 'react';
-import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Chip,
@@ -7,155 +8,109 @@ import {
   Typography,
   Alert,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Button,
 } from '@mui/material';
 import { GridColDef, GridPaginationModel } from '@mui/x-data-grid';
-import BaseDataGrid from '@/components/common/BaseDataGrid';
-import { useSession } from 'next-auth/react';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { User } from '@/utils/api-client/interfaces/user';
 import PersonIcon from '@mui/icons-material/Person';
-import { DeleteIcon } from '@/components/icons';
+import { useSession } from 'next-auth/react';
 import { useNotifications } from '@/components/common/NotificationContext';
+import BaseDataGrid from '@/components/common/BaseDataGrid';
+import { DeleteIcon } from '@/components/icons';
 import { DeleteModal } from '@/components/common/DeleteModal';
 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+import type { User } from '@/api-client/types.gen';
+
+import {
+  readUsersUsersGetOptions,
+  deleteUserUsersUserIdDeleteMutation,
+} from '@/api-client/@tanstack/react-query.gen';
+
 interface TeamMembersGridProps {
-  refreshTrigger?: number; // Used to trigger refresh when new invites are sent
+  /** Used to trigger refresh when new invites are sent */
+  refreshTrigger?: number;
 }
 
-export default function TeamMembersGrid({
-  refreshTrigger,
-}: TeamMembersGridProps) {
+export default function TeamMembersGrid({ refreshTrigger }: TeamMembersGridProps) {
   const { data: session } = useSession();
   const notifications = useNotifications();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
-  const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
+  const queryClient = useQueryClient();
+
+  const [paginationModel, setPaginationModel] = React.useState<GridPaginationModel>({
     page: 0,
     pageSize: 25,
   });
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
-  const fetchUsers = useCallback(
-    async (skip = 0, limit = 25) => {
-      if (!session?.session_token) {
-        setError('Session expired. Please refresh the page.');
-        setLoading(false);
-        return;
-      }
+  const skip = paginationModel.page * paginationModel.pageSize;
+  const limit = paginationModel.pageSize;
 
-      try {
-        setLoading(true);
-        setError(null);
+  /** Users list query (server-side pagination) */
+  const usersOpts = readUsersUsersGetOptions({
+    query: { skip, limit },
+  });
 
-        const clientFactory = new ApiClientFactory(session.session_token);
-        const usersClient = clientFactory.getUsersClient();
+  const usersQuery = useQuery({
+    ...usersOpts,
+    select: (data) => data,
+  });
 
-        // Fetch users for the current organization
-        const response = await usersClient.getUsers({
-          skip,
-          limit,
-        });
+  /** Delete user mutation */
+  const deleteUserMutation = useMutation(deleteUserUsersUserIdDeleteMutation());
 
-        console.log('Fetched users:', response);
-        setUsers(response.data || []);
-        setTotalCount(response.total || 0);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-        setError('Failed to load team members. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    },
-    [session?.session_token]
-  );
-
-  // Initial load
-  useEffect(() => {
-    fetchUsers(0, paginationModel.pageSize);
-  }, [fetchUsers, paginationModel.pageSize]);
-
-  // Refresh when new invites are sent
-  useEffect(() => {
+  /** Refresh when invites were sent elsewhere */
+  React.useEffect(() => {
     if (refreshTrigger && refreshTrigger > 0) {
-      fetchUsers(
-        paginationModel.page * paginationModel.pageSize,
-        paginationModel.pageSize
-      );
+      void usersQuery.refetch();
     }
-  }, [refreshTrigger, fetchUsers, paginationModel]);
+  }, [refreshTrigger, usersQuery]);
 
-  const handlePaginationModelChange = useCallback(
-    (newModel: GridPaginationModel) => {
-      setPaginationModel(newModel);
-      const skip = newModel.page * newModel.pageSize;
-      fetchUsers(skip, newModel.pageSize);
-    },
-    [fetchUsers]
-  );
-
-  // Determine if user is active (has logged in) or just invited
-  const getUserStatus = (user: User) => {
-    // Active users have name, given_name, family_name, or auth0_id populated
-    const hasProfileData =
-      user.name || user.given_name || user.family_name || user.auth0_id;
-    return hasProfileData ? 'active' : 'invited';
+  const handlePaginationModelChange = (newModel: GridPaginationModel) => {
+    setPaginationModel(newModel);
   };
 
-  const getDisplayName = (user: User) => {
-    if (user.name) return user.name;
-    if (user.given_name || user.family_name) {
-      return `${user.given_name || ''} ${user.family_name || ''}`.trim();
-    }
-    return user.email;
-  };
+  /** Delete modal state */
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
 
-  const handleDeleteUser = (user: User) => {
+  const openDeleteFor = (user: User) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);
   };
+  const closeDelete = () => {
+    if (!deleting) {
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+    }
+  };
 
   const handleConfirmDelete = async () => {
-    if (!userToDelete || !session?.session_token) {
-      return;
-    }
-
+    if (!userToDelete) return;
     try {
+      if (!userToDelete.id) {
+        notifications.show(
+            `Failure in removed ${getDisplayName(userToDelete)} from the organization.`,
+            { severity: 'error' }
+        );
+        return;
+      }
       setDeleting(true);
-
-      const clientFactory = new ApiClientFactory(session.session_token);
-      const usersClient = clientFactory.getUsersClient();
-
-      await usersClient.deleteUser(userToDelete.id);
+      await deleteUserMutation.mutateAsync({
+        path: { user_id: userToDelete.id },
+      });
 
       notifications.show(
-        `Successfully removed ${getDisplayName(userToDelete)} from the organization.`,
-        { severity: 'success' }
+          `Successfully removed ${getDisplayName(userToDelete)} from the organization.`,
+          { severity: 'success' }
       );
 
-      // Refresh the users list
-      const skip = paginationModel.page * paginationModel.pageSize;
-      fetchUsers(skip, paginationModel.pageSize);
-    } catch (error: any) {
-      console.error('Error deleting user:', error);
-
-      // Handle specific error cases
-      const errorMessage =
-        error?.message ||
-        'Failed to remove user from organization. Please try again.';
-
-      notifications.show(errorMessage, {
-        severity: 'error',
-      });
+      // Refresh current page
+      void queryClient.invalidateQueries({ queryKey: usersOpts.queryKey });
+    } catch (err: unknown) {
+      const msg =
+          (err as Error)?.message ??
+          'Failed to remove user from organization. Please try again.';
+      notifications.show(msg, { severity: 'error' });
     } finally {
       setDeleting(false);
       setDeleteDialogOpen(false);
@@ -163,10 +118,25 @@ export default function TeamMembersGrid({
     }
   };
 
-  const handleCancelDelete = () => {
-    setDeleteDialogOpen(false);
-    setUserToDelete(null);
+  /** Helpers */
+  const getUserStatus = (user: User) => {
+    const hasProfile =
+        !!user.name || !!user.given_name || !!user.family_name || !!(user).auth0_id;
+    return hasProfile ? 'active' : 'invited';
   };
+
+  const getDisplayName = (user: User) => {
+    if (user.name) return user.name;
+    const composed = `${user.given_name ?? ''} ${user.family_name ?? ''}`.trim();
+    return composed || user.email;
+  };
+
+  const rows = usersQuery.data?.data ?? [];
+  const totalCount = usersQuery.data?.pagination.totalCount ?? 0;
+  const loading = usersQuery.isPending;
+  const loadError = usersQuery.isError
+      ? (usersQuery.error as Error)?.message ?? 'Failed to load team members.'
+      : null;
 
   const columns: GridColDef[] = [
     {
@@ -174,21 +144,21 @@ export default function TeamMembersGrid({
       headerName: '',
       width: 60,
       sortable: false,
-      renderCell: params => {
+      renderCell: (params) => {
         const user = params.row as User;
         const status = getUserStatus(user);
 
         return (
-          <Avatar
-            src={user.picture || undefined}
-            sx={{
-              width: 32,
-              height: 32,
-              bgcolor: status === 'active' ? 'primary.main' : 'grey.400',
-            }}
-          >
-            {user.picture ? null : <PersonIcon fontSize="small" />}
-          </Avatar>
+            <Avatar
+                src={(user).picture || undefined}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  bgcolor: status === 'active' ? 'primary.main' : 'grey.400',
+                }}
+            >
+              {(user).picture ? null : <PersonIcon fontSize="small" />}
+            </Avatar>
         );
       },
     },
@@ -197,15 +167,12 @@ export default function TeamMembersGrid({
       headerName: 'Name',
       flex: 1,
       minWidth: 200,
-      renderCell: params => {
+      renderCell: (params) => {
         const user = params.row as User;
-        const displayName = getDisplayName(user);
-        const status = getUserStatus(user);
-
         return (
-          <Typography variant="body2" fontWeight="medium">
-            {displayName}
-          </Typography>
+            <Typography variant="body2" fontWeight="medium">
+              {getDisplayName(user)}
+            </Typography>
         );
       },
     },
@@ -214,7 +181,7 @@ export default function TeamMembersGrid({
       headerName: 'Email',
       flex: 1,
       minWidth: 250,
-      renderCell: params => {
+      renderCell: (params) => {
         const user = params.row as User;
         return <Typography variant="body2">{user.email}</Typography>;
       },
@@ -223,17 +190,16 @@ export default function TeamMembersGrid({
       field: 'status',
       headerName: 'Status',
       width: 120,
-      renderCell: params => {
+      renderCell: (params) => {
         const user = params.row as User;
         const status = getUserStatus(user);
-
         return (
-          <Chip
-            label={status === 'active' ? 'Active' : 'Invited'}
-            size="small"
-            color={status === 'active' ? 'success' : 'warning'}
-            variant="outlined"
-          />
+            <Chip
+                label={status === 'active' ? 'Active' : 'Invited'}
+                size="small"
+                color={status === 'active' ? 'success' : 'warning'}
+                variant="outlined"
+            />
         );
       },
     },
@@ -242,82 +208,77 @@ export default function TeamMembersGrid({
       headerName: 'Actions',
       width: 100,
       sortable: false,
-      renderCell: params => {
+      renderCell: (params) => {
         const user = params.row as User;
         const currentUserId = session?.user?.id;
 
         // Don't show actions for current user
-        if (user.id === currentUserId) {
-          return null;
-        }
+        if (user.id === currentUserId) return null;
 
         return (
-          <IconButton
-            onClick={() => handleDeleteUser(user)}
-            size="small"
-            title="Remove from organization"
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
+            <IconButton
+                onClick={() => openDeleteFor(user)}
+                size="small"
+                title="Remove from organization"
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
         );
       },
     },
   ];
 
-  if (error) {
+  if (loadError) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
-      </Alert>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {loadError}
+        </Alert>
     );
   }
 
   return (
-    <Box>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          Team Members ({totalCount})
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Manage your organization&apos;s team members and their access
-        </Typography>
+      <Box>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            Team Members ({totalCount})
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Manage your organization&apos;s team members and their access
+          </Typography>
+        </Box>
+
+        <BaseDataGrid
+            rows={rows}
+            columns={columns}
+            loading={loading}
+            getRowId={(row) => (row as User).id ??''}
+            paginationModel={paginationModel}
+            onPaginationModelChange={handlePaginationModelChange}
+            serverSidePagination
+            totalRows={totalCount}
+            pageSizeOptions={[10, 25, 50]}
+            disableRowSelectionOnClick
+            enableQuickFilter
+            disablePaperWrapper
+            sx={{
+              '& .MuiDataGrid-row': {
+                '&:hover': { backgroundColor: 'action.hover' },
+              },
+            }}
+        />
+
+        <DeleteModal
+            open={deleteDialogOpen}
+            onClose={closeDelete}
+            onConfirm={handleConfirmDelete}
+            isLoading={deleting}
+            title="Remove from Organization"
+            message={`Are you sure you want to remove ${
+                userToDelete ? getDisplayName(userToDelete) : ''
+            } from the organization?\n\nThey will lose access to all organization resources but can be re-invited in the future. Their contributions to projects and tests will remain intact.`}
+            itemType="user"
+            confirmButtonText={deleting ? 'Removing...' : 'Remove from Organization'}
+        />
       </Box>
-
-      <BaseDataGrid
-        rows={users}
-        columns={columns}
-        loading={loading}
-        getRowId={row => row.id}
-        paginationModel={paginationModel}
-        onPaginationModelChange={handlePaginationModelChange}
-        serverSidePagination={true}
-        totalRows={totalCount}
-        pageSizeOptions={[10, 25, 50]}
-        disableRowSelectionOnClick
-        enableQuickFilter={true}
-        disablePaperWrapper={true}
-        sx={{
-          '& .MuiDataGrid-row': {
-            '&:hover': {
-              backgroundColor: 'action.hover',
-            },
-          },
-        }}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <DeleteModal
-        open={deleteDialogOpen}
-        onClose={handleCancelDelete}
-        onConfirm={handleConfirmDelete}
-        isLoading={deleting}
-        title="Remove from Organization"
-        message={`Are you sure you want to remove ${userToDelete ? getDisplayName(userToDelete) : ''} from the organization?\n\nThey will lose access to all organization resources but can be re-invited in the future. Their contributions to projects and tests will remain intact.`}
-        itemType="user"
-        confirmButtonText={
-          deleting ? 'Removing...' : 'Remove from Organization'
-        }
-      />
-    </Box>
   );
 }

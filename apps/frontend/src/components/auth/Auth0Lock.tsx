@@ -15,14 +15,13 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import AppleIcon from '@mui/icons-material/Apple';
 import MicrosoftIcon from '@mui/icons-material/Window';
 import { useState, useEffect } from 'react';
-import { getClientApiBaseUrl } from '../../utils/url-resolver';
+import { getClientApiBaseUrl } from '@/utils/url-resolver';
 
 interface Props {
-  clientId: string;
-  domain: string;
+
 }
 
-export default function CustomAuthForm({ clientId, domain }: Props) {
+export default function CustomAuthForm({ }: Props) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsWarning, setShowTermsWarning] = useState(false);
   const [previouslyAccepted, setPreviouslyAccepted] = useState(false);

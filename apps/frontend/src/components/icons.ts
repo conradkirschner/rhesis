@@ -30,8 +30,6 @@ export { default as AppsIcon } from '@mui/icons-material/AppsOutlined';
 export { default as VpnKeyIcon } from '@mui/icons-material/VpnKeyOutlined';
 export { default as BusinessIcon } from '@mui/icons-material/BusinessOutlined';
 export { default as GroupIcon } from '@mui/icons-material/GroupOutlined';
-export { default as WarningAmberIcon } from '@mui/icons-material/WarningAmberOutlined';
-export { default as MenuBookIcon } from '@mui/icons-material/MenuBookOutlined';
 export { default as AssessmentIcon } from '@mui/icons-material/AssessmentOutlined';
 export { default as DescriptionIcon } from '@mui/icons-material/DescriptionOutlined';
 export { default as CategoryIcon } from '@mui/icons-material/CategoryOutlined';
@@ -43,21 +41,14 @@ export { default as ApiIcon } from '@mui/icons-material/ApiOutlined';
 // Common action icons
 export { default as AddIcon } from '@mui/icons-material/AddOutlined';
 export { default as DeleteIcon } from '@mui/icons-material/DeleteOutlined';
-export { default as CheckIcon } from '@mui/icons-material/CheckOutlined';
 export { default as CheckCircleIcon } from '@mui/icons-material/CheckCircleOutlined';
 export { default as AddTaskIcon } from '@mui/icons-material/AddTaskOutlined';
-export { default as CloseIcon } from '@mui/icons-material/CloseOutlined';
-export { default as InfoIcon } from '@mui/icons-material/InfoOutlined';
 export { default as SettingsIcon } from '@mui/icons-material/SettingsOutlined';
 export { default as AssignmentIcon } from '@mui/icons-material/AssignmentOutlined';
 
 // Common UI icons
 export { default as PersonIcon } from '@mui/icons-material/PersonOutlined';
-export { default as DownloadIcon } from '@mui/icons-material/DownloadOutlined';
-export { default as ContentCopyIcon } from '@mui/icons-material/ContentCopyOutlined';
-export { default as ArrowBackIcon } from '@mui/icons-material/ArrowBackOutlined';
 export { default as ArrowOutwardIcon } from '@mui/icons-material/ArrowOutwardOutlined';
-export { default as ClearIcon } from '@mui/icons-material/ClearOutlined';
 export { default as RefreshIcon } from '@mui/icons-material/RefreshOutlined';
 export { default as SendIcon } from '@mui/icons-material/SendOutlined';
 export { default as EmojiIcon } from '@mui/icons-material/EmojiEmotionsOutlined';
@@ -68,4 +59,3 @@ export { default as VerifiedUserIcon } from '@mui/icons-material/VerifiedUserOut
 export { default as FactCheckIcon } from '@mui/icons-material/FactCheckOutlined';
 export { default as NumbersIcon } from '@mui/icons-material/NumbersOutlined';
 export { default as ToggleOnIcon } from '@mui/icons-material/ToggleOnOutlined';
-export { default as GradingIcon } from '@mui/icons-material/GradingOutlined';

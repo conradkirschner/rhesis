@@ -5,6 +5,12 @@ from pydantic import UUID4
 from rhesis.backend.app.schemas import Base
 from rhesis.backend.app.schemas.json_value import Json
 
+class TestRunAttributes(Base):
+    """Extra metadata for a test run."""
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    environment: Optional[str] = None
+    total_tests: Optional[str] = None
 
 # TestRun schemas
 class TestRunBase(Base):
@@ -12,7 +18,7 @@ class TestRunBase(Base):
     user_id: Optional[UUID4]
     organization_id: Optional[UUID4] = None
     status_id: Optional[UUID4] = None
-    attributes: Optional[dict[str, Json]] = None
+    attributes: Optional[TestRunAttributes] = None
     test_configuration_id: UUID4
     owner_id: Optional[UUID4] = None
     assignee_id: Optional[UUID4] = None

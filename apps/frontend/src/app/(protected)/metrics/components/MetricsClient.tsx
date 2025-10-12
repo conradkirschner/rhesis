@@ -17,8 +17,6 @@ import {
 } from '@/api-client/@tanstack/react-query.gen';
 import type {
     Behavior,
-    Metric,
-    TypeLookupReference,
     RhesisBackendAppUtilsSchemaFactoryMetricDetail1 as MetricDetail1,
     RhesisBackendAppUtilsSchemaFactoryMetricDetail2 as MetricDetail2,
 } from '@/api-client/types.gen';
@@ -288,12 +286,10 @@ export default function MetricsClientComponent({
                             filterOptions={filterOptions}
                             isLoading={isLoadingMetricsDirectory}
                             error={error}
-                            onRefresh={handleRefresh}
                             setFilters={setFilters}
                             setMetrics={setMetrics}
                             setBehaviorMetrics={setBehaviorMetrics}
                             setBehaviorsWithMetrics={setBehaviorsWithMetrics}
-                            onTabChange={() => setValue(1)}
                         />
                     </CustomTabPanel>
 

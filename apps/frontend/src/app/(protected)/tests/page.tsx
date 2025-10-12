@@ -52,7 +52,6 @@ export default function TestsPage() {
     >
       {/* Charts Section */}
       <TestCharts
-        sessionToken={session.session_token}
         key={`charts-${refreshKey}`}
       />
 
@@ -60,7 +59,6 @@ export default function TestsPage() {
       <Paper sx={{ width: '100%', mb: 2, mt: 4 }}>
         <Box sx={{ p: 2 }}>
           <TestsGrid
-            sessionToken={session.session_token}
             onRefresh={handleRefresh}
           />
         </Box>

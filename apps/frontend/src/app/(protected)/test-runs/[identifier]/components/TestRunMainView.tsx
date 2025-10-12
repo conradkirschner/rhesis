@@ -1,16 +1,24 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
-import { Box, Grid, Paper, useTheme } from '@mui/material';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Box, Grid, Paper } from '@mui/material';
+
 import TestRunFilterBar, { FilterState } from './TestRunFilterBar';
 import TestsList from './TestsList';
 import TestDetailPanel from './TestDetailPanel';
 import ComparisonView from './ComparisonView';
 import TestRunHeader from './TestRunHeader';
-import { TestResultDetail } from '@/utils/api-client/interfaces/test-results';
-import { TestRunDetail } from '@/utils/api-client/interfaces/test-run';
+
+import type { TestResultDetail, TestRunDetail } from '@/api-client/types.gen';
+
+import {
+  readTestRunsTestRunsGetOptions,
+  readTestResultsTestResultsGetOptions,
+  downloadTestRunResultsTestRunsTestRunIdDownloadGetOptions,
+} from '@/api-client/@tanstack/react-query.gen';
+
 import { useNotifications } from '@/components/common/NotificationContext';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface TestRunMainViewProps {
   testRunId: string;
@@ -21,7 +29,6 @@ interface TestRunMainViewProps {
     test_configuration_id?: string;
   };
   testRun: TestRunDetail;
-  sessionToken: string;
   testResults: TestResultDetail[];
   prompts: Record<string, { content: string; name?: string }>;
   behaviors: Array<{
@@ -37,213 +44,169 @@ interface TestRunMainViewProps {
 }
 
 export default function TestRunMainView({
-  testRunId,
-  testRunData,
-  testRun,
-  sessionToken,
-  testResults: initialTestResults,
-  prompts,
-  behaviors,
-  loading = false,
-  currentUserId,
-  currentUserName,
-  currentUserPicture,
-}: TestRunMainViewProps) {
-  const theme = useTheme();
+                                          testRunId,
+                                          testRunData,
+                                          testRun,
+                                          testResults: initialTestResults,
+                                          prompts,
+                                          behaviors,
+                                          loading = false,
+                                          currentUserId,
+                                          currentUserName,
+                                          currentUserPicture,
+                                        }: TestRunMainViewProps) {
   const notifications = useNotifications();
+  const queryClient = useQueryClient();
+
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isComparisonMode, setIsComparisonMode] = useState(false);
-  const [availableTestRuns, setAvailableTestRuns] = useState<
-    Array<{
-      id: string;
-      name?: string;
-      created_at: string;
-      pass_rate?: number;
-    }>
-  >([]);
 
-  // Track only updates to test results (not all test results)
   const [testResultUpdates, setTestResultUpdates] = useState<
-    Map<string, TestResultDetail>
+      Map<string, TestResultDetail>
   >(new Map());
 
-  // Filter state
   const [filter, setFilter] = useState<FilterState>({
     searchQuery: '',
     statusFilter: 'all',
     selectedBehaviors: [],
   });
 
-  // Merge prop data with any updates
   const testResults = useMemo(() => {
-    if (testResultUpdates.size === 0) {
-      return initialTestResults;
-    }
-    return initialTestResults.map(
-      test => testResultUpdates.get(test.id) || test
-    );
+    if (testResultUpdates.size === 0) return initialTestResults;
+    return initialTestResults.map((t) => testResultUpdates.get(t.id) ?? t);
   }, [initialTestResults, testResultUpdates]);
 
-  // Get selected test
-  const selectedTest = useMemo(() => {
-    return testResults.find(t => t.id === selectedTestId) || null;
-  }, [testResults, selectedTestId]);
+  const selectedTest = useMemo(
+      () => testResults.find((t) => t.id === selectedTestId) ?? null,
+      [testResults, selectedTestId],
+  );
 
-  // Filter tests based on current filter state
   const filteredTests = useMemo(() => {
-    let filtered = [...testResults];
+    let list = [...testResults];
 
-    // Apply search filter
     if (filter.searchQuery) {
-      const query = filter.searchQuery.toLowerCase();
-      filtered = filtered.filter(test => {
+      const q = filter.searchQuery.toLowerCase();
+      list = list.filter((t) => {
         const promptContent =
-          test.prompt_id && prompts[test.prompt_id]
-            ? prompts[test.prompt_id].content.toLowerCase()
-            : '';
-        const responseContent = test.test_output?.output?.toLowerCase() || '';
-        return promptContent.includes(query) || responseContent.includes(query);
+            (t.prompt_id && prompts[t.prompt_id]?.content?.toLowerCase()) || '';
+        const responseContent = t.test_output?.output?.toLowerCase() || '';
+        return promptContent.includes(q) || responseContent.includes(q);
       });
     }
 
-    // Apply status filter
     if (filter.statusFilter !== 'all') {
-      filtered = filtered.filter(test => {
-        const metrics = test.test_metrics?.metrics || {};
-        const metricValues = Object.values(metrics);
-        const totalMetrics = metricValues.length;
-        const passedMetrics = metricValues.filter(m => m.is_successful).length;
-        const isPassed = totalMetrics > 0 && passedMetrics === totalMetrics;
-
+      list = list.filter((t) => {
+        const metrics = t.test_metrics?.metrics || {};
+        const values = Object.values(metrics);
+        const total = values.length;
+        const passed = values.filter((m) => m?.is_successful).length;
+        const isPassed = total > 0 && passed === total;
         return filter.statusFilter === 'passed' ? isPassed : !isPassed;
       });
     }
 
-    // Apply behavior filter
     if (filter.selectedBehaviors.length > 0) {
-      filtered = filtered.filter(test => {
-        const metrics = test.test_metrics?.metrics || {};
-
-        // Check if test has at least one metric from selected behaviors
-        return filter.selectedBehaviors.some(behaviorId => {
-          const behavior = behaviors.find(b => b.id === behaviorId);
+      list = list.filter((t) => {
+        const metrics = t.test_metrics?.metrics || {};
+        return filter.selectedBehaviors.some((behId) => {
+          const behavior = behaviors.find((b) => b.id === behId);
           if (!behavior) return false;
-
-          return behavior.metrics.some(metric => metrics[metric.name]);
+          return behavior.metrics.some((m) => metrics[m.name]);
         });
       });
     }
 
-    return filtered;
+    return list;
   }, [testResults, filter, prompts, behaviors]);
 
-  // Handle test selection
   const handleTestSelect = useCallback((testId: string) => {
     setSelectedTestId(testId);
   }, []);
 
-  // Handle filter changes
   const handleFilterChange = useCallback(
-    (newFilter: FilterState) => {
-      setFilter(newFilter);
-      // If current selected test is not in filtered list, clear selection
-      const testStillVisible = testResults.some(t => t.id === selectedTestId);
-      if (!testStillVisible) {
-        setSelectedTestId(null);
-      }
-    },
-    [testResults, selectedTestId]
+      (newFilter: FilterState) => {
+        setFilter(newFilter);
+        const stillVisible = testResults.some((t) => t.id === selectedTestId);
+        if (!stillVisible) setSelectedTestId(null);
+      },
+      [testResults, selectedTestId],
   );
 
-  // Handle test result updates (e.g., when tags change)
-  const handleTestResultUpdate = useCallback(
-    (updatedTest: TestResultDetail) => {
-      setTestResultUpdates(prev => {
-        const newMap = new Map(prev);
-        newMap.set(updatedTest.id, updatedTest);
-        return newMap;
-      });
-    },
-    []
-  );
+  const handleTestResultUpdate = useCallback((updated: TestResultDetail) => {
+    setTestResultUpdates((prev) => {
+      const map = new Map(prev);
+      map.set(updated.id, updated);
+      return map;
+    });
+  }, []);
 
-  // Handle download
+  const listTestRunsQueryParams = useMemo(() => {
+    const base: Record<string, unknown> = {
+      limit: 50,
+      skip: 0,
+      sort_by: 'created_at',
+      sort_order: 'desc',
+    };
+    if (testRunData.test_configuration_id) {
+      base.test_configuration_id = testRunData.test_configuration_id;
+    }
+    return base;
+  }, [testRunData.test_configuration_id]);
+
+  const listTestRunsQuery = useQuery({
+    ...readTestRunsTestRunsGetOptions({
+      query: listTestRunsQueryParams,
+    }),
+    staleTime: 60_000,
+  });
+
+  const availableTestRuns = useMemo<
+      Array<{ id: string; name?: string; created_at: string; pass_rate?: number }>
+  >(() => {
+    const rows = (listTestRunsQuery.data as any)?.data ?? [];
+    return rows
+        .filter((r: any) => r?.id && r.id !== testRunId)
+        .map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          created_at: r.attributes?.started_at || r.created_at || '',
+          pass_rate: undefined,
+        }));
+  }, [listTestRunsQuery.data, testRunId]);
+
   const handleDownload = useCallback(async () => {
     setIsDownloading(true);
     try {
-      const testRunsClient = new ApiClientFactory(
-        sessionToken
-      ).getTestRunsClient();
-      const blob = await testRunsClient.downloadTestRun(testRunId);
+      const opts = downloadTestRunResultsTestRunsTestRunIdDownloadGetOptions({
+        path: { test_run_id: testRunId },
+      });
+      const blob = (await queryClient.fetchQuery(opts)) as unknown as Blob;
 
-      // Create download link
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `test_run_${testRunId}_results.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `test_run_${testRunId}_results.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
       window.URL.revokeObjectURL(url);
 
       notifications.show('Test run results downloaded successfully', {
         severity: 'success',
       });
-    } catch (error) {
-      console.error('Error downloading test run:', error);
+    } catch (err) {
+      console.error(err);
       notifications.show('Failed to download test run results', {
         severity: 'error',
       });
     } finally {
       setIsDownloading(false);
     }
-  }, [testRunId, sessionToken, notifications]);
+  }, [testRunId, queryClient, notifications]);
 
-  // Fetch available test runs for comparison
-  React.useEffect(() => {
-    const fetchTestRuns = async () => {
-      try {
-        const testRunsClient = new ApiClientFactory(
-          sessionToken
-        ).getTestRunsClient();
-
-        const params: any = {
-          limit: 50,
-          skip: 0,
-          sort_by: 'created_at',
-          sort_order: 'desc',
-        };
-
-        // Only add test_configuration_id filter if it exists
-        if (testRunData.test_configuration_id) {
-          params.test_configuration_id = testRunData.test_configuration_id;
-        }
-
-        const response = await testRunsClient.getTestRuns(params);
-
-        // Filter out current test run
-        const runs = response.data
-          .filter(run => run.id !== testRunId)
-          .map(run => ({
-            id: run.id,
-            name: run.name,
-            created_at: run.attributes?.started_at || run.created_at || '',
-            pass_rate: undefined, // Will be calculated from test results if needed
-          }));
-
-        setAvailableTestRuns(runs);
-      } catch (error) {
-        console.error('Error fetching test runs:', error);
-      }
-    };
-
-    fetchTestRuns();
-  }, [testRunId, sessionToken, testRunData.test_configuration_id ?? '']);
-
-  // Handle compare
   const handleCompare = useCallback(() => {
-    if (availableTestRuns.length === 0) {
+    if (!availableTestRuns.length) {
       notifications.show('No other test runs available for comparison', {
         severity: 'info',
       });
@@ -252,51 +215,58 @@ export default function TestRunMainView({
     setIsComparisonMode(true);
   }, [availableTestRuns, notifications]);
 
-  // Handle load baseline test results
+  /** Page-by-page baseline loader without overriding `queryKey` */
   const handleLoadBaseline = useCallback(
-    async (baselineTestRunId: string): Promise<TestResultDetail[]> => {
-      try {
-        const testResultsClient = new ApiClientFactory(
-          sessionToken
-        ).getTestResultsClient();
+      async (baselineTestRunId: string): Promise<TestResultDetail[]> => {
+        try {
+          const batchSize = 100;
+          let skip = 0;
+          let out: TestResultDetail[] = [];
+          let totalCount: number | undefined;
 
-        // Fetch all test results for baseline test run
-        let testResults: TestResultDetail[] = [];
-        let skip = 0;
-        const batchSize = 100;
-        let hasMore = true;
+          // eslint-disable-next-line no-constant-condition
+          while (true) {
+            const opts = readTestResultsTestResultsGetOptions({
+              query: {
+                filter: `test_run_id eq '${baselineTestRunId}'`,
+                limit: batchSize,
+                skip,
+                sort_by: 'created_at',
+                sort_order: 'desc',
+              } as Record<string, unknown>,
+            });
 
-        while (hasMore) {
-          const testResultsResponse = await testResultsClient.getTestResults({
-            filter: `test_run_id eq '${baselineTestRunId}'`,
-            limit: batchSize,
-            skip: skip,
-            sort_by: 'created_at',
-            sort_order: 'desc',
+            const page = await queryClient.fetchQuery(opts);
+            const pageData = (page as any)?.data ?? [];
+            out = out.concat(pageData);
+
+            const pagination = (page as any)?.pagination;
+            if (typeof pagination?.totalCount === 'number') {
+              totalCount = pagination.totalCount;
+            }
+
+            if (totalCount !== undefined) {
+              if (out.length >= totalCount) break;
+            } else {
+              if (pageData.length < batchSize) break;
+            }
+
+            skip += batchSize;
+            if (skip > 10_000) break; // safety
+          }
+
+          return out;
+        } catch (err) {
+          console.error('Error loading baseline test results:', err);
+          notifications.show('Failed to load baseline test results', {
+            severity: 'error',
           });
-
-          testResults = [...testResults, ...testResultsResponse.data];
-
-          const totalCount = testResultsResponse.pagination?.totalCount || 0;
-          hasMore = testResults.length < totalCount;
-          skip += batchSize;
-
-          if (skip > 10000) break;
+          return [];
         }
-
-        return testResults;
-      } catch (error) {
-        console.error('Error loading baseline test results:', error);
-        notifications.show('Failed to load baseline test results', {
-          severity: 'error',
-        });
-        return [];
-      }
-    },
-    [sessionToken, notifications]
+      },
+      [queryClient, notifications],
   );
 
-  // Auto-select first test if none selected and tests are available
   React.useEffect(() => {
     if (!selectedTestId && filteredTests.length > 0) {
       setSelectedTestId(filteredTests[0].id);
@@ -304,91 +274,83 @@ export default function TestRunMainView({
   }, [selectedTestId, filteredTests]);
 
   return (
-    <Box>
-      {/* Header with Summary Cards - only show when not in comparison mode */}
-      {!isComparisonMode && (
-        <TestRunHeader
-          testRun={testRun}
-          testResults={testResults}
-          loading={loading}
-        />
-      )}
+      <Box>
+        {!isComparisonMode && (
+            <TestRunHeader testRun={testRun} testResults={testResults} />
+        )}
 
-      {!isComparisonMode ? (
-        <>
-          {/* Filter Bar */}
-          <TestRunFilterBar
-            filter={filter}
-            onFilterChange={handleFilterChange}
-            availableBehaviors={behaviors}
-            onDownload={handleDownload}
-            onCompare={handleCompare}
-            isDownloading={isDownloading}
-            totalTests={testResults.length}
-            filteredTests={filteredTests.length}
-          />
+        {!isComparisonMode ? (
+            <>
+              <TestRunFilterBar
+                  filter={filter}
+                  onFilterChange={handleFilterChange}
+                  availableBehaviors={behaviors}
+                  onDownload={handleDownload}
+                  onCompare={handleCompare}
+                  isDownloading={isDownloading}
+                  totalTests={testResults.length}
+                  filteredTests={filteredTests.length}
+              />
 
-          {/* Split Panel Layout */}
-          <Grid container spacing={3}>
-            {/* Left: Tests List (33%) */}
-            <Grid item xs={12} md={4}>
-              <Paper
-                sx={{
-                  height: { xs: 400, md: 'calc(100vh - 420px)' },
-                  minHeight: 400,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                }}
-              >
-                <TestsList
-                  tests={filteredTests}
-                  selectedTestId={selectedTestId}
-                  onTestSelect={handleTestSelect}
-                  loading={loading}
-                  prompts={prompts}
-                />
-              </Paper>
-            </Grid>
+              <Grid container spacing={3}>
+                {/* Left list */}
+                <Grid item xs={12} md={4}>
+                  <Paper
+                      sx={{
+                        height: { xs: 400, md: 'calc(100vh - 420px)' },
+                        minHeight: 400,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                      }}
+                  >
+                    <TestsList
+                        tests={filteredTests}
+                        selectedTestId={selectedTestId}
+                        onTestSelect={handleTestSelect}
+                        loading={loading}
+                        prompts={prompts}
+                    />
+                  </Paper>
+                </Grid>
 
-            {/* Right: Test Detail Panel (67%) */}
-            <Grid item xs={12} md={8}>
-              <Paper
-                sx={{
-                  height: { xs: 600, md: 'calc(100vh - 420px)' },
-                  minHeight: 600,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                }}
-              >
-                <TestDetailPanel
-                  test={selectedTest}
-                  loading={loading}
-                  prompts={prompts}
-                  behaviors={behaviors}
-                  testRunId={testRunId}
-                  sessionToken={sessionToken}
-                  onTestResultUpdate={handleTestResultUpdate}
-                  currentUserId={currentUserId}
-                  currentUserName={currentUserName}
-                  currentUserPicture={currentUserPicture}
-                />
-              </Paper>
-            </Grid>
-          </Grid>
-        </>
-      ) : (
-        <ComparisonView
-          currentTestRun={testRunData}
-          currentTestResults={testResults}
-          availableTestRuns={availableTestRuns}
-          onClose={() => setIsComparisonMode(false)}
-          onLoadBaseline={handleLoadBaseline}
-          prompts={prompts}
-          behaviors={behaviors}
-        />
-      )}
-    </Box>
+                {/* Right detail panel */}
+                <Grid item xs={12} md={8}>
+                  <Paper
+                      sx={{
+                        height: { xs: 600, md: 'calc(100vh - 420px)' },
+                        minHeight: 600,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                      }}
+                  >
+                    <TestDetailPanel
+                        test={selectedTest}
+                        loading={loading}
+                        prompts={prompts}
+                        behaviors={behaviors}
+                        testRunId={testRunId}
+                        onTestResultUpdate={handleTestResultUpdate}
+                        currentUserId={currentUserId}
+                        currentUserName={currentUserName}
+                        currentUserPicture={currentUserPicture}
+                    />
+                  </Paper>
+                </Grid>
+              </Grid>
+            </>
+        ) : (
+            <ComparisonView
+                currentTestRun={testRunData}
+                currentTestResults={testResults}
+                availableTestRuns={availableTestRuns}
+                onClose={() => setIsComparisonMode(false)}
+                onLoadBaseline={handleLoadBaseline}
+                prompts={prompts}
+                behaviors={behaviors}
+            />
+        )}
+      </Box>
   );
 }

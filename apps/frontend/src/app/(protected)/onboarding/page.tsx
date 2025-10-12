@@ -12,7 +12,6 @@ export default async function OnboardingPage() {
   if (!session?.user?.id) {
     throw new Error('No user ID available in session');
   }
-  console.log('find me',session.session_token, session.user.id)
 
   return (
     <OnboardingPageClient

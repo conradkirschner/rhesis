@@ -6,19 +6,18 @@ import {
   Typography,
   Chip,
   IconButton,
-  Link,
   Tooltip,
   useTheme,
 } from '@mui/material';
 import { EditIcon, DeleteIcon, AssignmentIcon } from '@/components/icons';
-import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { Task, TaskStatus, TaskPriority, EntityType } from '@/types/tasks';
 import { getEntityDisplayName } from '@/utils/entity-helpers';
 import { UserAvatar } from '@/components/common/UserAvatar';
+import {TaskDetail} from '@/api-client';
+import {EntityType} from "@/components/common/BaseTag";
 
 interface TaskItemProps {
-  task: Task;
+  task: TaskDetail;
   onEdit?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   currentUserId: string;
@@ -196,13 +195,13 @@ export function TaskItem({
         <Chip
           label={task.status?.name || 'Unknown'}
           size="small"
-          color={getStatusColor(task.status?.name)}
+          color={getStatusColor(task.status?.name??'')}
           variant="outlined"
         />
         <Chip
           label={task.priority?.type_value || 'Unknown'}
           size="small"
-          color={getPriorityColor(task.priority?.type_value)}
+          color={getPriorityColor(task.priority?.type_value??'')}
           variant="outlined"
         />
       </Box>

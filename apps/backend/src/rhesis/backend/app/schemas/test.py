@@ -6,62 +6,12 @@ from pydantic import UUID4, BaseModel, ConfigDict, field_validator
 from rhesis.backend.app.schemas import Base
 from rhesis.backend.app.schemas.user import UserReference
 from rhesis.backend.app.schemas.json_value import Json
-
-
-# Base models for related entities
-class UserBase(Base):
-    id: UUID4
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class TypeLookup(Base):
-    id: UUID4
-    type_name: str
-    type_value: str
-    description: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class Topic(Base):
-    id: UUID4
-    name: str
-    description: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class Prompt(Base):
-    id: UUID4
-    content: str  # Changed from text to content based on your model
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class Status(Base):
-    id: UUID4
-    name: str
-    description: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class Behavior(Base):
-    id: UUID4
-    name: str
-    description: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class Category(Base):
-    id: UUID4
-    name: str
-    description: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
+from rhesis.backend.app.schemas.topic import Topic
+from rhesis.backend.app.schemas.behavior import Behavior
+from rhesis.backend.app.schemas.category import Category
+from rhesis.backend.app.schemas.status import Status
+from rhesis.backend.app.schemas.prompt import Prompt
+from .type_lookup import TypeLookup
 
 class Source(Base):
     id: UUID4
@@ -70,6 +20,10 @@ class Source(Base):
 
     model_config = ConfigDict(from_attributes=True)
 
+class SourceItem(Base):
+    document: Optional[str] = None
+    source: Optional[str] = None
+    content: Optional[str] = None
 
 class TestTag(Base):
     id: UUID4
@@ -78,6 +32,9 @@ class TestTag(Base):
 
     model_config = ConfigDict(from_attributes=True)
 
+class TestMetadata(Base):
+    # If you ever need multiple sources, keep this as a list
+    sources: Optional[List[SourceItem]] = None
 
 # Test schemas
 class TestBase(Base):
@@ -96,10 +53,11 @@ class TestBase(Base):
     status_id: Optional[UUID4] = None
     source_id: Optional[UUID4] = None
     organization_id: Optional[UUID4] = None
-    test_metadata: Optional[Dict[str, Json]] = None
+    test_metadata: Optional[TestMetadata] = None
 
 
 class TestCreate(TestBase):
+    prompt_id: Optional[UUID4] = None
     pass
 
 

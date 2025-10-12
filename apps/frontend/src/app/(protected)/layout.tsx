@@ -2,14 +2,11 @@
 
 import * as React from 'react';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
-import { PageContainer } from '@toolpad/core/PageContainer';
 import AuthErrorBoundary from './error-boundary';
 import { useSession } from 'next-auth/react';
-import { UUID } from 'crypto';
 import { SxProps } from '@mui/system';
 import SidebarFooter from '@/components/navigation/SidebarFooter';
 import ToolbarActions from '@/components/layout/ToolbarActions';
-import QueryProvider from './query-provider';
 import HeyApiAuthProvider from '@/components/providers/HeyApiAuthProvider';
 
 // Define extended user interface that includes organization_id
@@ -51,7 +48,6 @@ export default function ProtectedLayout({
 
   return (
     <AuthErrorBoundary>
-        <QueryProvider>
             <HeyApiAuthProvider initialToken={session?.session_token}>
                 <DashboardLayout
         sx={layoutStyles}
@@ -64,7 +60,6 @@ export default function ProtectedLayout({
         {children}
       </DashboardLayout>
             </HeyApiAuthProvider>
-        </QueryProvider>
     </AuthErrorBoundary>
   );
 }

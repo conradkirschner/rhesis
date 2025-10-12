@@ -1,8 +1,8 @@
 'use server';
 
 import { auth } from '@/auth';
-import { ApiClientFactory } from '@/utils/api-client/client-factory';
-import { Endpoint } from '@/utils/api-client/interfaces/endpoint';
+import type { Endpoint } from '@/api-client/types.gen';
+import { createEndpointEndpointsPost } from '@/api-client/sdk.gen';
 
 export interface CreateEndpointResult {
   success: boolean;
@@ -11,28 +11,26 @@ export interface CreateEndpointResult {
 }
 
 export async function createEndpoint(
-  data: Omit<Endpoint, 'id'>
+    payload: Omit<Endpoint, 'id'>
 ): Promise<CreateEndpointResult> {
   try {
     const session = await auth();
     if (!session?.session_token) {
-      throw new Error('No session token available');
+      return { success: false, error: 'No session token available' };
     }
 
-    const apiFactory = new ApiClientFactory(session.session_token);
-    const endpointsClient = apiFactory.getEndpointsClient();
-    const endpoint = await endpointsClient.createEndpoint(data);
+    const { data } = await createEndpointEndpointsPost({
+      body: payload,
+      headers: { Authorization: `Bearer ${session.session_token}` },
+      baseUrl: process.env.BACKEND_URL,
+      throwOnError: true,
+    });
 
-    return {
-      success: true,
-      data: endpoint,
-    };
-  } catch (error) {
-    console.error('Failed to create endpoint:', error);
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : 'An unknown error occurred',
-    };
+    return { success: true, data };
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to create endpoint:', err);
+    const message = err instanceof Error ? err.message : 'An unknown error occurred';
+    return { success: false, error: message };
   }
 }
