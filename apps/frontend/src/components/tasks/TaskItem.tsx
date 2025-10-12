@@ -13,8 +13,7 @@ import { EditIcon, DeleteIcon, AssignmentIcon } from '@/components/icons';
 import { useRouter } from 'next/navigation';
 import { getEntityDisplayName } from '@/utils/entity-helpers';
 import { UserAvatar } from '@/components/common/UserAvatar';
-import {TaskDetail} from '@/api-client';
-import {EntityType} from "@/components/common/BaseTag";
+import {EntityType, TaskDetail} from '@/api-client';
 
 interface TaskItemProps {
   task: TaskDetail;

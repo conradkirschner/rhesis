@@ -11,13 +11,12 @@ import {
   Tooltip,
 } from '@mui/material';
 import { SendIcon } from '@/components/icons';
-import { Comment } from '@/types/comments';
 import { CommentItem } from './CommentItem';
 import { UserAvatar } from '@/components/common/UserAvatar';
-import type {RhesisBackendAppSchemasTagEntityType} from "@/api-client";
+import type {EntityType, Comment} from "@/api-client";
 
 interface CommentsSectionProps {
-  entityType: RhesisBackendAppSchemasTagEntityType;
+  entityType: EntityType;
   entityId: string;
   comments: Comment[];
   onCreateComment: (text: string) => Promise<void>;

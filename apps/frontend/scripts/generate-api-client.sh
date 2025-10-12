@@ -65,7 +65,7 @@ export default {
   output: ${OUTPUT_DIR_ABS@Q},
   plugins: [
     // Next.js client (fetch wrapper for Next) + runtime config hook
-    { name: '@hey-api/client-next', runtimeConfigPath: './heyapi.runtime.ts' },
+    { name: '@hey-api/client-next', runtimeConfigPath: './heyapi.runtime' },
     // TanStack Query helpers (queryOptions / infinite / keys)
     { name: '@tanstack/react-query', queryOptions: true, infiniteQueryOptions: true, queryKeys: { tags: true } }
   ]

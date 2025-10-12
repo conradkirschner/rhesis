@@ -8,10 +8,10 @@ import CommentsWrapper from '@/components/comments/CommentsWrapper';
 
 // TanStack task hooks you created earlier
 import { useCreateTask, useDeleteTask } from '@/hooks/useTasks';
-import {type RhesisBackendAppSchemasTagEntityType, TaskCreate} from "@/api-client";
+import {type EntityType, TaskCreate} from "@/api-client";
 
 interface TasksAndCommentsWrapperProps {
-    entityType: RhesisBackendAppSchemasTagEntityType;
+    entityType: EntityType;
     entityId: string;
     currentUserId: string;
     currentUserName: string;

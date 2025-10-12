@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import { EntityType } from '@/types/tasks';
 import { TasksSection } from './TasksSection';
 import { useCreateTask, useDeleteTask } from '@/hooks/useTasks';
-import {TaskCreate} from "@/api-client";
+import {TaskCreate, EntityType} from "@/api-client";
 
 
 interface TasksWrapperProps {

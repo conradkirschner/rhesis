@@ -68,7 +68,7 @@ export default function ExecuteTestSetDrawer({
   const [selectedProject, setSelectedProject] = useState<Id | null>(null);
   const [selectedEndpoint, setSelectedEndpoint] = useState<Id | null>(null);
   const [executionMode, setExecutionMode] =
-      useState<TestSetExecutionRequest['execution_options']>('Parallel');
+      useState<TestSetExecutionRequest['execution_mode']>('Parallel');
 
   const notifications = useNotifications();
 
@@ -140,7 +140,7 @@ export default function ExecuteTestSetDrawer({
     // Variables shape matches the generated mutation
     executeMutation.mutate({
       path: { test_set_identifier: testSetId, endpoint_id: selectedEndpoint },
-      body: { execution_options: executionMode },
+      body: { execution_mode: executionMode },
     });
   };
 
@@ -260,7 +260,7 @@ export default function ExecuteTestSetDrawer({
                     value={executionMode ?? 'Parallel'}
                     onChange={e =>
                         setExecutionMode(
-                            (e.target.value as TestSetExecutionRequest['execution_options']) ?? 'Parallel',
+                            (e.target.value as TestSetExecutionRequest['execution_mode']) ?? 'Parallel',
                         )
                     }
                     label="Execution Mode"

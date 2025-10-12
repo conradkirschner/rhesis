@@ -43,14 +43,6 @@ interface ProjectsClientWrapperProps {
     sessionToken: string;
 }
 
-/** Normalize a ProjectDetail (nullable fields) into a Project (requires `name: string`) */
-function toProjectSummary(detail: ProjectDetail): Project {
-    return {
-        ...(detail),
-        name: detail.name ?? '',
-    };
-}
-
 export default function ProjectsClientWrapper({
                                                   initialProjects,
                                               }: ProjectsClientWrapperProps) {
@@ -76,8 +68,7 @@ export default function ProjectsClientWrapper({
                 {projects.length > 0 &&
                     projects.map((project) => (
                         <Grid item key={project.id ?? project.name ?? Math.random()} xs={12} md={6} lg={4}>
-                            {/* Adapt ProjectDetail → Project for the card */}
-                            <ProjectCard project={toProjectSummary(project)} />
+                            <ProjectCard project={project} />
                         </Grid>
                     ))}
 

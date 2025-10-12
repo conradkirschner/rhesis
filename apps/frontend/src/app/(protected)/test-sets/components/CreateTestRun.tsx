@@ -66,7 +66,7 @@ export default function CreateTestRun({
   const [selectedProject, setSelectedProject] = useState<Id | null>(null);
   const [selectedEndpoint, setSelectedEndpoint] = useState<Id | null>(null);
   const [executionMode, setExecutionMode] =
-      useState<TestSetExecutionRequest['execution_options']>('Parallel');
+      useState<TestSetExecutionRequest['execution_mode']>('Parallel');
 
   // Projects + Endpoints via React Query
   const projectsQuery = useQuery({
@@ -133,7 +133,7 @@ export default function CreateTestRun({
 
     try {
       const body: TestSetExecutionRequest = {
-        execution_options: executionMode,
+        execution_mode: executionMode,
       };
 
       await Promise.all(
@@ -273,7 +273,7 @@ export default function CreateTestRun({
                     value={executionMode ?? 'Parallel'}
                     onChange={e =>
                         setExecutionMode(
-                            (e.target.value as TestSetExecutionRequest['execution_options']) ?? 'Parallel',
+                            (e.target.value as TestSetExecutionRequest['execution_mode']) ?? 'Parallel',
                         )
                     }
                     label="Execution Mode"

@@ -15,6 +15,9 @@ export default async function CreateProjectPage() {
   // Prefer org id from the session; defer any missing lookup to the client flow
   const organizationId = session.user.organization_id;
 
+  if (!organizationId) {
+      throw new Error('No organization ID available in session');
+  }
   return (
       <Box sx={{ p: 0 }}>
         <CreateProjectClient

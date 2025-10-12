@@ -36,7 +36,7 @@ export default function RecentTestSetsGrid() {
   const { data, isLoading, isFetching, error } = useQuery(queryOptions);
 
   // Current backend returns a plain array for 200
-  const rows: TestSet[] = data?.data ?? [];
+  const rows = data?.data ?? [];
 
   const totalRows = data?.pagination.totalCount;
 

@@ -4,7 +4,7 @@ import { useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNotifications } from '@/components/common/NotificationContext';
 
-import type { Comment, EntityType } from '@/types/comments';
+import type { Comment, EntityType } from '@/api-client/types.gen';
 
 import {
   readCommentsByEntityCommentsEntityEntityTypeEntityIdGetOptions,

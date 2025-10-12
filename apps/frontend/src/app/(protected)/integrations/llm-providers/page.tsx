@@ -506,7 +506,7 @@ export default function LLMProvidersPage() {
   const deleteModel = useMutation({
     ...deleteModelModelsModelIdDeleteMutation(),
     onSuccess: () => {
-      voidqueryClient.invalidateQueries({ queryKey: readModelsModelsGetOptions().queryKey });
+      void queryClient.invalidateQueries({ queryKey: readModelsModelsGetOptions().queryKey });
     },
   });
 

@@ -227,7 +227,7 @@ export default function TestRunDrawer({
         body: createBody,
       }));
 
-      const createdId: string | undefined = created.id ;
+      const createdId = created.id ;
 
       if (!createdId) {
         setError('Failed to create test configuration (missing id).');

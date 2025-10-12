@@ -137,7 +137,7 @@ describe('useComments', () => {
 
     it('handles missing session token', async () => {
       const { result } = renderHook(() =>
-        useComments({ ...mockProps, sessionToken: '' })
+        useComments({ ...mockProps })
       );
 
       await waitFor(() => {
@@ -202,7 +202,7 @@ describe('useComments', () => {
 
     it('handles missing session token for create', async () => {
       const { result } = renderHook(() =>
-        useComments({ ...mockProps, sessionToken: '' })
+        useComments({ ...mockProps })
       );
 
       await expect(result.current.createComment('New comment')).rejects.toThrow(

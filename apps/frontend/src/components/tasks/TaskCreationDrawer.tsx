@@ -11,10 +11,9 @@ import {
   Typography,
 } from '@mui/material';
 import BaseDrawer from '@/components/common/BaseDrawer';
-import { EntityType } from '@/types/tasks';
 import { getEntityDisplayName } from '@/utils/entity-helpers';
 
-import type { User } from '@/api-client/types.gen';
+import type { User, EntityType } from '@/api-client/types.gen';
 import { readUsersUsersGetOptions } from '@/api-client/@tanstack/react-query.gen';
 import { useQuery } from '@tanstack/react-query';
 
@@ -202,7 +201,7 @@ export function TaskCreationDrawer({
                   <em>Unassigned</em>
                 </MenuItem>
                 {users.map(u => (
-                    <MenuItem key={u.id} value={u.id}>
+                    <MenuItem key={u.id} value={u.id??undefined}>
                       {u.name || `${u.given_name ?? ''} ${u.family_name ?? ''}`.trim() || u.email || u.id}
                     </MenuItem>
                 ))}

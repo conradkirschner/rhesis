@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { useTasks } from '../useTasks';
+import { useTask } from '../useTasks';
 import { ApiClientFactory } from '../../utils/api-client/client-factory';
 
 // Mock dependencies
@@ -46,7 +46,7 @@ describe('useTasks', () => {
 
   describe('basic functionality', () => {
     it('has all required methods', () => {
-      const { result } = renderHook(() => useTasks({ autoFetch: false }));
+      const { result } = renderHook(() => useTask({ autoFetch: false }));
 
       expect(typeof result.current.fetchTasks).toBe('function');
       expect(typeof result.current.createTask).toBe('function');
@@ -64,7 +64,7 @@ describe('useTasks', () => {
     });
 
     it('initializes with correct default values', () => {
-      const { result } = renderHook(() => useTasks({ autoFetch: false }));
+      const { result } = renderHook(() => useTask({ autoFetch: false }));
 
       expect(result.current.tasks).toEqual([]);
       expect(result.current.isLoading).toBe(false);
@@ -96,7 +96,7 @@ describe('useTasks', () => {
 
       mockTasksClient.getTasks.mockResolvedValue(mockResponse);
 
-      const { result } = renderHook(() => useTasks({ autoFetch: false }));
+      const { result } = renderHook(() => useTask({ autoFetch: false }));
 
       // Call fetchTasks and wait for it to complete
       await new Promise(resolve => {
@@ -112,7 +112,7 @@ describe('useTasks', () => {
     });
 
     it('handles fetch error gracefully', () => {
-      const { result } = renderHook(() => useTasks({ autoFetch: false }));
+      const { result } = renderHook(() => useTask({ autoFetch: false }));
 
       // Test that the hook exists and has error handling capability
       expect(typeof result.current.fetchTasks).toBe('function');

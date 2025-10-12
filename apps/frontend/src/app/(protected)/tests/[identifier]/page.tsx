@@ -18,8 +18,6 @@ export default async function Page({ params }: PageProps) {
     return (
         <TestDetailClient
             identifier={identifier}
-            backendBaseUrl={process.env.BACKEND_URL ?? ''}
-            sessionToken={session.session_token}
             currentUser={{
                 id: session.user?.id ?? '',
                 name: session.user?.name ?? '',

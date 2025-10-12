@@ -3,7 +3,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Box, Typography, Button, Chip, Avatar, ChipProps } from '@mui/material';
 import { AddIcon } from '@/components/icons';
-import { Task, EntityType } from '@/types/tasks';
 import { getEntityDisplayName } from '@/utils/entity-helpers';
 import BaseDataGrid from '@/components/common/BaseDataGrid';
 import {
@@ -16,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import { TaskErrorBoundary } from './TaskErrorBoundary';
 import { AVATAR_SIZES } from '@/constants/avatar-sizes';
 import { useTasksList } from '@/hooks/useTasks';
-import {TaskCreate} from "@/api-client";
+import {EntityType, TaskCreate, Task, TaskDetail} from "@/api-client";
 
 interface TasksSectionProps {
   entityType: EntityType;
@@ -171,7 +170,7 @@ export function TasksSection({
       renderCell: (params: GridRenderCellParams<Task>) => (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Avatar
-                src={params.row.assignee?.picture}
+                src={params.row.assignee?.picture??undefined}
                 alt={params.row.assignee?.name || 'Unassigned'}
                 sx={{
                   width: AVATAR_SIZES.SMALL,
@@ -228,7 +227,7 @@ export function TasksSection({
                   pageSizeOptions={[5, 10, 25]}
                   paginationModel={paginationModel}
                   onPaginationModelChange={handlePaginationModelChange}
-                  getRowId={(row: Task) => row.id}
+                  getRowId={(row: TaskDetail) => row.id}
                   showToolbar
                   disablePaperWrapper
                   serverSidePagination

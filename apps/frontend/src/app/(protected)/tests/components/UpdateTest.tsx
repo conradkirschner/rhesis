@@ -343,7 +343,7 @@ export default function UpdateTest({
         <Autocomplete
             options={users}
             value={users.find(u => u.id === formData.assignee_id) ?? null}
-            onChange={(_, v) => setFormData(prev => ({ ...prev, assignee_id: v?.id }))}
+            onChange={(_, v) => setFormData(prev => ({ ...prev, assignee_id: v?.id??undefined }))}
             getOptionLabel={o => o.displayName}
             disabled={loading}
             renderInput={p => (
@@ -387,7 +387,7 @@ export default function UpdateTest({
         <Autocomplete
             options={users}
             value={users.find(u => u.id === formData.owner_id) ?? null}
-            onChange={(_, v) => setFormData(prev => ({ ...prev, owner_id: v?.id }))}
+            onChange={(_, v) => setFormData(prev => ({ ...prev, owner_id: v?.id??undefined }))}
             getOptionLabel={o => o.displayName}
             disabled={loading}
             renderInput={p => (
