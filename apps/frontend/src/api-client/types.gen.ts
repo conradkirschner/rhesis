@@ -1939,15 +1939,15 @@ export type GenerateTestsPrompt = {
     /**
      * Test Behaviors
      */
-    test_behaviors?: Array<string>;
+    test_behaviors?: Array<string | string>;
     /**
      * Test Purposes
      */
-    test_purposes?: Array<string>;
+    test_purposes?: Array<string | string>;
     /**
      * Key Topics
      */
-    key_topics?: Array<string>;
+    key_topics?: Array<string | string>;
     /**
      * Specific Requirements
      */
@@ -8530,6 +8530,10 @@ export type TestSetLabelBuckets = {
      * Sources
      */
     sources?: Array<RhesisBackendAppSchemasTestSetSourceItem> | null;
+    /**
+     * Total Tests
+     */
+    total_tests?: number | null;
 };
 
 /**
