@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -34,11 +34,10 @@ import {
 
 import type {
   Endpoint,
-  Project,
   JsonInput,
   EndpointProtocol,
   EndpointEnvironment,
-  CreateEndpointEndpointsPostData,
+  CreateEndpointEndpointsPostData, ProjectDetail,
 } from '@/api-client/types.gen';
 
 import {
@@ -179,7 +178,7 @@ const editorWrapperStyle = {
 };
 
 // Get appropriate icon based on project type or use case
-const getProjectIcon = (project: Project) => {
+const getProjectIcon = (project: ProjectDetail) => {
   if (project?.icon && ICON_MAP[project.icon]) {
     const IconComponent = ICON_MAP[project.icon];
     return <IconComponent />;
@@ -187,7 +186,6 @@ const getProjectIcon = (project: Project) => {
   return <SmartToyIcon />;
 };
 
-// Parse to `{[key:string]: JsonInput}`
 function parseJsonMap(input?: string): JsonMap | undefined {
   if (!input || !input.trim()) return undefined;
   try {
@@ -205,7 +203,6 @@ function parseJsonMap(input?: string): JsonMap | undefined {
   }
 }
 
-// Parse to `{[key:string]: string}` as required by the generated types
 function parseStringMap(input?: string): Record<string, string> | undefined {
   if (!input || !input.trim()) return undefined;
   try {
@@ -250,20 +247,15 @@ export default function EndpointForm() {
     project_id: '',
   });
 
-  // ---- Projects query (generated; v5 single-arg) ----
   const {
-    data: projectsList = [],
+    data: projects = [],
     isLoading: loadingProjects,
   } = useQuery({
     ...readProjectsProjectsGetOptions({
       query: { skip: 0, limit: 100, sort_by: 'name', sort_order: 'asc' },
     }),
+    select: (data) => data.data
   });
-
-  const projects: Project[] = useMemo(
-      () => (Array.isArray(projectsList) ? projectsList : []),
-      [projectsList]
-  );
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
@@ -271,7 +263,6 @@ export default function EndpointForm() {
 
   const validateUrl = (val: string): boolean => {
     try {
-      // eslint-disable-next-line no-new
       new URL(val);
       return true;
     } catch {

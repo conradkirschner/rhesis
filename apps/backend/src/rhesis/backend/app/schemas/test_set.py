@@ -21,6 +21,7 @@ class TestSetLabelBuckets(BaseModel):
     topics: Optional[List[str]] = None
     behaviors: Optional[List[str]] = None
     sources: Optional[List[SourceItem]] = None
+    total_tests: Optional[int] = None
 
 
 class TestSetAttributes(BaseModel):
