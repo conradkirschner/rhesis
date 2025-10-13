@@ -286,7 +286,6 @@ export default function EndpointForm() {
     }
   }
 
-  // ---- Create endpoint mutation (generated) ----
   const createMutation = useMutation({
     ...createEndpointEndpointsPostMutation(),
     onSuccess: () => {

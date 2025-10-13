@@ -11,7 +11,7 @@ import { PageContainer } from '@toolpad/core/PageContainer';
 import ProjectCard from './ProjectCard';
 import styles from '@/styles/ProjectsClientWrapper.module.css';
 
-import type { Project, ProjectDetail } from '@/api-client/types.gen';
+import type { ProjectDetail } from '@/api-client/types.gen';
 
 interface EmptyStateMessageProps {
     title: string;

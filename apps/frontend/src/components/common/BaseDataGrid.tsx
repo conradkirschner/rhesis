@@ -5,14 +5,12 @@ import {
   Button,
   Paper,
   styled,
-  useTheme,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   SelectChangeEvent,
   ButtonGroup,
-  Menu,
   Popper,
   Grow,
   ClickAwayListener,
@@ -23,7 +21,6 @@ import {
   DataGrid,
   GridPaginationModel,
   GridRowModel,
-  GridRowId,
   GridEditMode,
   GridDensity,
   GridRowSelectionModel,
@@ -151,10 +148,8 @@ export default function BaseDataGrid({
   title,
   loading = false,
   getRowId,
-  showToolbar = true,
   onRowClick,
   density,
-  sx,
   disableMultipleRowSelection,
   actionButtons,
   enableEditing = false,
@@ -181,18 +176,14 @@ export default function BaseDataGrid({
   enableQuickFilter = false,
   disablePaperWrapper = false,
 }: BaseDataGridProps) {
-  const theme = useTheme();
   const router = useRouter();
   const apiRef = useGridApiRef();
 
-  // Safe mounting implementation internal to the component
   const isMountedRef = useRef(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialization effect
   useEffect(() => {
     isMountedRef.current = true;
-    // Delay DataGrid initialization to prevent state update on unmounted component
     const initTimer = setTimeout(() => {
       if (isMountedRef.current) {
         setIsInitialized(true);

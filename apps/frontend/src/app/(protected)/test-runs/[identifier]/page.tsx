@@ -1,4 +1,3 @@
-// app/test-runs/[identifier]/page.tsx
 'use server';
 
 import { Box, Typography, Button, Paper } from '@mui/material';
@@ -8,7 +7,6 @@ import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBackOutlined';
 import { auth } from '@/auth';
 
-// Generated SDK + types
 import type {
   TestRunDetail,
   TestResultDetail,
@@ -32,30 +30,6 @@ type PageProps = {
   searchParams: { [key: string]: string | string[] | undefined };
 };
 
-/** ---- Helpers to normalize SDK responses ---- */
-function unwrapList<T>(res: any): T[] {
-  // Accept common shapes:
-  // 1) { data: T[]; pagination?: ... }
-  // 2) { data: { data: T[]; pagination?: ... } }
-  // 3) T[]
-  if (Array.isArray(res)) return res as T[];
-  if (Array.isArray(res?.data)) return res.data as T[];
-  if (Array.isArray(res?.data?.data)) return res.data.data as T[];
-  return [];
-}
-
-function unwrapOne<T>(res: any): T | undefined {
-  // Accept common shapes:
-  // 1) { data: T }
-  // 2) T
-  if (res?.data && typeof res.data === 'object' && !Array.isArray(res.data)) {
-    return res.data as T;
-  }
-  if (res && typeof res === 'object' && !Array.isArray(res)) {
-    return res as T;
-  }
-  return undefined;
-}
 
 function isDefined<T>(x: T | undefined | null): x is T {
   return x != null;
@@ -91,14 +65,11 @@ export default async function TestRunPage({ params }: PageProps) {
     const headers = { Authorization: `Bearer ${session.session_token}` };
     const baseUrl = process.env.BACKEND_URL;
 
-    // 1) Test run (unwrap the single entity)
-    const testRun = unwrapOne<TestRunDetail>(
-        await readTestRunTestRunsTestRunIdGet({
+    const {data: testRun} = await readTestRunTestRunsTestRunIdGet({
           headers,
           baseUrl,
           path: { test_run_id: identifier },
-        }),
-    );
+        })
 
     if (!testRun) {
       throw new Error('Test run not found');
@@ -124,19 +95,12 @@ export default async function TestRunPage({ params }: PageProps) {
         },
       });
 
-      const data = unwrapList<TestResultDetail>(page);
+      const data = page.data
       allResults = allResults.concat(data);
 
-      const pagination = (page as any)?.pagination as
-          | { totalCount?: number }
-          | { data?: { totalCount?: number } }
-          | undefined;
+      const pagination = page.data?.pagination
+      totalCount = pagination?.totalCount;
 
-      if (typeof (pagination as any)?.totalCount === 'number') {
-        totalCount = (pagination as any).totalCount;
-      } else if (typeof (page as any)?.data?.pagination?.totalCount === 'number') {
-        totalCount = (page as any).data.pagination.totalCount;
-      }
 
       if (totalCount !== undefined) {
         if (allResults.length >= totalCount) break;
@@ -171,7 +135,7 @@ export default async function TestRunPage({ params }: PageProps) {
         (acc, result, idx) => {
           const id = promptIds[idx];
           if (result.status === 'fulfilled') {
-            const prompt = unwrapOne<Prompt>(result.value);
+            const prompt = result.value
             if (prompt) acc[id] = prompt;
           }
           return acc;
@@ -186,10 +150,10 @@ export default async function TestRunPage({ params }: PageProps) {
       path: { test_run_id: identifier },
     });
 
-    const rawBehaviors = unwrapList<Behavior>(behaviorsRes);
+    const rawBehaviors = behaviorsRes.data;
 
     const withMetrics = await Promise.all(
-        rawBehaviors.map(async (b): Promise<(Behavior & { metrics: Metric[] }) | undefined> => {
+        rawBehaviors?.map(async (b): Promise<(Behavior & { metrics: Metric[] }) | undefined> => {
           if (!b.id) return undefined;
           try {
             const metricsRes = await readBehaviorMetricsBehaviorsBehaviorIdMetricsGet({

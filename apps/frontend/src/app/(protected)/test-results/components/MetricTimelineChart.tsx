@@ -15,7 +15,7 @@ export default function MetricTimelineChart({
   timelineData,
 }: MetricTimelineChartProps) {
   const theme = useTheme();
-  const contextInfo = (data: any[]) => {
+  const contextInfo = (data: {total: number}[]) => {
     if (data.length === 0) {
       return 'No data available for this metric in the selected period';
     }

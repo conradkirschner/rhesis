@@ -27,6 +27,7 @@
     "react/jsx-uses-vars": "error"
   },
   "ignorePatterns": [
+    "*.gen.ts",
     "node_modules/",
     ".next/",
     "out/",

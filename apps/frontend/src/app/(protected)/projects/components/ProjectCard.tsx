@@ -51,7 +51,7 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 
 import { useRouter } from 'next/navigation';
 
-import type {Project, ProjectDetail} from '@/api-client/types.gen';
+import type {ProjectDetail} from '@/api-client/types.gen';
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
 type IconKey =
@@ -211,7 +211,7 @@ const ProjectCard = React.memo(({ project, isLoading = false }: ProjectCardProps
                 }}
             />
         ),
-        [project.name, project.icon, getThemeColor, isTruncated],
+        [getThemeColor, project, isTruncated],
     );
 
     if (isLoading) return <ProjectCardSkeleton />;

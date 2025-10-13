@@ -164,10 +164,10 @@ export default function TestRunMainView({
   const availableTestRuns = useMemo<
       Array<{ id: string; name?: string; created_at: string; pass_rate?: number }>
   >(() => {
-    const rows = (listTestRunsQuery.data as any)?.data ?? [];
+    const rows = listTestRunsQuery.data?.data ?? [];
     return rows
-        .filter((r: any) => r?.id && r.id !== testRunId)
-        .map((r: any) => ({
+        .filter((r) => r?.id && r.id !== testRunId)
+        .map((r) => ({
           id: r.id,
           name: r.name,
           created_at: r.attributes?.started_at || r.created_at || '',
@@ -237,10 +237,10 @@ export default function TestRunMainView({
             });
 
             const page = await queryClient.fetchQuery(opts);
-            const pageData = (page as any)?.data ?? [];
+            const pageData = page?.data ?? [];
             out = out.concat(pageData);
 
-            const pagination = (page as any)?.pagination;
+            const pagination = page?.pagination;
             if (typeof pagination?.totalCount === 'number') {
               totalCount = pagination.totalCount;
             }

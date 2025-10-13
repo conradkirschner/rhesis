@@ -1,7 +1,6 @@
 'use client';
 
 import { clearAllSessionData } from './session';
-import { signOut } from 'next-auth/react';
 
 // Add a flag to prevent multiple simultaneous logout attempts
 let isLoggingOut = false;

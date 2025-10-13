@@ -35,7 +35,8 @@ import type {
   Project,
   JsonInput,
   EndpointEnvironment,
-  EndpointProtocol, UpdateEndpointEndpointsEndpointIdPutData,
+  EndpointProtocol,
+  EndpointUpdate,
 } from '@/api-client/types.gen';
 
 import {
@@ -191,7 +192,6 @@ export default function EndpointDetail({ endpoint: initialEndpoint }: EndpointDe
     },
   });
 
-  // -------- Invoke mutation (generated; v5 single-arg) --------
   const invokeMutation = useMutation({
     ...invokeEndpointEndpointsEndpointIdInvokePostMutation(),
     onSuccess: (data: JsonInput) => {
@@ -235,11 +235,9 @@ export default function EndpointDetail({ endpoint: initialEndpoint }: EndpointDe
 
   const handleJsonChange = (field: keyof Endpoint, value: string) => {
     try {
-      const parsed = JSON.parse(value);
-      // For editable JSON fields we accept any JSON value (object/array/primitive)
-      handleChange(field, parsed as Endpoint[typeof field]);
+      const parsed = JSON.parse(value) as Endpoint[typeof field];
+      handleChange(field, parsed);
     } catch {
-      // Keep raw text if parsing fails so user can fix it
       handleChange(field, value as Endpoint[typeof field]);
     }
   };
@@ -249,7 +247,7 @@ export default function EndpointDetail({ endpoint: initialEndpoint }: EndpointDe
     try {
       const payload = {
         path: { endpoint_id: endpoint.id },
-        body: editedValues as UpdateEndpointEndpointsEndpointIdPutData['body'],
+        body: editedValues as EndpointUpdate,
       };
       await updateMutation.mutateAsync(payload);
     } finally {
@@ -270,8 +268,6 @@ export default function EndpointDetail({ endpoint: initialEndpoint }: EndpointDe
         return;
       }
 
-      // Lightweight runtime validation to ensure values are JSON-compatible.
-      // (Your generated JsonInput already represents valid JSON values.)
       const body: JsonObject = parsed as JsonObject;
 
       const payload = {

@@ -17,10 +17,6 @@ import { useSession } from 'next-auth/react';
 import { useNotifications } from '@/components/common/NotificationContext';
 import { useMutation } from '@tanstack/react-query';
 
-/** Generated API client (so we can inject the bearer) */
-import { client } from '@/api-client/client.gen';
-
-/** Generated mutation helper */
 import { createUserUsersPostMutation } from '@/api-client/@tanstack/react-query.gen';
 
 interface FormData {
@@ -152,7 +148,6 @@ export default function TeamInviteForm({ onInvitesSent }: TeamInviteFormProps) {
         return;
       }
 
-      // Send invitations via generated mutation
       const results: Array<{ email: string; success: boolean; error?: string }> =
           [];
 

@@ -125,7 +125,6 @@ export default function EndpointGrid({
     return map;
   }, [projectsResponse]);
 
-  // Delete mutation (generated)
   const deleteMutation = useMutation({
     ...deleteEndpointEndpointsEndpointIdDeleteMutation(),
   });

@@ -10,10 +10,9 @@ import { readTestsTestsGetOptions } from '@/api-client/@tanstack/react-query.gen
 import type { TestDetail } from '@/api-client/types.gen';
 
 interface RecentTestsGridProps {
-  sessionToken: string; // retained for signature compatibility (not needed if HeyApiAuthProvider sets auth)
 }
 
-export default function RecentTestsGrid(_props: RecentTestsGridProps) {
+export default function RecentTestsGrid({}: RecentTestsGridProps) {
   const [paginationModel, setPaginationModel] = useState<{ page: number; pageSize: number }>({
     page: 0,
     pageSize: 10,
@@ -31,10 +30,8 @@ export default function RecentTestsGrid(_props: RecentTestsGridProps) {
       [skip, limit]
   );
 
-  // Pass options directly to useQuery to keep the generator's queryKey/queryFn types intact
   const { data, isLoading, isFetching, error } = useQuery(queryOptions);
 
-  // Current backend returns a plain array for 200
   const rows: TestDetail[] = data?.data ?? [];
 
   const totalRows = data?.pagination.totalCount;

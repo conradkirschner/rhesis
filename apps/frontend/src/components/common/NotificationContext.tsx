@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Snackbar, Alert, useTheme } from '@mui/material';
+import {SyntheticEvent} from "react";
 
 export type NotificationSeverity =
   | 'success'
@@ -87,7 +88,7 @@ export function NotificationProvider({
     [currentNotification]
   );
 
-  const handleClose = (_event?: any, reason?: string) => {
+  const handleClose = (_event?: Event | SyntheticEvent<Element, Event>, reason?: string) => {
     if (reason === 'clickaway') {
       return;
     }

@@ -8,7 +8,6 @@ import {
   GridRenderCellParams,
 } from '@mui/x-data-grid';
 import BaseDataGrid from '@/components/common/BaseDataGrid';
-import { format, parseISO } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 
 import { readTestSetsTestSetsGetOptions } from '@/api-client/@tanstack/react-query.gen';
@@ -23,7 +22,6 @@ export default function RecentTestSetsGrid() {
   const skip = paginationModel.page * paginationModel.pageSize;
   const limit = paginationModel.pageSize;
 
-  // Build options with the generator helper (do NOT augment when calling useQuery)
   const queryOptions = useMemo(
       () =>
           readTestSetsTestSetsGetOptions({
@@ -32,10 +30,8 @@ export default function RecentTestSetsGrid() {
       [skip, limit]
   );
 
-  // Pass options directly to useQuery to keep the generator's queryKey/queryFn types intact
   const { data, isLoading, isFetching, error } = useQuery(queryOptions);
 
-  // Current backend returns a plain array for 200
   const rows = data?.data ?? [];
 
   const totalRows = data?.pagination.totalCount;

@@ -27,7 +27,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       throw new Error(
           typeof error === 'string'
               ? error
-              : (error as any)?.message || 'Failed to load project'
+              : (error as Error)?.message || 'Failed to load project'
       );
     }
     if (!project) {

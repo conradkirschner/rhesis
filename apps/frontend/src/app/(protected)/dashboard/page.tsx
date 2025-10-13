@@ -10,9 +10,7 @@ import RecentTestsGrid from './components/RecentTestsGrid';
 import RecentTestSetsGrid from './components/RecentTestSetsGrid';
 import RecentActivitiesGrid from './components/RecentActivitiesGrid';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { UUID } from 'crypto';
+
 import {
   ScienceIcon,
   HorizontalSplitIcon,
@@ -20,26 +18,11 @@ import {
 } from '@/components/icons';
 import { PageContainer } from '@toolpad/core/PageContainer';
 
-// Extended User interface with organization_id
-interface ExtendedUser {
-  id?: string;
-  name?: string | null;
-  email?: string | null;
-  is_superuser?: boolean;
-  organization_id?: UUID;
-}
-
-interface SessionUser {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-  organization_id?: string | null;
-}
-
 export default function DashboardPage() {
   const { data: session } = useSession();
-  const router = useRouter();
+  if (!session?.user) {
+    throw new Error('auth error');
+  }
 
   return (
     <PageContainer>
@@ -57,7 +40,7 @@ export default function DashboardPage() {
               <ScienceIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
               Newest Tests
             </Typography>
-            <RecentTestsGrid sessionToken={session?.session_token || ''} />
+            <RecentTestsGrid />
           </Paper>
         </Grid>
 

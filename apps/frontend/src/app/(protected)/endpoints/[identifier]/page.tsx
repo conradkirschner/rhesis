@@ -10,12 +10,12 @@ import { readEndpointEndpointsEndpointIdGetOptions } from '@/api-client/@tanstac
 import type {Endpoint, EndpointDetail as EndpointDetailType } from '@/api-client/types.gen';
 
 interface PageProps {
-  params: { identifier: string };
-  searchParams?: Record<string, string | string[] | undefined>;
+  params: Promise<{ identifier: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default function EndpointPage({ params }: PageProps) {
-  const { identifier } = params;
+export default async function EndpointPage({ params }: PageProps) {
+  const { identifier } = await params;
 
   // Build options with the generator helper (do NOT augment when calling useQuery)
   const queryOptions = useMemo(

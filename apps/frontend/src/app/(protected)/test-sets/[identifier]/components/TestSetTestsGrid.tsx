@@ -82,7 +82,6 @@ export default function TestSetTestsGrid({
     return { rows: data, totalCount: total };
   }, [testsQuery.data]);
 
-  // ---- Mutation: disassociate selected tests from test set
   const disassociateMutation = useMutation({
     ...disassociateTestsFromTestSetTestSetsTestSetIdDisassociatePostMutation(
     ),
@@ -97,7 +96,7 @@ export default function TestSetTestsGrid({
       testsQuery.refetch();
       onRefresh?.();
     },
-    onError: (err) => {
+    onError: () => {
       notifications.show('Failed to remove tests from test set', {
         severity: 'error',
         autoHideDuration: 6000,
@@ -105,7 +104,6 @@ export default function TestSetTestsGrid({
     },
   });
 
-  // ---- Columns
   const columns: GridColDef<Row>[] = useMemo(
       () => [
         {
@@ -157,7 +155,6 @@ export default function TestSetTestsGrid({
       [],
   );
 
-  // ---- Handlers
   const handlePaginationModelChange = useCallback(
       (newModel: GridPaginationModel) => setPaginationModel(newModel),
       [],
@@ -184,7 +181,6 @@ export default function TestSetTestsGrid({
     });
   }, [disassociateMutation, selectedRows, testSetId]);
 
-  // ---- Dynamic action buttons
   const actionButtons = useMemo(() => {
     const buttons: Array<{
       label: string;

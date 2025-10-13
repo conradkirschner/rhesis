@@ -3,7 +3,6 @@ import {
   Box,
   TextField,
   Button,
-  Typography,
   IconButton,
   CircularProgress,
   Snackbar,
@@ -74,7 +73,7 @@ export default function InviteTeamStep({
     const seenEmails = new Set<string>();
     const duplicateEmails = new Set<string>();
 
-    emailsToCheck.forEach(({ email, index }) => {
+    emailsToCheck.forEach(({ email }) => {
       if (seenEmails.has(email)) {
         duplicateEmails.add(email);
       } else {

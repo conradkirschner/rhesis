@@ -5,8 +5,7 @@ import {
   ThemeProvider as MuiThemeProvider,
   createTheme,
 } from '@mui/material/styles';
-import { getDesignTokens } from '../../styles/theme';
-import CssBaseline from '@mui/material/CssBaseline';
+import { getDesignTokens } from '@/styles/theme';
 
 // Create a context for theme mode
 export const ColorModeContext = React.createContext({

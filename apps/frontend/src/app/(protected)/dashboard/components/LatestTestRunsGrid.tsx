@@ -53,7 +53,6 @@ export default function RecentActivitiesGrid() {
   const skip = paginationModel.page * paginationModel.pageSize;
   const limit = paginationModel.pageSize;
 
-  // Build options from the generated helper (do not spread/augment when calling useQuery)
   const queryOptions = useMemo(
       () =>
           readTestsTestsGetOptions({
@@ -62,10 +61,8 @@ export default function RecentActivitiesGrid() {
       [skip, limit]
   );
 
-  // Pass the options object directly to useQuery (prevents TS overload issues)
   const { data, isLoading, isFetching, error } = useQuery(queryOptions);
 
-  // Current backend returns a plain array for 200
   const rows: TestDetail[] = data?.data ?? [];
 
   const totalRows = data?.pagination.totalCount;

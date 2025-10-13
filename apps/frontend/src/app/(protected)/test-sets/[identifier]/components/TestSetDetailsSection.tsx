@@ -21,7 +21,7 @@ import { useMutation } from '@tanstack/react-query';
 import ExecuteTestSetDrawer from './ExecuteTestSetDrawer';
 import TestSetTags from './TestSetTags';
 
-import type {RhesisBackendAppSchemasTestSetSourceItem, TestSet} from '@/api-client/types.gen';
+import type {TestSet} from '@/api-client/types.gen';
 
 import { updateTestSetTestSetsTestSetIdPutMutation } from '@/api-client/@tanstack/react-query.gen';
 

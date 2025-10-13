@@ -59,16 +59,26 @@ popd >/dev/null
 # --- transient Hey API config in TMP_DIR ---
 CONFIG_FILE="${TMP_DIR}/openapi-ts.config.mjs"
 cat > "${CONFIG_FILE}" <<EOF
+
 /** @type {import('@hey-api/openapi-ts').UserConfig} */
 export default {
   input: ${TMP_JSON@Q},
-  output: ${OUTPUT_DIR_ABS@Q},
+  output: {path: ${OUTPUT_DIR_ABS@Q}, lint:'eslint', format:'prettier'},
   plugins: [
     // Next.js client (fetch wrapper for Next) + runtime config hook
     { name: '@hey-api/client-next', runtimeConfigPath: './heyapi.runtime' },
     // TanStack Query helpers (queryOptions / infinite / keys)
     { name: '@tanstack/react-query', queryOptions: true, infiniteQueryOptions: true, queryKeys: { tags: true } }
-  ]
+  ],
+  parser: {
+      pagination: {
+        keywords: [
+          'Paginated',
+          'paginated',
+          'pagination',
+        ],
+      },
+    },
 };
 EOF
 

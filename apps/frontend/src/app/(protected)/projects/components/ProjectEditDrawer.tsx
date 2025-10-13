@@ -44,9 +44,7 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import BaseDrawer from '@/components/common/BaseDrawer';
 import styles from '@/styles/ProjectEditDrawer.module.css';
 
-// API types only
 import type { ProjectDetail, ProjectUpdate } from '@/api-client/types.gen';
-// UI-only view model types
 import type { ProjectMeta } from '../types/project-ui';
 
 type IconKey =
@@ -104,10 +102,8 @@ export interface ProjectEditDrawerProps {
   open: boolean;
   onClose: () => void;
 
-  /** API object (server shape) */
   project: ProjectDetail;
 
-  /** UI-only meta (client shape) */
   meta?: ProjectMeta;
 
   /**
@@ -117,14 +113,11 @@ export interface ProjectEditDrawerProps {
    */
   onSave: (updatedProject: Partial<ProjectUpdate>, updatedMeta: ProjectMeta) => Promise<void>;
 
-  /** Optional: already-fetched users to choose an owner from */
   users?: Owner[];
 
-  /** Optional: show loading state while parent loads users */
   usersLoading?: boolean;
 }
 
-/** Local, strictly-typed form state */
 interface FormState {
   name: string;
   description: string;
@@ -202,7 +195,6 @@ export default function ProjectEditDrawer({
   const [form, setForm] = React.useState<FormState>(initialForm);
   const [saving, setSaving] = React.useState(false);
 
-  // Reset when drawer opens with a different project
   React.useEffect(() => {
     if (open) {
       setForm({
@@ -223,10 +215,9 @@ export default function ProjectEditDrawer({
             setForm((prev) => ({ ...prev, [key]: e.target.value as FormState[K] }));
           };
 
-  // ✅ Correct MUI Select typing: use SelectChangeEvent and include the (event, child) signature
   const handleSelect =
       <K extends keyof FormState>(key: K) =>
-          (event: SelectChangeEvent<string>, _child: React.ReactNode) => {
+          (event: SelectChangeEvent) => {
             setForm((prev) => ({ ...prev, [key]: event.target.value as FormState[K] }));
           };
 

@@ -152,11 +152,9 @@ function hasCounts(x: unknown): x is WithCounts {
 export default function TestSetsGrid({
                                        testSets: initialTestSets,
                                        loading: initialLoading,
-                                       sessionToken,
                                        initialTotalCount,
                                      }: TestSetsGridProps) {
   const router = useRouter();
-  const { data: session } = useSession();
   const notifications = useNotifications();
 
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
@@ -169,7 +167,6 @@ export default function TestSetsGrid({
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // list query
   const skip = paginationModel.page * paginationModel.pageSize;
   const limit = paginationModel.pageSize;
 
@@ -227,7 +224,7 @@ export default function TestSetsGrid({
           { severity: 'success', autoHideDuration: 4000 },
       );
       setSelectedRows([]);
-      listQuery.refetch();
+      void listQuery.refetch();
     },
     onError: (err) => {
       console.error('Error deleting test sets:', err);

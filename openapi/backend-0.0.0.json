@@ -2,9 +2,14 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Rhesis Backend",
-    "description": "API for testing and evaluating AI models.\n\n## Version Information\n- **Version**: 0.1.0\n- **Branch**: 477-adding-pino-logger\n- **Commit**: d3007a30\n\n## URL Encoding\nWhen using curl, special characters in URLs need to be URL-encoded. For example:\n- Encoded: `/tests/?%24filter=prompt_id%20eq%20'89905869-e8e9-4b2f-b362-3598cfe91968'`\n- Unencoded: `/tests/?$filter=prompt_id eq '89905869-e8e9-4b2f-b362-3598cfe91968'`\n\nThe `$` character must be encoded as `%24` when using curl.\nWeb browsers handle this automatically.\n",
+    "description": "API for testing and evaluating AI models.\n\n## Version Information\n- **Version**: 0.1.0\n- **Branch**: 477-adding-pino-logger\n- **Commit**: 1a60ae5f\n\n## URL Encoding\nWhen using curl, special characters in URLs need to be URL-encoded. For example:\n- Encoded: `/tests/?%24filter=prompt_id%20eq%20'89905869-e8e9-4b2f-b362-3598cfe91968'`\n- Unencoded: `/tests/?$filter=prompt_id eq '89905869-e8e9-4b2f-b362-3598cfe91968'`\n\nThe `$` character must be encoded as `%24` when using curl.\nWeb browsers handle this automatically.\n",
     "version": "0.1.0"
   },
+  "servers": [
+    {
+      "url": "http://backend:8000"
+    }
+  ],
   "paths": {
     "/auth/login": {
       "get": {

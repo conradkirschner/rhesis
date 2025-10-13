@@ -201,6 +201,7 @@ export default function TrialDrawer({
                 getOptionLabel={o => o.name}
                 isOptionEqualToValue={(o, v) => o.id === v.id}
                 renderOption={(props, option) => {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                   const { key, ...other } = props;
                   return (
                       <Box component="li" key={option.id} {...other}>
@@ -234,6 +235,7 @@ export default function TrialDrawer({
                 isOptionEqualToValue={(o, v) => o.id === v.id}
                 disabled={!selectedProject}
                 renderOption={(props, option) => {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                   const { key, ...other } = props;
                   return (
                       <Box

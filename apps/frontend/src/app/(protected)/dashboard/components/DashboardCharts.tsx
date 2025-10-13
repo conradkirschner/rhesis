@@ -41,7 +41,6 @@ const testCasesManagedData = getLastSixMonths();
 export default function DashboardCharts() {
   const theme = useTheme();
 
-  // /tests/stats (EntityStats)
   const {
     data: testStats,
     isLoading: isLoadingTestStats,
@@ -52,7 +51,6 @@ export default function DashboardCharts() {
       })
   );
 
-  // /test_results/stats (TestResultStats* union) — we use mode: 'timeline'
   const {
     data: testResultsStats,
     isLoading: isLoadingResultsStats,

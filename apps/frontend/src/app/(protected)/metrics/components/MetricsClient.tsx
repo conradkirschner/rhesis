@@ -260,12 +260,6 @@ export default function MetricsClientComponent({
         router.replace(`/metrics?${params.toString()}`, { scroll: false });
     };
 
-    /** Manual refresh via invalidation, keeping generated keys intact */
-    const handleRefresh = React.useCallback(() => {
-        queryClient.invalidateQueries({ queryKey: behaviorsOpts.queryKey });
-        queryClient.invalidateQueries({ queryKey: metricsOpts.queryKey });
-    }, [queryClient, behaviorsOpts.queryKey, metricsOpts.queryKey]);
-
     return (
         <ErrorBoundary>
             <Box sx={{ width: '100%', minHeight: '100%' }}>

@@ -115,6 +115,10 @@ app = FastAPI(
     title="Rhesis Backend",
     description=get_api_description(),
     version=__version__,
+    servers=[
+            {"url": "http://backend:8000"},
+            {"url": "http://localhost:8000"}
+        ],
     openapi_tags=[
         {"name": "internal", "description": "Operational/internal endpoints"},
         {"name": "frontend", "description": "Used in frontend"}

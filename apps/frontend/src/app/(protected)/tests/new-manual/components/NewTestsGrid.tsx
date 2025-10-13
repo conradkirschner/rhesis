@@ -25,9 +25,6 @@ import {
   readTopicsTopicsGetOptions,
   createTestTestsPostMutation,
 } from '@/api-client/@tanstack/react-query.gen';
-import {TestCreate} from "@/api-client";
-
-// ---------- Types ----------
 
 type Option = { id: string; name: string };
 
@@ -44,31 +41,16 @@ type NewTestRow = {
   statusName: string; // optional – API may ignore or accept status name
 };
 
-// Minimal request shape expected by createTest (align with your types.gen if available)
-type CreateTestInput = {
-  prompt: { content: string; language_code: string };
-  behavior: string;
-  topic: string;
-  category: string;
-  priority: number;
-  test_configuration: Record<string, unknown>;
-  // Uncomment if your API accepts these:
-  // status?: string;
-  // assignee_id?: string;
-  // owner_id?: string;
-};
-
 interface NewTestsGridProps {
   onSave?: () => void;
   onCancel?: () => void;
 }
 
-export default function NewTestsGrid({ onSave, onCancel }: NewTestsGridProps) {
+export default function NewTestsGrid({ onSave}: NewTestsGridProps) {
   const router = useRouter();
   const notifications = useNotifications();
   const { data: session } = useSession();
 
-  // Load options
   const behaviorsQuery = useQuery(
       readBehaviorsBehaviorsGetOptions({ query: { sort_by: 'name', sort_order: 'asc' } })
   );
@@ -120,31 +102,10 @@ export default function NewTestsGrid({ onSave, onCancel }: NewTestsGridProps) {
     }
   }, [topicsQuery.error, notifications]);
 
-  // Single-create mutation (fast path)
   const createTestMutation = useMutation({
     ...createTestTestsPostMutation(),
   });
 
-  // Map a grid row to the API input (prefer names)
-  const rowToCreatePayload = useCallback(
-      (row: NewTestRow): CreateTestInput => {
-        const behaviorName =
-            behaviorOptions.find(b => b.id === row.behaviorId)?.name || row.behaviorName;
-
-        return {
-          prompt: { content: row.promptContent.trim(), language_code: 'en' },
-          behavior: behaviorName,
-          topic: row.topicName.trim(),
-          category: row.categoryName.trim(),
-          priority: Number(row.priority) || 0,
-          test_configuration: {},
-          // status: row.statusName || undefined,
-        };
-      },
-      [behaviorOptions]
-  );
-
-  // Columns
   const columns: GridColDef<NewTestRow>[] = [
     {
       field: 'behaviorName',
@@ -223,7 +184,6 @@ export default function NewTestsGrid({ onSave, onCancel }: NewTestsGridProps) {
     { field: 'statusName', headerName: 'Status', flex: 1, editable: true },
   ];
 
-  // Row ops
   const handleAddRecord = useCallback(() => {
     setRows(prev => [
       ...prev,
@@ -317,7 +277,7 @@ export default function NewTestsGrid({ onSave, onCancel }: NewTestsGridProps) {
     } else {
       router.push('/tests');
     }
-    }, [onCancel, router]);
+    }, [onSave, router]);
 
   return (
       <Paper sx={{ width: '100%', mb: 2 }}>

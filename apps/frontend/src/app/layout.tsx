@@ -1,10 +1,8 @@
 import { type Metadata } from 'next';
 import { auth } from '@/auth';
-import ThemeAwareLogo from '../components/common/ThemeAwareLogo';
 import ThemeContextProvider from '../components/providers/ThemeProvider';
 import { ClientLayoutShell } from './ClientLayoutShell';
 
-// Keep this file server by default
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
@@ -14,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth().catch(() => null);
+  const session = await auth()
 
   return (
       <html lang="en">
