@@ -13,14 +13,12 @@ import { useQuery } from '@tanstack/react-query';
 import { readOrganizationsOrganizationsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 
 interface OrganizationsTableProps {
-  /** If omitted, the table will fetch organizations via TanStack Query */
   organizations?: Organization[];
 }
 
 export default function OrganizationsTable({ organizations }: OrganizationsTableProps) {
   const router = useRouter();
 
-  // Only fetch when organizations prop is not provided
   const queryOpts = readOrganizationsOrganizationsGetOptions({
     query: { skip: 0, limit: 100, sort_by: 'created_at', sort_order: 'desc' },
   });
@@ -38,7 +36,6 @@ export default function OrganizationsTable({ organizations }: OrganizationsTable
     router.push(`/organizations/${organization.id}`);
   };
 
-  // NOTE: no "as const" here so the array stays mutable and matches BaseTable's Column[]
   const columns: {
     id: string;
     label: string;

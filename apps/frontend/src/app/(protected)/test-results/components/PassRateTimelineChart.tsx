@@ -11,7 +11,6 @@ import type { TestResultStatsAll } from '@/api-client/types.gen';
 import { generateTestResultStatsTestResultsStatsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 
 interface PassRateTimelineChartProps {
-  // We only need months for this query
   filters: Partial<{ months: number }>;
 }
 
@@ -35,17 +34,16 @@ export default function PassRateTimelineChart({
 
   const stats = statsQuery.data as TestResultStatsAll | undefined;
 
-  // Stable, typed timeline array (avoid recreating [] each render)
-  const timeline = useMemo<TimelineDataItem[]>(() => {
-    const t = stats?.timeline as unknown;
-    return Array.isArray(t) ? (t as TimelineDataItem[]) : [];
-  }, [stats?.timeline]);
+  const timeline = stats?.timeline;
 
   const errorMessage =
       statsQuery.isError
           ? (statsQuery.error.message)
           : null;
 
+  if (!timeline){
+      return <div>add loading</div>
+  }
   return (
       <BaseTimelineChart
           title="Pass Rate by Month"

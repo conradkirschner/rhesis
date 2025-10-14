@@ -39,14 +39,12 @@ interface TokensPageClientProps {
 export default function TokensPageClient({}: TokensPageClientProps) {
   const { show } = useNotifications();
 
-  // UI state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newToken, setNewToken] = useState<CreateTokenTokensPostResponse | null>(null);
   const [refreshedToken, setRefreshedToken] = useState<CreateTokenTokensPostResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deleteTokenId, setDeleteTokenId] = useState<string | null>(null);
 
-  // Server-side pagination state
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 10,
@@ -57,7 +55,6 @@ export default function TokensPageClient({}: TokensPageClientProps) {
       [paginationModel.page, paginationModel.pageSize],
   );
 
-  // --------- Read: list tokens ----------
   const listQuery = useQuery({
     ...readTokensTokensGetOptions({
       query: {
@@ -74,12 +71,10 @@ export default function TokensPageClient({}: TokensPageClientProps) {
   const totalCount = listQuery.data?.pagination?.totalCount ?? 0;
   const loading = listQuery.isFetching;
 
-  // Surface load errors
   if (listQuery.error && !error) {
     setError((listQuery.error as Error).message || 'Failed to load tokens');
   }
 
-  // --------- Mutations ----------
   const createMutation = useMutation({
     ...createTokenTokensPostMutation(),
   });
@@ -92,7 +87,6 @@ export default function TokensPageClient({}: TokensPageClientProps) {
     ...deleteTokenTokensTokenIdDeleteMutation(),
   });
 
-  // --------- Handlers ----------
   const handlePaginationModelChange = useCallback((model: GridPaginationModel) => {
     setPaginationModel(model);
   }, []);

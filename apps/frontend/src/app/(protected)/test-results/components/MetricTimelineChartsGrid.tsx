@@ -12,16 +12,13 @@ import { useQuery } from '@tanstack/react-query';
 
 import { TimelineDataItem } from './timelineUtils';
 
-// ✅ Generated API types
 import type { TestResultStatsAll } from '@/api-client/types.gen';
 
-// ✅ Generated React Query helper
 import { generateTestResultStatsTestResultsStatsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 
 import MetricTimelineChart from './MetricTimelineChart';
 
 interface MetricTimelineChartsGridProps {
-    // Only `months` is used here; keep it simple and typed
     filters: Partial<{ months: number }>;
 }
 

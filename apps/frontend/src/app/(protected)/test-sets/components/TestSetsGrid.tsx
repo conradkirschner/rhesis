@@ -21,7 +21,7 @@ import { DeleteModal } from '@/components/common/DeleteModal';
 import { useNotifications } from '@/components/common/NotificationContext';
 import {keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 
-import type { TestSet } from '@/api-client/types.gen';
+import type {TestSet, TestSetDetail} from '@/api-client/types.gen';
 import {
   readTestSetsTestSetsGetOptions,
   deleteTestSetTestSetsTestSetIdDeleteMutation,
@@ -34,7 +34,7 @@ interface StatusInfo {
 }
 
 type WithStatus = { status?: string | { name: string } };
-function getStatusInfo<T extends TestSet>(testSet: T & Partial<WithStatus>): StatusInfo {
+function getStatusInfo<T extends TestSetDetail & Partial<WithStatus>>(testSet: T & Partial<WithStatus>): StatusInfo {
   const s = testSet.status;
   const label =
       typeof s === 'string' ? s : s && typeof s === 'object' && 'name' in s ? s.name : 'Unknown';
@@ -42,9 +42,8 @@ function getStatusInfo<T extends TestSet>(testSet: T & Partial<WithStatus>): Sta
 }
 
 interface TestSetsGridProps {
-  testSets: TestSet[];
+  testSets: TestSetDetail[];
   loading: boolean;
-  sessionToken?: string;
   initialTotalCount?: number;
 }
 
@@ -213,7 +212,6 @@ export default function TestSetsGrid({
     return { rows: data, totalCount: total, loading: listQuery.isFetching };
   }, [listQuery.data, listQuery.isFetching, initialLoading, initialTestSets, initialTotalCount]);
 
-  // delete mutation
   const deleteMutation = useMutation({
     ...deleteTestSetTestSetsTestSetIdDeleteMutation(),
     onSuccess: () => {
@@ -250,7 +248,8 @@ export default function TestSetsGrid({
   const processedTestSets: Row[] = useMemo(
       () =>
           rows.map((testSet) => {
-            const statusInfo = getStatusInfo(testSet);
+            //@todo for dev: This might break, backend changes needed
+            const statusInfo = getStatusInfo(testSet as TestSetDetail & Partial<WithStatus>);
 
             const assignee = hasAssignee(testSet) ? testSet.assignee ?? null : null;
             const counts = hasCounts(testSet) ? testSet.counts : undefined;

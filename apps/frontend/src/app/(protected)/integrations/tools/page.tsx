@@ -18,7 +18,6 @@ export default function ToolsPage() {
       </Box>
 
       <Stack spacing={3}>
-        {/* Add Tool Card */}
         <Paper
           sx={{
             p: 3,

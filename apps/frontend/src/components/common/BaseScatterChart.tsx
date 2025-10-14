@@ -100,7 +100,6 @@ export default function BaseScatterChart({
   xAxisLabel,
   yAxisLabel,
   showGrid = true,
-  legendProps,
   tooltipProps,
   yAxisConfig,
   xAxisConfig,
@@ -115,20 +114,6 @@ export default function BaseScatterChart({
     return remValue * 16;
   };
 
-  // Update legend props to use theme
-  const defaultLegendProps = {
-    wrapperStyle: { fontSize: String(theme.typography.chartTick.fontSize) },
-    iconSize: 8,
-  };
-  const themedLegendProps = {
-    ...defaultLegendProps,
-    ...legendProps,
-    wrapperStyle: {
-      ...defaultLegendProps.wrapperStyle,
-      ...legendProps?.wrapperStyle,
-      fontSize: String(theme.typography.chartTick.fontSize),
-    },
-  };
   const { palettes } = useChartColors();
 
   // Default tooltip props with theme awareness
@@ -178,8 +163,7 @@ export default function BaseScatterChart({
   };
 
   // Custom tooltip formatter
-  const customTooltipFormatter = (value: any, name: string, props: any) => {
-    const { payload } = props;
+  const customTooltipFormatter = (value: any, name: string) => {
     if (name === 'y') {
       return [`${value}%`, 'Pass Rate'];
     }

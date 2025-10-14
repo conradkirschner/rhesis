@@ -18,7 +18,6 @@ import {
 } from '@/api-client/@tanstack/react-query.gen';
 import { useMutation } from '@tanstack/react-query';
 
-// UI view-model wrapper (API kept separate from UI-only fields)
 import { toProjectView, type ProjectView, type ProjectMeta } from '../types/project-ui';
 
 interface ClientWrapperProps {
@@ -54,7 +53,6 @@ export default function ClientWrapper({
         ];
     }
 
-    // Mutations using generated TanStack helpers
     const updateProjectMutation = useMutation(
         updateProjectProjectsProjectIdPutMutation({
             headers: { Authorization: `Bearer ${sessionToken}` },

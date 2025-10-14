@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Box, Typography, CircularProgress } from '@mui/material';
 import { handleClientSignOut } from '@/utils/client-auth';
 
@@ -11,7 +10,7 @@ export default function SignOut() {
     console.log(
       '[ERROR] [DEBUG] SignOut page loaded, calling handleClientSignOut'
     );
-    handleClientSignOut();
+    void handleClientSignOut();
   }, []);
 
   return (

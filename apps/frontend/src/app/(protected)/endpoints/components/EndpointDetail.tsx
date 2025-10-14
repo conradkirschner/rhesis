@@ -229,7 +229,6 @@ export default function EndpointDetail({ endpoint: initialEndpoint }: EndpointDe
   };
 
   const handleMethodChange = (e: SelectChangeEvent) => {
-    // `Endpoint['method']` is typically a string union in your types
     handleChange('method', e.target.value as Endpoint['method']);
   };
 

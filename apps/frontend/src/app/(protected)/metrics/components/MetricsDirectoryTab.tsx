@@ -31,22 +31,18 @@ import { useNotifications } from '@/components/common/NotificationContext';
 import { DeleteModal } from '@/components/common/DeleteModal';
 import MetricCard from './MetricCard';
 import MetricTypeDialog from './MetricTypeDialog';
-import type { UUID } from 'crypto';
 
-/** Generated types */
 import type {
     Behavior as ApiBehavior,
     RhesisBackendAppUtilsSchemaFactoryMetricDetail1 as MetricDetail1,
     RhesisBackendAppUtilsSchemaFactoryMetricDetail2 as MetricDetail2,
 } from '@/api-client/types.gen';
 
-/** Generated mutations */
 import {
     addBehaviorToMetricMetricsMetricIdBehaviorsBehaviorIdPostMutation,
     deleteMetricMetricsMetricIdDeleteMutation,
 } from '@/api-client/@tanstack/react-query.gen';
 
-/** Local filter types */
 interface FilterState {
     search: string;
     backend: string[];
@@ -59,10 +55,8 @@ interface FilterOptions {
     scoreType: { value: string; label: string }[];
 }
 
-/** Unify MetricDetail for internal typing convenience */
 type MetricDetail = MetricDetail1 | MetricDetail2;
 
-/** Behavior metrics cache MUST match the parent’s shape exactly */
 type BehaviorMetrics = {
     [behaviorId: string]: {
         metrics: MetricDetail[];
@@ -141,9 +135,8 @@ function AssignMetricDialog({
     );
 }
 
-/** Props aligned with the parent (note MetricDetail2[] and BehaviorMetrics) */
 interface MetricsDirectoryTabProps {
-    organizationId: UUID;
+    organizationId: string;
     behaviors: ApiBehavior[];
     metrics: MetricDetail2[]; // list variant from API
     filters: FilterState;
@@ -158,7 +151,6 @@ interface MetricsDirectoryTabProps {
     >;
 }
 
-/** MetricCard "type" guard */
 function isValidMetricType(
     type: string | undefined | null
 ): type is 'custom-prompt' | 'api-call' | 'custom-code' | 'grading' {
@@ -186,7 +178,6 @@ export default function MetricsDirectoryTab({
     const notifications = useNotifications();
     const theme = useTheme();
 
-    // Dialog state
     const [assignDialogOpen, setAssignDialogOpen] = React.useState(false);
     const [selectedMetric, setSelectedMetric] = React.useState<MetricDetail2 | null>(null);
     const [createMetricOpen, setCreateMetricOpen] = React.useState(false);
@@ -194,11 +185,9 @@ export default function MetricsDirectoryTab({
     const [metricToDeleteCompletely, setMetricToDeleteCompletely] =
         React.useState<{ id: string; name: string } | null>(null);
 
-    // Mutations (generated)
     const addBehaviorToMetric = useMutation(addBehaviorToMetricMetricsMetricIdBehaviorsBehaviorIdPostMutation());
     const deleteMetric = useMutation(deleteMetricMetricsMetricIdDeleteMutation());
 
-    // Filter handlers
     const handleFilterChange = (
         filterType: keyof FilterState,
         value: string | string[]
@@ -209,7 +198,6 @@ export default function MetricsDirectoryTab({
         }));
     };
 
-    // Filter metrics based on search and filter criteria (nullable-safe)
     const getFilteredMetrics = React.useCallback(() => {
         const q = filters.search.trim().toLowerCase();
 
@@ -257,14 +245,12 @@ export default function MetricsDirectoryTab({
         router.push(`/metrics/${metricId}`);
     };
 
-    // Assign a metric to a behavior
     const handleAssignMetricToBehavior = async (behaviorId: string, metricId: string) => {
         try {
             await addBehaviorToMetric.mutateAsync({
                 path: { metric_id: metricId, behavior_id: behaviorId },
             });
 
-            // Optimistic: update metrics (append behavior ref if missing)
             setMetrics((prev) =>
                 prev.map((m) => {
                     if (m.id !== metricId) return m;
@@ -277,7 +263,6 @@ export default function MetricsDirectoryTab({
                 })
             );
 
-            // Update per-behavior detailed cache (add the selected metric object)
             const target = metrics.find((m) => m.id === metricId);
             if (target) {
                 setBehaviorMetrics((prev) => ({
@@ -290,7 +275,6 @@ export default function MetricsDirectoryTab({
                     },
                 }));
 
-                // Update behaviorsWithMetrics (append metric id to that behavior)
                 setBehaviorsWithMetrics((prev) =>
                     prev.map((b) => {
                         if (b.id !== behaviorId) return b;
@@ -321,7 +305,6 @@ export default function MetricsDirectoryTab({
         setSelectedMetric(null);
     };
 
-    // Delete a metric
     const handleDeleteMetric = (metricId: string, metricName: string) => {
         setMetricToDeleteCompletely({ id: metricId, name: metricName });
         setDeleteMetricDialogOpen(true);
@@ -333,10 +316,8 @@ export default function MetricsDirectoryTab({
         try {
             await deleteMetric.mutateAsync({ path: { metric_id: metricToDeleteCompletely.id } });
 
-            // Remove from local lists
             setMetrics((prev) => prev.filter((m) => m.id !== metricToDeleteCompletely.id));
 
-            // Remove from behavior caches
             setBehaviorMetrics((prev) => {
                 const next: BehaviorMetrics = {};
                 Object.entries(prev).forEach(([bid, entry]) => {
@@ -348,7 +329,6 @@ export default function MetricsDirectoryTab({
                 return next;
             });
 
-            // Remove from behaviorsWithMetrics refs
             setBehaviorsWithMetrics((prev) =>
                 prev.map((b) => ({
                     ...b,

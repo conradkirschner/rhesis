@@ -27,12 +27,12 @@ export default function TestSetTags({ testSet }: TestSetTagsProps) {
     }, [testSet.id, testSet.tags]);
 
     if (!entity) {
-        // You could render a disabled field instead if preferred
+        <div>Disabled for this Entity</div>
         return null;
     }
 
     return (
-        <Box sx={{ width: '100%' }} suppressHydrationWarning>
+        <Box sx={{ width: '100%' }}>
             <BaseTag
                 value={tagNames}
                 onChange={setTagNames}

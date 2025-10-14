@@ -9,12 +9,11 @@ import {
   Checkbox,
   FormControlLabel,
 } from '@mui/material';
-// Brand icons - keeping filled versions as outlined variants may not exist for all brands
 import GoogleIcon from '@mui/icons-material/Google';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import AppleIcon from '@mui/icons-material/Apple';
 import MicrosoftIcon from '@mui/icons-material/Window';
-import { useState, useEffect } from 'react';
+import {useState, useEffect, ChangeEvent} from 'react';
 import { getClientApiBaseUrl } from '@/utils/url-resolver';
 
 interface Props {
@@ -36,7 +35,7 @@ export default function CustomAuthForm({ }: Props) {
   }, []);
 
   const handleTermsAcceptance = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: ChangeEvent<HTMLInputElement>
   ) => {
     const accepted = event.target.checked;
     setTermsAccepted(accepted);

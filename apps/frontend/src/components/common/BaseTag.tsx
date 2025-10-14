@@ -44,9 +44,6 @@ import type {
 } from '@/api-client/types.gen';
 import { Options } from '@/api-client';
 
-// re-export so it is more logical since this component does a lot
-
-
 type UUID = string;
 
 export interface TaggableEntity {

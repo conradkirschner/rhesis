@@ -17,138 +17,74 @@ import { useMutation, useQueries } from '@tanstack/react-query';
 
 import type {
   User,
-  TestSet,
-  Project,
-  Endpoint,
   TestRunDetail,
-  TestConfigurationCreate,
+  TestConfigurationCreate, TestSetDetail, EndpointDetail, ProjectDetail,
 } from '@/api-client/types.gen';
 
 import {
-  // queries
   readUsersUsersGetOptions,
   readTestSetsTestSetsGetOptions,
   readProjectsProjectsGetOptions,
   readEndpointsEndpointsGetOptions,
-  // mutations
   createTestConfigurationTestConfigurationsPostMutation,
   executeTestConfigurationEndpointTestConfigurationsTestConfigurationIdExecutePostMutation,
 } from '@/api-client/@tanstack/react-query.gen';
+import {useSession} from "next-auth/react";
 
 type TestRunDrawerProps = {
   open: boolean;
   onCloseAction: () => void;
-  sessionToken: string;
   testRun?: TestRunDetail;
   onSuccessAction?: () => void;
 };
 
-function safeBase64UrlDecode(base64url: string) {
-  try {
-    const b64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
-    const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : '';
-    return atob(b64 + pad);
-  } catch {
-    return '';
-  }
-}
-
-function getCurrentUserIdFromJWT(sessionToken?: string) {
-  if (!sessionToken) return undefined;
-  try {
-    const [, mid] = sessionToken.split('.');
-    if (!mid) return undefined;
-    const json = safeBase64UrlDecode(mid);
-    return json ? (JSON.parse(json)?.user?.id as string | undefined) : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/** Narrow to objects */
-function isObject(value: unknown): value is Record<PropertyKey, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-/** Narrow to shapes like `{ data: T[] }` (data may be readonly) */
-function hasDataArray<T>(value: unknown): value is { data: ReadonlyArray<T> } {
-  return isObject(value) && Array.isArray((value as { data?: unknown }).data);
-}
-
-/**
- * Normalize SDK responses that might be `T[]` or `{ data: T[] }`.
- * Returns a new mutable array (never the original reference).
- */
-export function asArray<T>(payload: unknown): T[] {
-  if (Array.isArray(payload)) {
-    // Copy to ensure we always return a fresh, mutable array
-    return payload.slice() as T[];
-  }
-  if (hasDataArray<T>(payload)) {
-    return Array.from(payload.data);
-  }
-  return [];
-}
-
 export default function TestRunDrawer({
                                         open,
                                         onCloseAction,
-                                        sessionToken,
                                         testRun,
                                         onSuccessAction,
                                       }: TestRunDrawerProps) {
   const notifications = useNotifications();
+  const session = useSession();
 
   const [error, setError] = React.useState<string>();
   const [assignee, setAssignee] = React.useState<User | null>(null);
   const [owner, setOwner] = React.useState<User | null>(null);
-  const [testSet, setTestSet] = React.useState<TestSet | null>(null);
-  const [project, setProject] = React.useState<Project | null>(null);
-  const [endpoint, setEndpoint] = React.useState<Endpoint | null>(null);
+  const [testSet, setTestSet] = React.useState<TestSetDetail | null>(null);
+  const [project, setProject] = React.useState<ProjectDetail | null>(null);
+  const [endpoint, setEndpoint] = React.useState<EndpointDetail | null>(null);
 
-  const currentUserId = React.useMemo(
-      () => getCurrentUserIdFromJWT(sessionToken),
-      [sessionToken],
-  );
+  const currentUserId = session.data?.user?.id
 
-  const common = React.useMemo(
-      () => ({
-        headers: { Authorization: `Bearer ${sessionToken}` },
-        baseUrl: process.env.BACKEND_URL,
-      }),
-      [sessionToken],
-  );
-
-  /* ---------------- Queries (fetch only when drawer open) ---------------- */
   const [usersQuery, testSetsQuery, projectsQuery, endpointsQuery] = useQueries({
     queries: [
       {
-        ...readUsersUsersGetOptions({ ...common }),
-        enabled: open && !!sessionToken,
+        ...readUsersUsersGetOptions(),
+        enabled: open,
         staleTime: 60_000,
       },
       {
-        ...readTestSetsTestSetsGetOptions({ ...common, query: { limit: 100 } }),
-        enabled: open && !!sessionToken,
+        ...readTestSetsTestSetsGetOptions({ query: { limit: 100 } }),
+        enabled: open,
         staleTime: 60_000,
       },
       {
-        ...readProjectsProjectsGetOptions({ ...common }),
-        enabled: open && !!sessionToken,
+        ...readProjectsProjectsGetOptions(),
+        enabled: open,
         staleTime: 60_000,
       },
       {
-        ...readEndpointsEndpointsGetOptions({ ...common }),
-        enabled: open && !!sessionToken,
+        ...readEndpointsEndpointsGetOptions(),
+        enabled: open,
         staleTime: 60_000,
       },
     ],
   });
 
-  const users = asArray<User>(usersQuery.data);
-  const testSets = asArray<TestSet>(testSetsQuery.data);
-  const projects = asArray<Project>(projectsQuery.data);
-  const endpoints = asArray<Endpoint>(endpointsQuery.data);
+  const users = usersQuery.data?.data;
+  const testSets =testSetsQuery.data?.data;
+  const projects = projectsQuery.data?.data;
+  const endpoints = endpointsQuery.data?.data;
 
   const anyLoading =
       usersQuery.isLoading ||
@@ -165,14 +101,14 @@ export default function TestRunDrawer({
   /* ---------------- Derived: endpoints filtered by project ---------------- */
   const filteredEndpoints = React.useMemo(() => {
     if (!project) return [];
+    if (!endpoints) return [];
     return endpoints.filter((e) => e.project_id === project.id);
   }, [endpoints, project]);
 
-  /* ---------------- Initialize selections when data arrives ---------------- */
   React.useEffect(() => {
     if (!open) return;
 
-    if (testRun && users.length) {
+    if (testRun && users && users.length) {
       if (testRun.assignee_id) {
         setAssignee(users.find((u) => u.id === testRun.assignee_id) ?? null);
       }
@@ -181,7 +117,7 @@ export default function TestRunDrawer({
       }
     }
 
-    if (!testRun && users.length && currentUserId && !owner) {
+    if (!testRun && users && users.length && currentUserId && !owner) {
       setOwner(users.find((u) => u.id === currentUserId) ?? null);
     }
   }, [open, testRun, users, currentUserId, owner]);
@@ -223,7 +159,6 @@ export default function TestRunDrawer({
       };
 
       const created = (await createConfigMutation.mutateAsync({
-        ...common,
         body: createBody,
       }));
 
@@ -236,7 +171,6 @@ export default function TestRunDrawer({
 
       // Execute configuration
       await executeConfigMutation.mutateAsync({
-        ...common,
         path: { test_configuration_id: createdId },
       });
 
@@ -271,8 +205,8 @@ export default function TestRunDrawer({
 
             <Stack spacing={2}>
               {/* Assignee */}
-              <Autocomplete<User, false, false, false>
-                  options={users}
+              <Autocomplete
+                  options={users??[]}
                   value={assignee}
                   onChange={(_, v) => setAssignee(v)}
                   getOptionLabel={getUserDisplayName}
@@ -305,7 +239,7 @@ export default function TestRunDrawer({
 
               {/* Owner */}
               <Autocomplete<User, false, false, false>
-                  options={users}
+                  options={users??[]}
                   value={owner}
                   onChange={(_, v) => setOwner(v)}
                   getOptionLabel={getUserDisplayName}
@@ -349,8 +283,8 @@ export default function TestRunDrawer({
 
             <Stack spacing={2}>
               {/* Test Set */}
-              <Autocomplete<TestSet, false, false, false>
-                  options={testSets}
+              <Autocomplete
+                  options={testSets??[]}
                   value={testSet}
                   onChange={(_, v) => setTestSet(v)}
                   getOptionLabel={(o) => o.name || 'Unnamed Test Set'}
@@ -364,11 +298,11 @@ export default function TestRunDrawer({
               />
 
               {/* Application / Project */}
-              <Autocomplete<Project, false, false, false>
-                  options={projects}
+              <Autocomplete
+                  options={projects??[]}
                   value={project}
                   onChange={(_, v) => setProject(v)}
-                  getOptionLabel={(o) => o.name}
+                  getOptionLabel={(o) => o.name??'No Projectname'}
                   isOptionEqualToValue={(o, v) => o.id === v.id}
                   renderOption={(props, option) => (
                       <Box component="li" {...props}>
@@ -379,7 +313,7 @@ export default function TestRunDrawer({
               />
 
               {/* Endpoint (filtered by project) */}
-              <Autocomplete<Endpoint, false, false, false>
+              <Autocomplete
                   options={filteredEndpoints}
                   value={endpoint}
                   onChange={(_, v) => setEndpoint(v)}

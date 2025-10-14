@@ -98,7 +98,6 @@ export default function CreateProjectClient({
         body: projectData,
       });
 
-      // Optionally, route to the newly created project using created.id if available
       router.push('/projects');
     } catch (e) {
       const msg =

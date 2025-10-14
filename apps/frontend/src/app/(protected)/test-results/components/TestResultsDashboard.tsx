@@ -8,7 +8,6 @@ import TestResultsFilters from './TestResultsFilters';
 import TestResultsCharts from './TestResultsCharts';
 
 
-// Keep filters simple and aligned with the rest of the charts (months only)
 type Filters = Partial<{ months: number }>;
 
 export default function TestResultsDashboard() {

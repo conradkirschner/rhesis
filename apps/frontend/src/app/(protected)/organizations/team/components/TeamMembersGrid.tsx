@@ -27,7 +27,6 @@ import {
 } from '@/api-client/@tanstack/react-query.gen';
 
 interface TeamMembersGridProps {
-  /** Used to trigger refresh when new invites are sent */
   refreshTrigger?: number;
 }
 
@@ -44,7 +43,6 @@ export default function TeamMembersGrid({ refreshTrigger }: TeamMembersGridProps
   const skip = paginationModel.page * paginationModel.pageSize;
   const limit = paginationModel.pageSize;
 
-  /** Users list query (server-side pagination) */
   const usersOpts = readUsersUsersGetOptions({
     query: { skip, limit },
   });
@@ -54,10 +52,8 @@ export default function TeamMembersGrid({ refreshTrigger }: TeamMembersGridProps
     select: (data) => data,
   });
 
-  /** Delete user mutation */
   const deleteUserMutation = useMutation(deleteUserUsersUserIdDeleteMutation());
 
-  /** Refresh when invites were sent elsewhere */
   React.useEffect(() => {
     if (refreshTrigger && refreshTrigger > 0) {
       void usersQuery.refetch();
@@ -68,7 +64,6 @@ export default function TeamMembersGrid({ refreshTrigger }: TeamMembersGridProps
     setPaginationModel(newModel);
   };
 
-  /** Delete modal state */
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
   const [deleting, setDeleting] = React.useState(false);
@@ -118,7 +113,6 @@ export default function TeamMembersGrid({ refreshTrigger }: TeamMembersGridProps
     }
   };
 
-  /** Helpers */
   const getUserStatus = (user: User) => {
     const hasProfile =
         !!user.name || !!user.given_name || !!user.family_name || !!(user).auth0_id;

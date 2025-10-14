@@ -7,7 +7,7 @@ import Tab from '@mui/material/Tab';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import ViewQuiltIcon from '@mui/icons-material/ViewQuilt';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useNotifications } from '@/components/common/NotificationContext';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 
@@ -23,7 +23,6 @@ import type {
 
 import SelectedMetricsTab from './SelectedMetricsTab';
 import MetricsDirectoryTab from './MetricsDirectoryTab';
-import type { UUID } from 'crypto';
 
 type MetricDetail = MetricDetail1 | MetricDetail2;
 
@@ -85,20 +84,10 @@ const initialFilterOptions: FilterOptions = {
 };
 
 interface MetricsClientProps {
-    organizationId: UUID;
+    organizationId: string;
 }
 
-/** Small helpers for unknown / mixed payload shapes */
-function isObject(x: unknown): x is Record<string, unknown> {
-    return typeof x === 'object' && x !== null;
-}
-function extractArray<T>(x: { data?: unknown } | unknown): T[] {
-    if (Array.isArray(x)) return x as T[];
-    if (isObject(x) && Array.isArray(x.data)) return x.data as T[];
-    return [];
-}
 
-/** Per-behavior metrics cache (full MetricDetail[] used by Selected tab) */
 type BehaviorMetrics = {
     [behaviorId: string]: {
         metrics: MetricDetail[];
@@ -113,7 +102,6 @@ export default function MetricsClientComponent({
     const router = useRouter();
     const searchParams = useSearchParams();
     const notifications = useNotifications();
-    const queryClient = useQueryClient();
 
     // init tab from URL
     const initialTab = React.useMemo(() => {
@@ -122,11 +110,10 @@ export default function MetricsClientComponent({
     }, [searchParams]);
     const [value, setValue] = React.useState(initialTab);
 
-    // UI state (kept to match children props)
     const [behaviors, setBehaviors] = React.useState<Behavior[]>([]);
     const [behaviorsWithMetrics, setBehaviorsWithMetrics] =
         React.useState<(Behavior & { metrics?: { id: string }[] })[]>([]);
-    // Directory uses list variant (includes `behaviors` ref): MetricDetail2[]
+
     const [metrics, setMetrics] = React.useState<MetricDetail2[]>([]);
     const [isLoadingSelectedMetrics, setIsLoadingSelectedMetrics] = React.useState(true);
     const [isLoadingMetricsDirectory, setIsLoadingMetricsDirectory] = React.useState(true);
@@ -137,7 +124,6 @@ export default function MetricsClientComponent({
         React.useState<FilterOptions>(initialFilterOptions);
     const [behaviorMetrics, setBehaviorMetrics] = React.useState<BehaviorMetrics>({});
 
-    /** Generated options (no queryKey tampering) */
     const behaviorsOpts = readBehaviorsBehaviorsGetOptions({
         query: { skip: 0, limit: 100, sort_by: 'created_at', sort_order: 'desc' },
     });
@@ -145,25 +131,18 @@ export default function MetricsClientComponent({
         query: { skip: 0, limit: 100, sort_by: 'created_at', sort_order: 'desc' },
     });
 
-    /** Queries */
     const behaviorsQuery = useQuery({
         ...behaviorsOpts,
         staleTime: 60_000,
-        select: (data) => {
-            const arr = extractArray<unknown>(data);
-            // Keep as Behavior + optional metric ID refs (BehaviorDetail1 shape)
-            return arr.filter(isObject) as Array<Behavior & { metrics?: { id: string }[] }>;
-        },
+        select: (data) => data.data,
     });
 
     const metricsQuery = useQuery({
         ...metricsOpts,
         staleTime: 60_000,
-        // Treat list as MetricDetail2[] (has relation refs like backend_type/metric_type + optional behaviors)
-        select: (data) => extractArray<MetricDetail2>(data),
+        select: (data) => data.data,
     });
 
-    /** Build derived state on query changes */
     React.useEffect(() => {
         setIsLoadingSelectedMetrics(behaviorsQuery.isPending);
         setIsLoadingMetricsDirectory(metricsQuery.isPending);
@@ -225,7 +204,7 @@ export default function MetricsClientComponent({
             });
 
             // Commit UI state
-            setBehaviors(behaviorsData as Behavior[]);
+            setBehaviors(behaviorsData);
             setBehaviorsWithMetrics(behaviorsData);
             setBehaviorMetrics(perBehavior);
             setMetrics(metricsData); // MetricDetail2[]
@@ -275,7 +254,7 @@ export default function MetricsClientComponent({
                         <MetricsDirectoryTab
                             organizationId={organizationId}
                             behaviors={behaviors}
-                            metrics={metrics}               // MetricDetail2[]
+                            metrics={metrics}
                             filters={filters}
                             filterOptions={filterOptions}
                             isLoading={isLoadingMetricsDirectory}
@@ -291,7 +270,6 @@ export default function MetricsClientComponent({
                         <SelectedMetricsTab
                             organizationId={organizationId}
                             behaviorsWithMetrics={behaviorsWithMetrics}
-                            // behaviorMetrics now contains MetricDetail[] (union of 1 & 2)
                             behaviorMetrics={behaviorMetrics}
                             isLoading={isLoadingSelectedMetrics}
                             error={error}

@@ -168,9 +168,14 @@ export default function TestRunMainView({
     return rows
         .filter((r) => r?.id && r.id !== testRunId)
         .map((r) => ({
-          id: r.id,
-          name: r.name,
-          created_at: r.attributes?.started_at || r.created_at || '',
+          id: r.id as string,
+          // FIX: coerce potential null to undefined to satisfy `name?: string`
+          name: (r as { name?: string | null }).name ?? undefined,
+          created_at:
+              (r as { attributes?: { started_at?: string | null } }).attributes
+                  ?.started_at ??
+              (r as { created_at?: string }).created_at ??
+              '',
           pass_rate: undefined,
         }));
   }, [listTestRunsQuery.data, testRunId]);
@@ -196,6 +201,7 @@ export default function TestRunMainView({
         severity: 'success',
       });
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error(err);
       notifications.show('Failed to download test run results', {
         severity: 'error',
@@ -222,28 +228,25 @@ export default function TestRunMainView({
           const batchSize = 100;
           let skip = 0;
           let out: TestResultDetail[] = [];
-          let totalCount: number | undefined;
 
           // eslint-disable-next-line no-constant-condition
           while (true) {
             const opts = readTestResultsTestResultsGetOptions({
               query: {
-                filter: `test_run_id eq '${baselineTestRunId}'`,
+                $filter: `test_run_id eq '${baselineTestRunId}'`,
                 limit: batchSize,
                 skip,
                 sort_by: 'created_at',
                 sort_order: 'desc',
-              } as Record<string, unknown>,
+              },
             });
 
             const page = await queryClient.fetchQuery(opts);
-            const pageData = page?.data ?? [];
+            const pageData = page.data ?? [];
             out = out.concat(pageData);
 
-            const pagination = page?.pagination;
-            if (typeof pagination?.totalCount === 'number') {
-              totalCount = pagination.totalCount;
-            }
+            const pagination = (page).pagination;
+            const totalCount: number | undefined = pagination.totalCount;
 
             if (totalCount !== undefined) {
               if (out.length >= totalCount) break;
@@ -257,6 +260,7 @@ export default function TestRunMainView({
 
           return out;
         } catch (err) {
+          // eslint-disable-next-line no-console
           console.error('Error loading baseline test results:', err);
           notifications.show('Failed to load baseline test results', {
             severity: 'error',

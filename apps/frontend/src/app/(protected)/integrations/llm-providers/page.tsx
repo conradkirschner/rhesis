@@ -39,10 +39,8 @@ import { useSession } from 'next-auth/react';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  // Queries
   readTypeLookupsTypeLookupsGetOptions,
   readModelsModelsGetOptions,
-  // Mutations
   createModelModelsPostMutation,
   deleteModelModelsModelIdDeleteMutation,
 } from '@/api-client/@tanstack/react-query.gen';
@@ -53,7 +51,6 @@ import type {
   ModelCreate,
 } from '@/api-client/types.gen';
 
-/* ----------------------------- Icons by provider ---------------------------- */
 
 const PROVIDER_ICONS: Record<string, React.ReactNode> = {
   anthropic: <AnthropicIcon sx={{ fontSize: (t) => t.iconSizes.large }} />,
@@ -71,7 +68,6 @@ const PROVIDER_ICONS: Record<string, React.ReactNode> = {
   vllm: <SmartToyIcon sx={{ fontSize: (t) => t.iconSizes.large }} />,
 };
 
-/* ----------------------------- Select Provider ------------------------------ */
 
 interface ProviderSelectionDialogProps {
   open: boolean;
@@ -145,7 +141,6 @@ function ProviderSelectionDialog({
   );
 }
 
-/* ---------------------------- Connect Provider ------------------------------ */
 
 interface ConnectionDialogProps {
   open: boolean;
@@ -452,7 +447,6 @@ function ConnectionDialog({
   );
 }
 
-/* --------------------------------- Page ------------------------------------ */
 
 export default function LLMProvidersPage() {
   const { data: session } = useSession();
@@ -463,8 +457,6 @@ export default function LLMProvidersPage() {
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [modelToDelete, setModelToDelete] = useState<Model | null>(null);
-
-  /* ---------------------------- Queries (v5) ---------------------------- */
 
   const providersQuery = useQuery({
     ...readTypeLookupsTypeLookupsGetOptions({
@@ -494,8 +486,6 @@ export default function LLMProvidersPage() {
       (modelsQuery.error && modelsQuery.error.message) ||
       null;
 
-  /* --------------------------- Mutations (v5) --------------------------- */
-
   const createModel = useMutation({
     ...createModelModelsPostMutation(),
     onSuccess: () => {
@@ -510,8 +500,6 @@ export default function LLMProvidersPage() {
     },
   });
 
-  /* ------------------------------ Handlers ------------------------------ */
-
   const handleAddLLM = () => {
     setProviderSelectionOpen(true);
   };
@@ -521,8 +509,6 @@ export default function LLMProvidersPage() {
     setModelToDelete(model);
     setDeleteDialogOpen(true);
   };
-
-  /* -------------------------------- Render ------------------------------ */
 
   return (
       <Box sx={{ p: 3 }}>

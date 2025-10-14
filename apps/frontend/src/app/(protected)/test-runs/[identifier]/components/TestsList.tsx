@@ -217,7 +217,6 @@ export default function TestsList({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleKeyDown]);
 
-    // Scroll selected item into view
     useEffect(() => {
         if (selectedItemRef.current && listContainerRef.current) {
             selectedItemRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

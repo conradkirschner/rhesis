@@ -35,7 +35,6 @@ export default function OrganizationSettingsPage() {
     const organization = (data as Organization | undefined) ?? null;
 
     const handleUpdate = React.useCallback(() => {
-        // Silent revalidation after child forms update
         void refetch();
     }, [refetch]);
 

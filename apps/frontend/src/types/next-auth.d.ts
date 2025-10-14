@@ -16,6 +16,8 @@ declare module 'next-auth' {
     picture?: string | null;
     organization_id?: string | null;
     session_token?: string;
+    given_name?: string |null;
+    family_name?: string | null;
   }
 }
 

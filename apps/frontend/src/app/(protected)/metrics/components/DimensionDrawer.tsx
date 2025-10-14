@@ -8,20 +8,19 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import BaseDrawer from '@/components/common/BaseDrawer';
-import { UUID } from 'crypto';
 
 interface SectionEditDrawerProps {
   open: boolean;
   onClose: () => void;
   title: string;
   description: string;
-  onSave: (title: string, description: string, organization_id: UUID) => void;
+  onSave: (title: string, description: string, organization_id: string) => void;
   onDelete?: () => void;
   isNew?: boolean;
   loading?: boolean;
   error?: string;
   entityName?: string;
-  organization_id: UUID;
+  organization_id: string;
 }
 
 const SectionEditDrawer = ({

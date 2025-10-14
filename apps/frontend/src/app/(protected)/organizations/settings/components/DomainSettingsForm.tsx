@@ -18,10 +18,8 @@ import {
 } from '@mui/icons-material';
 import { useNotifications } from '@/components/common/NotificationContext';
 
-/** Generated types */
 import type { Organization } from '@/api-client/types.gen';
 
-/** Generated TanStack Query mutation */
 import { useMutation } from '@tanstack/react-query';
 import { updateOrganizationOrganizationsOrganizationIdPutMutation } from '@/api-client/@tanstack/react-query.gen';
 
@@ -42,7 +40,6 @@ export default function DomainSettingsForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Generated mutation
   const updateOrgMutation = useMutation(
       updateOrganizationOrganizationsOrganizationIdPutMutation()
   );
@@ -66,7 +63,6 @@ export default function DomainSettingsForm({
       await updateOrgMutation.mutateAsync({
         path: { organization_id: organization.id },
         body: {
-          // send undefined when empty so backend can ignore
           domain: formData.domain || undefined,
         },
       });

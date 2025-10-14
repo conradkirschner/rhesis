@@ -6,11 +6,11 @@ import TestSetsCharts from './components/TestSetsCharts';
 import { auth } from '@/auth';
 import { PageContainer } from '@toolpad/core/PageContainer';
 
-import type { TestSet } from '@/api-client/types.gen';
+import type {TestSet, TestSetDetail} from '@/api-client/types.gen';
 
 import {
-  readTestSetsTestSetsGet,                   // GET /test_sets
-  readStatusStatusesStatusIdGet,      // GET /statuses/{status_identifier}
+  readTestSetsTestSetsGet,
+  readStatusStatusesStatusIdGet,
 } from '@/api-client/sdk.gen';
 
 /* ----------------------------- helper type guards ---------------------------- */
@@ -45,21 +45,11 @@ export default async function TestSetsPage() {
       ...reqInit,
     });
 
-    // Normalize array vs { data, pagination }
-    let testSets: TestSet[] = [];
-    let totalCount = 0;
-
-    if (Array.isArray(listRaw)) {
-      testSets = listRaw as TestSet[];
-      totalCount = testSets.length;
-    } else if (isPaginatedList<TestSet>(listRaw)) {
-      const obj = listRaw as { data?: TestSet[]; pagination?: { totalCount?: number } };
-      testSets = Array.isArray(obj.data) ? obj.data : [];
-      totalCount = typeof obj.pagination?.totalCount === 'number' ? obj.pagination.totalCount : testSets.length;
-    }
+    const testSets = listRaw.data?.data ?? [];
+    const totalCount =  listRaw.data?.pagination?.totalCount ?? 0;
 
     // Hydrate status names (if status_id present)
-    const testSetsWithStatus: TestSet[] = await Promise.all(
+    const testSetsWithStatus: TestSetDetail[] = await Promise.all(
         testSets.map(async (ts) => {
           if (!ts.status_id) return ts;
 
@@ -77,7 +67,7 @@ export default async function TestSetsPage() {
             const name = statusObj.name
 
             // Provide a stable shape for the grid's status extractor
-            return name ? ({ ...ts, status: { name } } as TestSet) : ts;
+            return name ? ({ ...ts, status: { name } } as TestSetDetail) : ts;
           } catch {
             return ts; // If status fetch fails, keep the original row
           }
@@ -98,7 +88,6 @@ export default async function TestSetsPage() {
               <TestSetsGrid
                   testSets={testSetsWithStatus}
                   loading={false}
-                  sessionToken={token}
                   initialTotalCount={totalCount}
               />
             </Box>

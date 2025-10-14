@@ -28,7 +28,6 @@ import {
   readTestRunTestRunsTestRunIdGetOptions,
 } from '@/api-client/@tanstack/react-query.gen';
 
-// ---- Local light-weight shapes we actually use from API responses ---- //
 type MetricEval = { is_successful?: boolean | null };
 type ResultLite = {
   id: string;

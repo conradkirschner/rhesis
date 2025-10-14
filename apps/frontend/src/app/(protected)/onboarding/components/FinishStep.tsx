@@ -43,7 +43,6 @@ export default function FinishStep({
   isSubmitting = false,
   onboardingStatus,
 }: FinishStepProps) {
-  // Filter out empty email invites
   const validInvites = formData.invites.filter(
     invite => invite.email.trim() !== ''
   );

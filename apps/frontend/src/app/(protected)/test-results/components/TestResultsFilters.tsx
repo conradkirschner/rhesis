@@ -32,8 +32,6 @@ type Filters = Partial<{
 type TestSetLite = { id: string; name?: string | null };
 type TestRunLite = { id: string; name?: string | null };
 
-type ListResponse<T> = { data: T[] };
-
 // ---- Props ----
 interface TestResultsFiltersProps {
   onFiltersChange: (filters: Filters) => void;
@@ -73,7 +71,7 @@ export default function TestResultsFilters({
   });
 
   const testSets: TestSetLite[] =
-      ((testSetsQuery.data as ListResponse<TestSetLite> | undefined)?.data) ?? [];
+      (testSetsQuery.data?.data) ?? [];
 
   // ---- Test Runs (optionally filtered by selected test set) ----
   const testRunsQuery = useQuery({
@@ -89,7 +87,7 @@ export default function TestResultsFilters({
   });
 
   const testRuns: TestRunLite[] =
-      ((testRunsQuery.data as ListResponse<TestRunLite> | undefined)?.data) ?? [];
+      testRunsQuery.data?.data ?? [];
 
   // ---- Handlers ----
   const updateFilters = React.useCallback(
@@ -122,7 +120,6 @@ export default function TestResultsFilters({
     const cleared: Filters = { months: 6 };
     setFilters(cleared);
     onFiltersChange(cleared);
-    // testRunsQuery will auto-refetch based on new params (no selected set)
   };
 
   const hasActiveFilters = React.useMemo(

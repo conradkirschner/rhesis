@@ -13,7 +13,6 @@ import type { EntityStats } from '@/api-client/types.gen';
 
 import { generateTestSetStatsTestSetsStatsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 
-/* ------------------------------ fallbacks/config ------------------------------ */
 
 const FALLBACK_DATA = {
   noData: [
@@ -29,7 +28,6 @@ const CHART_CONFIG = {
   total: { title: 'Total Test Sets', months: 6 },
 };
 
-/* --------------------------------- helpers ---------------------------------- */
 
 const truncateName = (name: string): string => {
   if (name.length <= 15) return name;
@@ -45,7 +43,6 @@ const calculateYAxisDomain = (data: { count: number }[]): [number, number] => {
   return [0, upperBound];
 };
 
-/* -------------------------------- component --------------------------------- */
 
 export default function TestSetsCharts() {
   const theme = useTheme();
@@ -82,22 +79,9 @@ export default function TestSetsCharts() {
     placeholderData: keepPreviousData,
   });
 
-  // Normalize response shapes (T vs {data:T})
-  const testSetStats: EntityStats | null = useMemo(() => {
-    const raw = entityStatsQuery.data as EntityStats | { data?: EntityStats } | undefined;
-    if (!raw) return null;
-    return 'data' in (raw as object)
-        ? (raw as { data?: EntityStats }).data ?? null
-        : (raw as EntityStats);
-  }, [entityStatsQuery.data]);
+  const testSetStats: EntityStats | undefined = entityStatsQuery?.data;
 
-  const topicsStats: EntityStats | null = useMemo(() => {
-    const raw = topicsStatsQuery.data as EntityStats | { data?: EntityStats } | undefined;
-    if (!raw) return null;
-    return 'data' in (raw as object)
-        ? (raw as { data?: EntityStats }).data ?? null
-        : (raw as EntityStats);
-  }, [topicsStatsQuery.data]);
+  const topicsStats: EntityStats | undefined = topicsStatsQuery.data
 
   const isLoading =
       (entityStatsQuery.isFetching && !entityStatsQuery.data) ||
@@ -136,7 +120,7 @@ export default function TestSetsCharts() {
                 Number.isFinite(idx) && idx >= 1 && idx <= 12
                     ? `${monthNames[idx - 1]} ${year}`
                     : month;
-            return { name: formatted, count: (count as number) ?? 0 };
+            return { name: formatted, count: (count) ?? 0 };
           },
       );
     }

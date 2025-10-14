@@ -64,7 +64,6 @@ import {
   AccountTreeIcon,
 } from '@/components/icons';
 
-// Map of icon names to components for easy lookup
 const ICON_MAP: Record<string, React.ComponentType> = {
   SmartToy: SmartToyIcon,
   Devices: DevicesIcon,
@@ -88,7 +87,6 @@ const ICON_MAP: Record<string, React.ComponentType> = {
   AccountTree: AccountTreeIcon,
 };
 
-// Lazy load Monaco Editor
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => (
@@ -113,7 +111,6 @@ const Editor = dynamic(() => import('@monaco-editor/react'), {
   ),
 });
 
-// Enums based on your backend models
 const PROTOCOLS: readonly EndpointProtocol[] = ['REST'];
 const ENVIRONMENTS: readonly EndpointEnvironment[] = [
   'production',
@@ -157,13 +154,11 @@ interface FormData {
   method: Endpoint['method'];
   endpoint_path: string;
   project_id: string;
-  // JSON fields as editor strings:
   request_headers?: string;
   request_body_template?: string;
   response_mappings?: string;
 }
 
-// Editor wrapper style
 const editorWrapperStyle = {
   border: '1px solid rgba(0, 0, 0, 0.23)',
   borderRadius: '4px',
@@ -177,7 +172,6 @@ const editorWrapperStyle = {
   },
 };
 
-// Get appropriate icon based on project type or use case
 const getProjectIcon = (project: ProjectDetail) => {
   if (project?.icon && ICON_MAP[project.icon]) {
     const IconComponent = ICON_MAP[project.icon];
@@ -212,9 +206,7 @@ function parseStringMap(input?: string): Record<string, string> | undefined {
       for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
         if (typeof v === 'string') out[k] = v;
         else if (v === null || typeof v === 'undefined') {
-          // skip null/undefined
         } else {
-          // coerce non-strings to string to satisfy the API type
           out[k] = JSON.stringify(v);
         }
       }
@@ -311,7 +303,6 @@ export default function EndpointForm() {
       return;
     }
 
-    // Build request body for generated type:
     const body: CreateEndpointEndpointsPostData['body'] = {
       name: formData.name,
       description: formData.description,
@@ -323,10 +314,8 @@ export default function EndpointForm() {
       method: formData.method,
       endpoint_path: formData.endpoint_path,
       project_id: formData.project_id || undefined,
-      // headers & mappings must be string maps per generated types
       request_headers: parseStringMap(formData.request_headers),
       response_mappings: parseStringMap(formData.response_mappings),
-      // body template allows JsonInput map
       request_body_template: parseJsonMap(formData.request_body_template),
     };
 

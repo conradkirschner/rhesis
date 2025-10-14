@@ -21,7 +21,6 @@ import { SelectChangeEvent } from '@mui/material/Select';
 import PersonIcon from '@mui/icons-material/Person';
 import BaseDrawer from '@/components/common/BaseDrawer';
 
-// Icons
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import DevicesIcon from '@mui/icons-material/Devices';
 import WebIcon from '@mui/icons-material/Web';
@@ -138,7 +137,6 @@ export default function EditDrawer({
     }
   }, [project, meta, open]);
 
-  // Handlers
   const handleTextChange =
       (field: 'name' | 'description') =>
           (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -146,7 +144,6 @@ export default function EditDrawer({
             if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
           };
 
-  // Correct MUI Select typing
   const handleSelectChange =
       (field: 'owner_id' | 'icon') =>
           (event: SelectChangeEvent<string>) => {

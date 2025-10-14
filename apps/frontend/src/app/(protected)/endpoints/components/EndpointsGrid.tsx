@@ -145,7 +145,7 @@ export default function EndpointGrid({
       setDeleteDialogOpen(false);
       onEndpointDeleted?.();
     } catch {
-      // optionally surface a toast/snackbar
+
     }
   };
 

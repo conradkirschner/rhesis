@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import BaseDrawer from '@/components/common/BaseDrawer';
 import {
   Autocomplete,
@@ -15,7 +15,7 @@ import {
 import PersonIcon from '@mui/icons-material/Person';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
-import type { TestSet, User, Status, TestSetCreate } from '@/api-client/types.gen';
+import type {TestSet, User, TestSetCreate, StatusDetail} from '@/api-client/types.gen';
 
 import {
   readStatusesStatusesGetOptions,
@@ -52,12 +52,11 @@ export default function TestSetDrawer({
   const [name, setName] = useState(testSet?.name || '');
   const [description, setDescription] = useState(testSet?.description || '');
   const [shortDescription, setShortDescription] = useState(testSet?.short_description || '');
-  const [status, setStatus] = useState<Status | null>(null);
+  const [status, setStatus] = useState<StatusDetail | null>(null);
   const [assignee, setAssignee] = useState<User | null>(null);
   const [owner, setOwner] = useState<User | null>(null);
   const [priority, setPriority] = useState<number>(testSet?.priority ?? 1);
 
-  // ---- queries
   const statusesQuery = useQuery({
     ...readStatusesStatusesGetOptions(
         { query: { entity_type: 'TestSet', sort_by: 'name', sort_order: 'asc' }},
@@ -70,20 +69,10 @@ export default function TestSetDrawer({
     enabled: open ,
   });
 
-  // unwrap responses (supports T[] or {data:T[]})
-  const statuses: Status[] = useMemo(() => {
-    const raw = statusesQuery.data as Status[] | { data?: Status[] } | undefined;
-    if (!raw) return [];
-    return Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
-  }, [statusesQuery.data]);
+  const statuses: StatusDetail[] = statusesQuery.data?.data ?? [];
 
-  const users: User[] = useMemo(() => {
-    const raw = usersQuery.data as User[] | { data?: User[] } | undefined;
-    if (!raw) return [];
-    return Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
-  }, [usersQuery.data]);
+  const users: User[] = usersQuery.data?.data?? [];
 
-  // ---- mutations
   const createMutation = useMutation({
     ...createTestSetTestSetsPostMutation(),
     onSuccess: () => {
@@ -114,21 +103,8 @@ export default function TestSetDrawer({
       createMutation.isPending ||
       updateMutation.isPending;
 
-  // ---- decode current user id from JWT for default owner (when creating)
-  const currentUserId = useMemo(() => {
-    try {
-      if (!sessionToken) return undefined;
-      const [, payloadBase64] = sessionToken.split('.');
-      const base64 = (payloadBase64 ?? '').replace(/-/g, '+').replace(/_/g, '/');
-      const padded = base64 + '==='.slice((base64.length + 3) % 4); // pad to length % 4 === 0
-      const payload = JSON.parse(atob(padded));
-      return payload?.user?.id as string | undefined;
-    } catch {
-      return undefined;
-    }
-  }, [sessionToken]);
+  const currentUserId = session?.data?.user?.id
 
-  // ---- initialize field values once data arrives
   useEffect(() => {
     if (!open) return;
 
@@ -136,6 +112,9 @@ export default function TestSetDrawer({
     if (statuses.length) {
       if (testSet?.status_id) {
         const found = statuses.find((s) => s.id === testSet.status_id) ?? null;
+        if (!found) {
+          return;
+        }
         setStatus(found);
       } else {
         setStatus((prev) => prev ?? null);
@@ -241,7 +220,7 @@ export default function TestSetDrawer({
             </Typography>
 
             <Stack spacing={2}>
-              <Autocomplete<Status, false, false, false>
+              <Autocomplete
                   options={statuses}
                   value={status}
                   onChange={(_, v) => setStatus(v)}
@@ -266,7 +245,7 @@ export default function TestSetDrawer({
                 ))}
               </TextField>
 
-              <Autocomplete<User, false, false, false>
+              <Autocomplete
                   options={users}
                   value={assignee}
                   onChange={(_, v) => setAssignee(v)}
@@ -277,7 +256,7 @@ export default function TestSetDrawer({
                   loading={usersQuery.isFetching}
               />
 
-              <Autocomplete<User, false, false, false>
+              <Autocomplete
                   options={users}
                   value={owner}
                   onChange={(_, v) => setOwner(v)}

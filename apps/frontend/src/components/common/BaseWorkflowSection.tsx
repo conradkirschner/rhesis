@@ -5,7 +5,7 @@ import { Box, Typography, Avatar, Autocomplete, TextField } from '@mui/material'
 import PersonIcon from '@mui/icons-material/Person';
 import { useQuery } from '@tanstack/react-query';
 
-import type { User, Status } from '@/api-client/types.gen';
+import type {User, Status, StatusDetail} from '@/api-client/types.gen';
 import {
     readStatusesStatusesGetOptions,
     readUsersUsersGetOptions,
@@ -14,7 +14,6 @@ import {
 import { useNotifications } from '@/components/common/NotificationContext';
 import { AVATAR_SIZES } from '@/constants/avatar-sizes';
 
-/** ---- Strongly-typed update contract ---- */
 type UpdateMap = {
     Status: { status_id: string | null };
     Priority: { priority: number };
@@ -24,7 +23,6 @@ type UpdateMap = {
 type WorkflowField = keyof UpdateMap;
 type OnUpdateEntity = <K extends WorkflowField>(updateData: UpdateMap[K], fieldName: K) => Promise<void>;
 
-/** ---- Minimal ID-only reference accepted by the component ---- */
 type IdRef = { id?: string | null };
 
 interface BaseWorkflowSectionProps {
@@ -82,7 +80,6 @@ export default function BaseWorkflowSection({
     const [currentAssignee, setCurrentAssignee] = useState<UserOption | null>(null);
     const [currentOwner, setCurrentOwner] = useState<UserOption | null>(null);
 
-    // Load statuses/users via generator options + react-query
     const statusesOpts = useMemo(
         () =>
             readStatusesStatusesGetOptions({
@@ -98,11 +95,7 @@ export default function BaseWorkflowSection({
     const loadingStatuses = !preloadedStatuses && statusesQuery.isLoading;
     const loadingUsers = !preloadedUsers && usersQuery.isLoading;
 
-    const statuses: Status[] = useMemo(() => {
-        if (preloadedStatuses?.length) return preloadedStatuses;
-        const raw = (statusesQuery.data as { data?: Status[] } | undefined)?.data ?? [];
-        return raw.filter((s) => s?.id && (s.name ?? '').trim() !== '');
-    }, [preloadedStatuses, statusesQuery.data]);
+    const statuses: StatusDetail[] = statusesQuery.data?.data ?? [];
 
     const users: UserOption[] = useMemo(() => {
         const base: User[] = preloadedUsers ?? ((usersQuery.data as { data?: User[] } | undefined)?.data ?? []);

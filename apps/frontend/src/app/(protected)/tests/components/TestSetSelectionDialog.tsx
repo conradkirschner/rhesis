@@ -14,10 +14,8 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useNotifications } from '@/components/common/NotificationContext';
 
-// Generated SDK hook options
 import { readTestSetsTestSetsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 
-// Minimal shape we actually need in this dialog
 type TestSetOption = { id: string; name: string };
 
 interface TestSetSelectionDialogProps {
@@ -37,7 +35,6 @@ export default function TestSetSelectionDialog({
   const [inputValue, setInputValue] = React.useState<string>('');
   const [serverSearch, setServerSearch] = React.useState<string>('');
 
-  // Debounce input -> serverSearch (except when we explicitly force it)
   React.useEffect(() => {
     const handle = window.setTimeout(() => setServerSearch(inputValue), 500);
     return () => window.clearTimeout(handle);
@@ -50,7 +47,6 @@ export default function TestSetSelectionDialog({
     return `contains(tolower(name), tolower('${escaped}'))`;
   }, [serverSearch]);
 
-  // Query test sets (enabled only while dialog is open)
   const testSetsQuery = useQuery({
     ...readTestSetsTestSetsGetOptions({
       query: {
@@ -63,7 +59,6 @@ export default function TestSetSelectionDialog({
     enabled: open,
   });
 
-  // Surface fetch errors as a toast
   React.useEffect(() => {
     if (testSetsQuery.isError) {
       const msg =
@@ -76,7 +71,6 @@ export default function TestSetSelectionDialog({
     }
   }, [testSetsQuery.isError, testSetsQuery.error, notifications]);
 
-  // Map API rows to the option shape we use locally
   const options: TestSetOption[] = React.useMemo(() => {
     const rows = testSetsQuery.data?.data ?? [];
     return rows

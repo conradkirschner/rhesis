@@ -47,11 +47,9 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import { useQuery } from '@tanstack/react-query';
 import { createEndpoint } from '@/actions/endpoints';
 
-// Generated API query options + types
 import { readProjectsProjectsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 import type {Endpoint, PaginatedProjectDetail, ProjectDetail } from '@/api-client/types.gen';
 
-// Map of icon names to components for easy lookup
 const ICON_MAP: Record<string, React.ComponentType> = {
   SmartToy: SmartToyIcon,
   Devices: DevicesIcon,
@@ -78,13 +76,11 @@ const ICON_MAP: Record<string, React.ComponentType> = {
 const ENVIRONMENTS = ['production', 'staging', 'development'] as const;
 type Environment = (typeof ENVIRONMENTS)[number];
 
-// Get appropriate icon based on project type or use case
 const getProjectIcon = (project?: { icon?: string|null }) => {
   if (project?.icon && ICON_MAP[project.icon]) {
     const IconComponent = ICON_MAP[project.icon];
     return <IconComponent />;
   }
-  // Fall back to a default icon
   return <SmartToyIcon />;
 };
 
@@ -94,7 +90,6 @@ export default function SwaggerEndpointForm() {
   const [isImporting, setIsImporting] = useState(false);
   const [swaggerUrl, setSwaggerUrl] = useState('');
 
-  // Form state for OpenAPI-based creation
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
@@ -111,7 +106,6 @@ export default function SwaggerEndpointForm() {
     project_id: '',
   });
 
-  // Load projects via generated TanStack v5 query options (paginated response)
   const {
     data: projectsPage,
     isLoading: loadingProjects,
@@ -138,7 +132,6 @@ export default function SwaggerEndpointForm() {
     setIsImporting(true);
     setError(null);
     try {
-      // Simple client-side store of the URL; add validation if desired
       await new Promise(resolve => setTimeout(resolve, 200));
       setFormData(prev => ({ ...prev, openapi_spec_url: swaggerUrl }));
     } catch (e) {
@@ -189,7 +182,6 @@ export default function SwaggerEndpointForm() {
   return (
       <form onSubmit={handleSubmit}>
         <Card>
-          {/* Action buttons row */}
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 2 }}>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Button variant="outlined" onClick={() => router.push('/endpoints')}>
@@ -236,7 +228,6 @@ export default function SwaggerEndpointForm() {
                 </Grid>
               </Grid>
 
-              {/* Swagger URL */}
               <Grid item xs={12}>
                 <Typography variant="subtitle1" sx={{ mb: 2 }}>
                   Swagger / OpenAPI
@@ -336,7 +327,6 @@ export default function SwaggerEndpointForm() {
                 </Grid>
               </Grid>
 
-              {/* Environment */}
               <Grid item xs={12}>
                 <Typography variant="subtitle1" sx={{ mb: 2 }}>
                   Environment

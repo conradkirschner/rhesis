@@ -67,7 +67,6 @@ export default function TaskDetailPage({ params }: PageProps) {
       [session?.session_token]
   );
 
-  // Build task query key once (updates when headers/taskId change)
   const taskKey = useMemo(
       () =>
           getTaskTasksTaskIdGetOptions({
@@ -94,7 +93,6 @@ export default function TaskDetailPage({ params }: PageProps) {
     });
   };
 
-  // Task details
   const taskQuery = useQuery({
     ...getTaskTasksTaskIdGetOptions({
       headers,
@@ -105,7 +103,6 @@ export default function TaskDetailPage({ params }: PageProps) {
     staleTime: 15_000,
   });
 
-  // Users (assignee list)
   const usersQuery = useQuery({
     ...readUsersUsersGetOptions({ headers }),
     enabled: Boolean(headers),

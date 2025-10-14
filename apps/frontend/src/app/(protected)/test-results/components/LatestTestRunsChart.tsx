@@ -21,28 +21,13 @@ import {
 } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 
-import type { TestResultStatsAll } from '@/api-client/types.gen';
+import type {TestResultStatsAll, TestRunSummary} from '@/api-client/types.gen';
 
 import { generateTestResultStatsTestResultsStatsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 
 interface LatestTestRunsChartProps {
-  // We only need months here; keep it simple and typed
   filters: Partial<{ months: number }>;
 }
-
-// Minimal shape we use from the API for safe mapping
-type TestRunSummaryItemLite = {
-  id?: string | null;
-  name?: string | null;
-  started_at?: string | null;
-  overall?: {
-    pass_rate?: number | null;
-    total?: number | null;
-    passed?: number | null;
-    failed?: number | null;
-  } | null;
-};
-
 type ChartPoint = {
   name: string;
   pass_rate: number;
@@ -56,7 +41,7 @@ const remToPx = (remLike: string | number): number =>
     typeof remLike === 'number' ? remLike : parseFloat(remLike) * 16;
 
 const transformTestRunsData = (
-    testRunSummary?: ReadonlyArray<TestRunSummaryItemLite>,
+    testRunSummary?: ReadonlyArray<TestRunSummary>,
 ): ChartPoint[] => {
   if (!Array.isArray(testRunSummary) || testRunSummary.length === 0) {
     // Return a single “No data” point so axes render gracefully
@@ -113,11 +98,10 @@ export default function LatestTestRunsChart({
   const stats = statsQuery.data as TestResultStatsAll | undefined;
 
   const chartData = useMemo<ChartPoint[]>(
-      () => transformTestRunsData(stats?.test_run_summary as TestRunSummaryItemLite[] | undefined),
+      () => transformTestRunsData(stats?.test_run_summary),
       [stats?.test_run_summary],
   );
 
-  // Choose a consistent color; fall back to theme primary if custom palette missing
   const passRateColor =
       (theme as unknown as { chartPalettes?: { line?: string[] } })?.chartPalettes?.line?.[0] ??
       theme.palette.primary.main;

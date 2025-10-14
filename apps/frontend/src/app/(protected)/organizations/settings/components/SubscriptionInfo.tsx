@@ -116,7 +116,7 @@ export default function SubscriptionInfo({ organization }: SubscriptionInfoProps
                 Organization Created:
               </Typography>
             </Box>
-            {/*<Typography variant="body1">{formatDate(organization.created_at)}</Typography>*/}
+            <Typography variant="body1">{formatDate(organization.created_at)}</Typography>
           </Grid>
 
           <Grid item xs={12}>

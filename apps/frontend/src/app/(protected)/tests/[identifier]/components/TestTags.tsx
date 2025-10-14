@@ -11,17 +11,14 @@ interface TestTagsProps {
 }
 
 export default function TestTags({ test }: TestTagsProps) {
-  // derive tag names from TestDetail.tags (TagRead[] | null | undefined)
   const [tagNames, setTagNames] = useState<string[]>(
       (test.tags ?? []).map((t: TagRead) => t.name),
   );
 
-  // keep tag names in sync if the parent updates the test
   useEffect(() => {
     setTagNames((test.tags ?? []).map((t: TagRead) => t.name));
   }, [test.tags]);
 
-  // normalize TestDetail.tags (TagRead[]) -> Tag[] (what BaseTag expects)
   const normalizedTags: Tag[] | undefined = useMemo(() => {
     const arr = test.tags ?? undefined;
     return arr?.map((t: TagRead) => ({
@@ -30,7 +27,6 @@ export default function TestTags({ test }: TestTagsProps) {
     }));
   }, [test.tags]);
 
-  // Build a TaggableEntity explicitly (avoid `satisfies`/structural mismatch)
   const taggableTest: TaggableEntity = useMemo(
       () => ({
         id: test.id as string,

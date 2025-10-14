@@ -41,10 +41,8 @@ export default function DangerZone({ organization }: DangerZoneProps) {
   const [confirmText, setConfirmText] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Org name may be nullable in generated types; normalize to empty string
   const orgName = useMemo(() => organization.name ?? '', [organization.name]);
 
-  // Generated mutation for leaving org
   const leaveOrgMutation = useMutation(leaveOrganizationUsersLeaveOrganizationPatchMutation());
   const isLeaving = leaveOrgMutation.isPending;
 

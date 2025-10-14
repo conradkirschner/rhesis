@@ -21,10 +21,8 @@ import CallSplitIcon from '@mui/icons-material/CallSplit';
 import {keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 
 import type {
-  Project,
-  Endpoint,
   EndpointEnvironment,
-  TestSetExecutionRequest,
+  TestSetExecutionRequest, ProjectDetail, EndpointDetail,
 } from '@/api-client/types.gen';
 
 import {
@@ -68,7 +66,6 @@ export default function CreateTestRun({
   const [executionMode, setExecutionMode] =
       useState<TestSetExecutionRequest['execution_mode']>('Parallel');
 
-  // Projects + Endpoints via React Query
   const projectsQuery = useQuery({
     ...readProjectsProjectsGetOptions(
         { query: {sort_by: 'name', sort_order: 'asc', limit: 100 }},
@@ -87,26 +84,16 @@ export default function CreateTestRun({
     placeholderData: keepPreviousData,
   });
 
-  // Execute Test Set mutation
   const executeMutation = useMutation({
     ...executeTestSetTestSetsTestSetIdentifierExecuteEndpointIdPostMutation(
     ),
   });
 
-  // Normalize list responses regardless of T[] vs {data: T[]}
-  const projects: Project[] = useMemo(() => {
-    const raw = projectsQuery.data as Project[] | { data?: Project[] } | undefined;
-    if (!raw) return [];
-    return Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
-  }, [projectsQuery.data]);
+  const projects: ProjectDetail[] = projectsQuery.data?.data ??[]
 
-  const endpoints: Endpoint[] = useMemo(() => {
-    const raw = endpointsQuery.data as Endpoint[] | { data?: Endpoint[] } | undefined;
-    if (!raw) return [];
-    return Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
-  }, [endpointsQuery.data]);
+  const endpoints: EndpointDetail[] = endpointsQuery.data?.data ?? []
 
-  // Filter endpoints by selected project
+  // Move the filter function to a query (maybe tanstack query)
   const filteredEndpoints = useMemo(() => {
     if (!selectedProject) return [];
     return endpoints.filter(ep => (ep.project_id ?? null) === selectedProject);
@@ -120,7 +107,7 @@ export default function CreateTestRun({
     }
   }, [open]);
 
-  const handleEndpointChange = useCallback((value: Endpoint | null) => {
+  const handleEndpointChange = useCallback((value: EndpointDetail | null) => {
     setSelectedEndpoint(value ? value.id : null);
   }, []);
 
@@ -178,7 +165,7 @@ export default function CreateTestRun({
               </Typography>
 
               <FormControl fullWidth>
-                <Autocomplete<Project, false, false, false>
+                <Autocomplete
                     options={projects.filter(p => !!p.id && !!p.name?.trim())}
                     value={projects.find(p => p.id === selectedProject) ?? null}
                     onChange={(_, newValue) => {
@@ -190,7 +177,7 @@ export default function CreateTestRun({
                       setSelectedProject(newValue.id);
                       setSelectedEndpoint(null);
                     }}
-                    getOptionLabel={option => option.name}
+                    getOptionLabel={option => option.name ?? 'Unnamed Project'}
                     renderOption={(props, option) => {
                       return (
                           <Box component="li" {...props} key={option.id}>
@@ -215,11 +202,11 @@ export default function CreateTestRun({
               </FormControl>
 
               <FormControl fullWidth>
-                <Autocomplete<Endpoint, false, false, false>
+                <Autocomplete
                     options={filteredEndpoints.filter(e => !!e.id && !!e.name?.trim())}
                     value={filteredEndpoints.find(e => e.id === selectedEndpoint) ?? null}
                     onChange={(_, newValue) => handleEndpointChange(newValue)}
-                    getOptionLabel={option => option.name}
+                    getOptionLabel={option => option.name ?? 'Unnamed Endpoint'}
                     disabled={!selectedProject}
                     renderInput={params => (
                         <TextField

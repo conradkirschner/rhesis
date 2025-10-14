@@ -13,10 +13,8 @@ import { Save as SaveIcon } from '@mui/icons-material';
 import { useNotifications } from '@/components/common/NotificationContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-/** Generated types */
 import type { Organization } from '@/api-client/types.gen';
 
-/** Generated TanStack mutation */
 import {readOrganizationOrganizationsOrganizationIdGetQueryKey, updateOrganizationOrganizationsOrganizationIdPutMutation } from '@/api-client/@tanstack/react-query.gen';
 
 interface OrganizationDetailsFormProps {

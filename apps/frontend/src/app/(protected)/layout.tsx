@@ -9,14 +9,7 @@ import SidebarFooter from '@/components/navigation/SidebarFooter';
 import ToolbarActions from '@/components/layout/ToolbarActions';
 import HeyApiAuthProvider from '@/components/providers/HeyApiAuthProvider';
 
-// Define extended user interface that includes organization_id
-interface ExtendedUser {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-  organization_id?: string | null;
-}
+
 
 export default function ProtectedLayout({
   children,
@@ -24,7 +17,7 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const { data: session } = useSession();
-  const user = session?.user as ExtendedUser | undefined;
+  const user = session?.user;
   const hasOrganization = !!user?.organization_id;
 
   // Hide both navigation and AppBar when organization_id is missing

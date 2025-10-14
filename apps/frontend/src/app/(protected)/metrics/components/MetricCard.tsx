@@ -23,7 +23,6 @@ import {
   ToggleOnIcon,
 } from '@/components/icons';
 
-// Custom Rhesis AI icon component using inline SVG
 const RhesisAIIcon = ({
   fontSize = 'small',
 }: {

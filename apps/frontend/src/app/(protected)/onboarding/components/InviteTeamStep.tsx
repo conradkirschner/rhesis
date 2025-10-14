@@ -160,7 +160,6 @@ export default function InviteTeamStep({
     updatedInvites.splice(index, 1);
     updateFormData({ invites: updatedInvites });
 
-    // Remove error for this field if it exists
     if (errors[index]) {
       const newErrors = { ...errors };
       delete newErrors[index];

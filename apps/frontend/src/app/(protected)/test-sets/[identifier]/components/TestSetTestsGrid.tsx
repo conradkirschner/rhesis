@@ -57,7 +57,6 @@ export default function TestSetTestsGrid({
         },
     ),
     enabled: Boolean(testSetId),
-    // optional cache tuning:
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });
@@ -93,7 +92,7 @@ export default function TestSetTestsGrid({
           { severity: 'success', autoHideDuration: 6000 },
       );
       setSelectedRows([]);
-      testsQuery.refetch();
+      void testsQuery.refetch();
       onRefresh?.();
     },
     onError: () => {

@@ -10,7 +10,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import EndpointsGrid from './components/EndpointsGrid';
 
-// Generated HeyAPI + TanStack v5 helpers & types
 import { readEndpointsEndpointsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 import type {
   PaginatedEndpointDetail,
@@ -30,7 +29,6 @@ export default function EndpointsPage() {
   const skip = paginationModel.page * paginationModel.pageSize;
   const limit = paginationModel.pageSize;
 
-  // Build generated query options
   const endpointsQueryOptions = useMemo(
       () =>
           readEndpointsEndpointsGetOptions({
@@ -53,28 +51,22 @@ export default function EndpointsPage() {
     enabled: status !== 'loading' && !!session?.session_token,
   });
 
-  // API returns EndpointDetail[] with optional name — coerce to Endpoint[] by defaulting name
   const endpoints: Endpoint[] = useMemo(() => {
     const rows = (data as PaginatedEndpointDetail | undefined)?.data ?? [];
-    // Only normalize what's necessary to satisfy Endpoint (name must be string)
     return (rows as EndpointDetail[]).map((e) => ({
       ...e,
-      name: e.name ?? '', // <-- fix: ensure required string
+      name: e.name ?? '',
     })) as Endpoint[];
   }, [data]);
 
-  const totalCount = useMemo(() => {
-    const p = (data as PaginatedEndpointDetail | undefined)?.pagination;
-    // support either `totalCount` or `total`
-    return (p && (('totalCount' in p && p.totalCount))) || 0;
-  }, [data]);
+  const totalCount = data?.pagination.totalCount ?? 0;
 
   const handlePaginationModelChange = (newModel: GridPaginationModel) => {
     setPaginationModel(newModel);
   };
 
   const handleEndpointDeleted = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: endpointsQueryOptions.queryKey });
+    void queryClient.invalidateQueries({ queryKey: endpointsQueryOptions.queryKey });
   }, [queryClient, endpointsQueryOptions.queryKey]);
 
   if (status === 'loading') {

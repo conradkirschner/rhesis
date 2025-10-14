@@ -41,7 +41,6 @@ const ALLOWED_STATUS_NAMES = new Set(['Open', 'In Progress', 'Completed', 'Cance
 export default function CreateTaskPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
   const { show } = useNotifications();
   const theme = useTheme();
 
@@ -75,16 +74,9 @@ export default function CreateTaskPage() {
     }
   }, [searchParams]);
 
-  // Auth headers for generated hooks
-  const headers = useMemo(
-      () => (session?.session_token ? { Authorization: `Bearer ${session.session_token}` } : undefined),
-      [session?.session_token]
-  );
-
   // Users (assignee dropdown)
   const usersQuery = useQuery({
-    ...readUsersUsersGetOptions({ headers, query: { limit: 200 } }),
-    enabled: Boolean(headers),
+    ...readUsersUsersGetOptions({ query: { limit: 200 } }),
     staleTime: 60_000,
   });
   const users: User[] = (usersQuery.data?.data ?? []).filter(u => !!u.id);
@@ -92,10 +84,8 @@ export default function CreateTaskPage() {
   // Statuses
   const statusesQuery = useQuery({
     ...readStatusesStatusesGetOptions({
-      headers,
       query: { entity_type: 'Task', sort_by: 'name', sort_order: 'asc' },
     }),
-    enabled: Boolean(headers),
     staleTime: 60_000,
   });
   const statuses: (Pick<Status, 'id' | 'name'> & { name: string })[] =
@@ -106,7 +96,6 @@ export default function CreateTaskPage() {
   // Priorities via TypeLookups (keep lookup logic; we store/send priority_id)
   const prioritiesQuery = useQuery({
     ...readTypeLookupsTypeLookupsGetOptions({
-      headers,
       query: {
         $filter: "type_name eq 'TaskPriority'",
         sort_by: 'type_value',
@@ -114,7 +103,6 @@ export default function CreateTaskPage() {
         limit: 100,
       },
     }),
-    enabled: Boolean(headers),
     staleTime: 60_000,
   });
   const priorityLookups: TypeLookup[] =
@@ -131,7 +119,7 @@ export default function CreateTaskPage() {
   );
 
   // Defaults after data loads
-  const isBootLoading = !headers || statusesQuery.isLoading || prioritiesQuery.isLoading;
+  const isBootLoading = statusesQuery.isLoading || prioritiesQuery.isLoading;
 
   useEffect(() => {
     // Default status: "Open" or first
@@ -166,7 +154,7 @@ export default function CreateTaskPage() {
 
   // Create task mutation
   const createTaskMutation = useMutation({
-    ...createTaskTasksPostMutation({ headers }),
+    ...createTaskTasksPostMutation(),
     onSuccess: () => {
       show('Task created successfully', { severity: 'success' });
       router.push('/tasks');
@@ -218,7 +206,7 @@ export default function CreateTaskPage() {
           title: formData.title,
           description: formData.description,
           status_id: formData.status_id,
-          priority_id: formData.priority_id, // ✅ send lookup ID
+          priority_id: formData.priority_id,
           assignee_id: formData.assignee_id || undefined,
           entity_type: formData.entity_type,
           entity_id: formData.entity_id,

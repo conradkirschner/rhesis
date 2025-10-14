@@ -18,7 +18,6 @@ import type { TestResultStatsAll, TestResultStatsMode } from '@/api-client/types
 import { generateTestResultStatsTestResultsStatsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 
 interface DimensionRadarChartProps {
-  // Only `months` is used from filters for this query
   filters: Partial<{ months: number }>;
   dimension: 'behavior' | 'category' | 'topic';
   title: string;

@@ -12,7 +12,6 @@ export default function IntegrationsLayout({
   const router = useRouter();
   const pathname = usePathname();
 
-  // Redirect to applications if on the root integrations path
   React.useEffect(() => {
     if (pathname === '/integrations') {
       router.replace('/integrations/applications');

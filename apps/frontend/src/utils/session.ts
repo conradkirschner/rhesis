@@ -12,61 +12,6 @@ export interface Session {
   user: User;
 }
 
-export async function getSession(): Promise<Session | null> {
-  // Get session token from cookie
-  const cookieValue = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('next-auth.session-token='))
-    ?.split('=')[1];
-
-  if (!cookieValue) return null;
-
-  // Extract the actual JWT token from the session data
-  let token = cookieValue;
-  try {
-    const sessionData = JSON.parse(decodeURIComponent(cookieValue));
-    if (
-      sessionData &&
-      typeof sessionData === 'object' &&
-      sessionData.session_token
-    ) {
-      token = sessionData.session_token;
-    }
-  } catch (error) {
-    // If JSON parsing fails, treat as direct token
-    console.log(
-      '[WARNING] [DEBUG] Session cookie is not JSON, treating as direct token'
-    );
-  }
-
-  try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/verify?session_token=${token}`,
-      {
-        headers: {
-          Accept: 'application/json',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = await response.json();
-    if (!data.authenticated || !data.user) {
-      return null;
-    }
-
-    return {
-      user: data.user,
-    };
-  } catch (error) {
-    console.error('Session error:', error);
-    return null;
-  }
-}
-
 export async function clearAllSessionData() {
   console.log(
     '🟡 [DEBUG] clearAllSessionData called - starting session cleanup'

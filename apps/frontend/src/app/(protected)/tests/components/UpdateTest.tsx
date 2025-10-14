@@ -85,7 +85,6 @@ export default function UpdateTest({
     status_id: test.status?.id ?? undefined,
   });
 
-  /** Queries for options */
   const behaviorsQ = useQuery(
       readBehaviorsBehaviorsGetOptions({ query: { sort_by: 'name', sort_order: 'asc' } }),
   );
@@ -100,7 +99,6 @@ export default function UpdateTest({
       readStatusesStatusesGetOptions({ query: { sort_by: 'name', sort_order: 'asc', entity_type: 'Test' } }),
   );
 
-  /** Safe option lists (id/name must be strings) */
   const behaviors: AutocompleteOption[] = useMemo(
       () =>
           (behaviorsQ.data?.data ?? [])
@@ -142,7 +140,6 @@ export default function UpdateTest({
       [statusesQ.data],
   );
 
-  /** Mutations */
   const updateTestMutation = useMutation(updateTestTestsTestIdPutMutation());
   const updatePromptMutation = useMutation(updatePromptPromptsPromptIdPutMutation());
 
@@ -164,7 +161,6 @@ export default function UpdateTest({
     });
   }, [test]);
 
-  /** Helpers */
   const handleFieldChange =
       (field: keyof TestFormData) =>
           (value: AutocompleteOption | string | null) => {

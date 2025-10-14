@@ -66,7 +66,6 @@ export default function MetricDetailPage() {
   const theme = useTheme();
   const notifications = useNotifications();
 
-  // --------- Queries ----------
   const metricQuery = useQuery(
       readMetricMetricsMetricIdGetOptions({
         path: { metric_id: identifier },
@@ -93,8 +92,6 @@ export default function MetricDetailPage() {
 
   const metric = metricQuery.data as Metric | undefined;
   const models = (modelsQuery.data?.data ?? []) as Model[];
-  // const statuses = (statusesQuery.data ?? []) as Status[];
-  // const users = (usersQuery.data?.data ?? []) as User[];
 
   const loading =
       metricQuery.isLoading ||
@@ -106,7 +103,6 @@ export default function MetricDetailPage() {
   const [stepsWithIds, setStepsWithIds] = useState<StepWithId[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Refs for uncontrolled text fields
   const nameRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const evaluationPromptRef = useRef<HTMLTextAreaElement>(null);
@@ -114,12 +110,10 @@ export default function MetricDetailPage() {
   const explanationRef = useRef<HTMLTextAreaElement>(null);
   const stepRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map());
 
-  // --------- Mutation ----------
   const updateMetricMutation = useMutation(
       updateMetricMetricsMetricIdPutMutation(),
   );
 
-  // --------- Helpers ----------
   const collectFieldValues = React.useCallback((): Partial<EditData> => {
     const values: Partial<EditData> = {};
 
@@ -273,7 +267,6 @@ export default function MetricDetailPage() {
     stepRefs.current.delete(stepId);
   }, []);
 
-  // ------- Presentational helpers -------
   const EditableSection = React.memo(
       ({
          title,
@@ -466,7 +459,6 @@ export default function MetricDetailPage() {
   );
   InfoRow.displayName = 'InfoRow';
 
-  // icons (memoized)
   const infoIcon = <InfoIcon />;
   const assessmentIcon = <AssessmentIcon />;
   const settingsIcon = <SettingsIcon />;

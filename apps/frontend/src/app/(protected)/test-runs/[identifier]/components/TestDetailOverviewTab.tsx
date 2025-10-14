@@ -6,7 +6,6 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import TestResultTags from './TestResultTags';
 
-/** Infer the exact test result type from TestResultTags props (no api-client imports) */
 type TestResultFromTags = React.ComponentProps<typeof TestResultTags>['testResult'];
 
 interface TestDetailOverviewTabProps {

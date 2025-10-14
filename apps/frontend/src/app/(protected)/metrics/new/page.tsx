@@ -43,7 +43,7 @@ interface MetricFormData {
   evaluation_prompt: string;
   evaluation_steps: string[];
   reasoning: string;
-  score_type: ScoreType; // 'binary' | 'numeric'
+  score_type: ScoreType;
   min_score?: number;
   max_score?: number;
   threshold?: number;
@@ -66,10 +66,6 @@ const initialFormData: MetricFormData = {
 const steps = ['Metric Information and Criteria', 'Confirmation'];
 const STEP_SEPARATOR = '\n---\n';
 
-/** tiny helpers */
-const toNum = (v: unknown): number | undefined =>
-    v === '' || v === null || v === undefined ? undefined : Number(v);
-
 export default function NewMetricPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -88,7 +84,6 @@ export default function NewMetricPage() {
     if (!type) router.push('/metrics');
   }, [type, router]);
 
-  /** Models query (generated) */
   const modelsQueryOpts = readModelsModelsGetOptions({
     query: { sort_by: 'name', sort_order: 'asc', skip: 0, limit: 100 },
   });
@@ -101,10 +96,8 @@ export default function NewMetricPage() {
   const models = modelsQuery.data ?? [];
   const isLoadingModels = modelsQuery.isPending;
 
-  /** Create metric mutation (generated) */
   const createMetricMutation = useMutation(createMetricMetricsPostMutation());
 
-  /** Handlers */
   const handleChange =
       (field: keyof MetricFormData) =>
           (
@@ -153,10 +146,6 @@ export default function NewMetricPage() {
 
     try {
 
-      // NOTE: Backend does NOT support type-lookups queries.
-      // The create payload's `metric_type_id` and `backend_type_id` are optional,
-      // so we omit them and let the backend infer/default as needed.
-
       setIsCreating(true);
 
       const nonEmptySteps = (formData.evaluation_steps ?? []).filter((s) =>
@@ -176,18 +165,17 @@ export default function NewMetricPage() {
           score_type: formData.score_type,
           min_score:
               formData.score_type === 'numeric'
-                  ? toNum(formData.min_score)
+                  ? formData.min_score
                   : undefined,
           max_score:
               formData.score_type === 'numeric'
-                  ? toNum(formData.max_score)
+                  ? formData.max_score
                   : undefined,
           threshold:
               formData.score_type === 'numeric'
-                  ? toNum(formData.threshold)
+                  ? formData.threshold
                   : undefined,
           explanation: formData.explanation || '',
-          // @todo add metric_type_id / backend_type_id
           model_id: formData.model_id || undefined,
           owner_id: session?.user?.id || undefined,
         },

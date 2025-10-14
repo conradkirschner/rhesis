@@ -48,11 +48,7 @@ export default function TestDetailData({ test: initialTest }: TestDetailDataProp
   const notifications = useNotifications();
   const queryClient = useQueryClient();
 
-  // ✅ Subscribe to the same Test cache (no extra network; uses cached data).
-  const testOptions = React.useMemo(
-      () => readTestTestsTestIdGetOptions({ path: { test_id: initialTest.id as Id } }),
-      [initialTest.id],
-  );
+  const testOptions = readTestTestsTestIdGetOptions({ path: { test_id: initialTest.id as Id } });
   const testQuery = useQuery({
     ...testOptions,
     select: (resp): TestDetail => {
@@ -64,7 +60,6 @@ export default function TestDetailData({ test: initialTest }: TestDetailDataProp
   });
   const test = testQuery.data ?? initialTest;
 
-  // Reference-data queries
   const behaviorsQuery = useQuery(readBehaviorsBehaviorsGetOptions({ query: { sort_by: 'name', sort_order: 'asc' } }));
   const topicsQuery = useQuery(
       readTopicsTopicsGetOptions({ query: { entity_type: 'Test', sort_by: 'name', sort_order: 'asc' } }),
@@ -111,7 +106,6 @@ export default function TestDetailData({ test: initialTest }: TestDetailDataProp
     },
   });
 
-  // Update a single field (optimistic update against the Test cache)
   const handleUpdate = async (
       field: 'behavior' | 'topic' | 'category' | 'test_type',
       value: string | AutocompleteOption | null,
@@ -127,7 +121,6 @@ export default function TestDetailData({ test: initialTest }: TestDetailDataProp
     const fieldKey = `${field}_id` as 'behavior_id' | 'topic_id' | 'category_id' | 'test_type_id';
     const idOrNull: Id | null = value ? (value.id as Id) : null;
 
-    // Build the next TestDetail based on current cache
     const prev = queryClient.getQueryData<TestDetail>(testOptions.queryKey);
 
     const next: TestDetail | undefined = prev
@@ -201,9 +194,9 @@ export default function TestDetailData({ test: initialTest }: TestDetailDataProp
                 onChange={(val) => {
                   if (typeof val === 'string') {
                     const match = behaviors.find(b => b.name === val);
-                    handleUpdate('behavior', match ?? val);
+                    void handleUpdate('behavior', match ?? val);
                   } else {
-                    handleUpdate('behavior', val);
+                    void handleUpdate('behavior', val);
                   }
                 }}
                 label="Behavior"
@@ -218,9 +211,9 @@ export default function TestDetailData({ test: initialTest }: TestDetailDataProp
                 onChange={(val) => {
                   if (typeof val === 'string') {
                     const match = types.find(t => t.name === val);
-                    handleUpdate('test_type', match ?? val);
+                    void handleUpdate('test_type', match ?? val);
                   } else {
-                    handleUpdate('test_type', val);
+                    void handleUpdate('test_type', val);
                   }
                 }}
                 label="Type"
@@ -237,9 +230,9 @@ export default function TestDetailData({ test: initialTest }: TestDetailDataProp
                 onChange={(val) => {
                   if (typeof val === 'string') {
                     const match = topics.find(t => t.name === val);
-                    handleUpdate('topic', match ?? val);
+                    void handleUpdate('topic', match ?? val);
                   } else {
-                    handleUpdate('topic', val);
+                    void handleUpdate('topic', val);
                   }
                 }}
                 label="Topic"
@@ -254,9 +247,9 @@ export default function TestDetailData({ test: initialTest }: TestDetailDataProp
                 onChange={(val) => {
                   if (typeof val === 'string') {
                     const match = categories.find(c => c.name === val);
-                    handleUpdate('category', match ?? val);
+                    void handleUpdate('category', match ?? val);
                   } else {
-                    handleUpdate('category', val);
+                    void handleUpdate('category', val);
                   }
                 }}
                 label="Category"

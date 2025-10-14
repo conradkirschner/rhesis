@@ -130,20 +130,6 @@ export const normalizeUrl = (url: string): string => {
 };
 
 /**
- * Required field validation
- */
-export const validateRequired = (
-  value: string,
-  fieldName: string = 'Field'
-): ValidationResult => {
-  const isValid = Boolean(value?.trim());
-  return {
-    isValid,
-    message: isValid ? undefined : `${fieldName} is required`,
-  };
-};
-
-/**
  * Name validation (letters, spaces, hyphens, apostrophes)
  */
 export const validateName = (

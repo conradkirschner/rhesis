@@ -12,6 +12,5 @@ export type {
 } from './BaseScatterChart';
 export type { BaseChartsGridProps } from './BaseChartsGrid';
 
-// Export utility functions
 export { chartUtils } from './BaseLineChart';
 export { scatterChartUtils } from './BaseScatterChart';

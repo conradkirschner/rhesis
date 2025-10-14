@@ -21,7 +21,6 @@ export default function RecentTestsGrid({}: RecentTestsGridProps) {
   const skip = paginationModel.page * paginationModel.pageSize;
   const limit = paginationModel.pageSize;
 
-  // Build options with the generator helper (do NOT augment when calling useQuery)
   const queryOptions = useMemo(
       () =>
           readTestsTestsGetOptions({

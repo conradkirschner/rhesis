@@ -53,7 +53,6 @@ export interface BaseLineChartProps {
   };
 }
 
-// Utility functions for chart data handling
 export const chartUtils = {
   /**
    * Gets the last N months as data points

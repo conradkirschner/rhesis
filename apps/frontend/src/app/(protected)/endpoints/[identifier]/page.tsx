@@ -8,16 +8,12 @@ import { useQuery } from '@tanstack/react-query';
 
 import { readEndpointEndpointsEndpointIdGetOptions } from '@/api-client/@tanstack/react-query.gen';
 import type {Endpoint, EndpointDetail as EndpointDetailType } from '@/api-client/types.gen';
+import { useParams } from 'next/navigation';
 
-interface PageProps {
-  params: Promise<{ identifier: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}
 
-export default async function EndpointPage({ params }: PageProps) {
-  const { identifier } = await params;
+export default function EndpointPage() {
+  const { identifier } = useParams<{identifier: string}>();
 
-  // Build options with the generator helper (do NOT augment when calling useQuery)
   const queryOptions = useMemo(
       () =>
           readEndpointEndpointsEndpointIdGetOptions({
@@ -26,7 +22,6 @@ export default async function EndpointPage({ params }: PageProps) {
       [identifier]
   );
 
-  // Call useQuery with the generated options directly
   const { data, isLoading, isFetching, error } = useQuery(queryOptions);
 
   const loading = isLoading || isFetching;

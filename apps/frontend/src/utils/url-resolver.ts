@@ -40,20 +40,3 @@ export function getServerBackendUrl(): string {
   const baseUrl = process.env.BACKEND_URL || 'http://backend:8080';
   return resolveLocalhostUrl(baseUrl);
 }
-
-/**
- * Gets the appropriate base URL based on execution environment
- * - Client-side: Uses NEXT_PUBLIC_API_BASE_URL for browser-to-host communication
- * - Server-side: Uses BACKEND_URL for container-to-container communication
- *
- * @returns Resolved base URL appropriate for the current environment
- */
-export function getBaseUrl(): string {
-  if (typeof window === 'undefined') {
-    // Server-side: use BACKEND_URL for container-to-container communication
-    return getServerBackendUrl();
-  } else {
-    // Client-side: use NEXT_PUBLIC_API_BASE_URL for browser-to-host communication
-    return getClientApiBaseUrl();
-  }
-}

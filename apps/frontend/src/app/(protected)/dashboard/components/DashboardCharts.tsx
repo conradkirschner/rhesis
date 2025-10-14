@@ -16,13 +16,10 @@ import {
   generateTestResultStatsTestResultsStatsGetOptions,
 } from '@/api-client/@tanstack/react-query.gen';
 
-// Get last 6 months dynamically
 const getLastSixMonths = () => chartUtils.getLastNMonths(6);
 
-// Dynamically generated mock data for the last 6 months
 const testTrendData = getLastSixMonths();
 
-// Default data for dimension charts with non-zero values to ensure visualization
 const dimensionDataBehavior = [
   { name: 'Reliability', value: 1 },
   { name: 'Robustness', value: 1 },
@@ -35,7 +32,6 @@ const dimensionDataCategory = [
   { name: 'Jailbreak', value: 1 },
 ];
 
-// Fallback data for test cases managed - will be populated dynamically
 const testCasesManagedData = getLastSixMonths();
 
 export default function DashboardCharts() {

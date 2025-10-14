@@ -17,7 +17,6 @@ import type { TestResultStatsAll } from '@/api-client/types.gen';
 import { generateTestResultStatsTestResultsStatsGetOptions } from '@/api-client/@tanstack/react-query.gen';
 
 interface LatestResultsPieChartProps {
-  // We only need months for this query; keep it simple and typed
   filters: Partial<{ months: number }>;
 }
 
@@ -45,7 +44,6 @@ export default function LatestResultsPieChart({
                                               }: LatestResultsPieChartProps) {
   const theme = useTheme();
 
-  // Build query params in a stable way
   const queryParams = useMemo(
       () => ({
         mode: 'summary' as const, // API enum value

@@ -54,7 +54,6 @@ export default function RecentActivitiesGrid() {
   const skip = paginationModel.page * paginationModel.pageSize;
   const limit = paginationModel.pageSize;
 
-  // Build options with the generator helper (DO NOT spread/augment when calling useQuery)
   const queryOptions = useMemo(
       () =>
           readTestsTestsGetOptions({
@@ -63,11 +62,9 @@ export default function RecentActivitiesGrid() {
       [skip, limit]
   );
 
-  // Pass the options object directly to avoid TanStack overload mismatches
   const { data, isLoading, isFetching, error } = useQuery(queryOptions);
 
-  // Current backend returns a plain array for 200
-  const rows: TestDetail[] = data?.data ?? [];
+  const rows = data?.data ?? [];
 
   const totalRows = data?.pagination.totalCount;
 

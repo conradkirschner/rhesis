@@ -12,7 +12,6 @@ export default async function CreateProjectPage() {
     throw new Error('No user ID available in session');
   }
 
-  // Prefer org id from the session; defer any missing lookup to the client flow
   const organizationId = session.user.organization_id;
 
   if (!organizationId) {

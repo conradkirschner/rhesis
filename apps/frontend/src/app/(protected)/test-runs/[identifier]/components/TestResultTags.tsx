@@ -20,7 +20,6 @@ export default function TestResultTags({
                                        }: TestResultTagsProps) {
   const queryClient = useQueryClient();
 
-  // Build the TaggableEntity that BaseTag expects
   const entity = React.useMemo<TaggableEntity>(() => {
     const orgId =
         'organization_id' in testResult
@@ -41,17 +40,14 @@ export default function TestResultTags({
     };
   }, [testResult]);
 
-  // Local tag names shown in the UI
   const [tagNames, setTagNames] = React.useState<string[]>(
       entity.tags?.map(t => t.name ?? '').filter(Boolean) ?? [],
   );
 
-  // Keep tag names in sync when the parent provides a different test result
   React.useEffect(() => {
     setTagNames(entity.tags?.map(t => t.name ?? '').filter(Boolean) ?? []);
   }, [entity]);
 
-  // After BaseTag does its API updates, refetch the full test result and bubble up
   const handleTagChange = async (newTagNames: string[]) => {
     setTagNames(newTagNames); // optimistic UI
 
@@ -63,10 +59,8 @@ export default function TestResultTags({
       const updated = await queryClient.fetchQuery(opts);
       onUpdate(updated as TestResultDetail);
 
-      // Keep cache fresh
       await queryClient.invalidateQueries({ queryKey: opts.queryKey });
     } catch {
-      // swallow — you can surface a toast here if desired
     }
   };
 

@@ -50,7 +50,7 @@ export default function LandingPage() {
       window.history.replaceState({}, '', newUrl.toString());
 
       if (status === 'authenticated') {
-        signOut({ redirect: false, callbackUrl: '/' });
+        void signOut({ redirect: false, callbackUrl: '/' });
       }
       return;
     }
@@ -90,16 +90,16 @@ export default function LandingPage() {
 
           setBackendSessionValid(false);
           setSessionExpired(true);
-          signOut({ redirect: false, callbackUrl: '/' });
+          void signOut({ redirect: false, callbackUrl: '/' });
         } catch (error) {
           console.error('Backend session validation error:', error);
           setBackendSessionValid(false);
           setSessionExpired(true);
-          signOut({ redirect: false, callbackUrl: '/' });
+          void signOut({ redirect: false, callbackUrl: '/' });
         }
       };
 
-      validateBackendSession();
+      void validateBackendSession();
     }
   }, [session, status, router, sessionExpired, backendSessionValid]);
 

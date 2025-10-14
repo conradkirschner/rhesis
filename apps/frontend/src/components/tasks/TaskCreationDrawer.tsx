@@ -34,8 +34,6 @@ interface TaskCreationDrawerProps {
   onSubmit: (taskData: NewTaskPayload) => Promise<void>;
   entityType: EntityType;
   entityId: string;
-  currentUserId: string;   // kept for parity if parent needs them
-  currentUserName: string; // kept for parity if parent needs them
   isLoading?: boolean;
   commentId?: string;
 }

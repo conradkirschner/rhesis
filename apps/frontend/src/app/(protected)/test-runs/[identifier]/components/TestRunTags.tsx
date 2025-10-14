@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Box } from '@mui/material';
-import BaseTag from '@/components/common/BaseTag';
+import BaseTag, {TaggableEntity} from '@/components/common/BaseTag';
 
 import type { TestRunDetail } from '@/api-client/types.gen';
 import { readTestRunTestRunsTestRunIdGetOptions } from '@/api-client/@tanstack/react-query.gen';
@@ -11,14 +11,6 @@ import { useQueryClient } from '@tanstack/react-query';
 interface TestRunTagsProps {
   testRun: TestRunDetail;
 }
-
-// Local structural type compatible with BaseTag's expected TaggableEntity
-type TaggableEntityForBase = {
-  id: string;
-  organization_id?: string | null;
-  user_id?: string | null;
-  tags?: Array<{ id: string; name: string }>;
-};
 
 export default function TestRunTags({ testRun }: TestRunTagsProps) {
   const queryClient = useQueryClient();
@@ -36,7 +28,7 @@ export default function TestRunTags({ testRun }: TestRunTagsProps) {
   }, [testRun]);
 
   // Normalize entity to exactly what BaseTag expects (no `null` in tags)
-  const entityForBase: TaggableEntityForBase = React.useMemo(
+  const entityForBase: TaggableEntity = React.useMemo(
       () => ({
         id: testRun.id,
         organization_id: testRun.organization_id ?? null,

@@ -10,11 +10,6 @@ import { PageContainer } from '@toolpad/core/PageContainer';
 import type { TestSet } from '@/api-client/types.gen';
 import { readTestSetTestSetsTestSetIdentifierGet } from '@/api-client/sdk.gen';
 
-type SessionShape = {
-  session_token: string;
-  user?: { id?: string; name?: string; picture?: string };
-} | null;
-
 async function getTestSetById(identifier: string, token: string) {
   const resp = await readTestSetTestSetsTestSetIdentifierGet({
     path: { test_set_identifier: identifier },
@@ -34,7 +29,7 @@ export async function generateMetadata({
   params: Promise<{ identifier: string }>;
 }): Promise<Metadata> {
   const { identifier } = await params;
-  const session = (await auth()) as SessionShape;
+  const session = (await auth());
 
   if (!session?.session_token) {
     return {
@@ -69,7 +64,7 @@ export default async function TestSetPage({
   params: Promise<{ identifier: string }>;
 }) {
   const { identifier } = await params;
-  const session = (await auth()) as SessionShape;
+  const session = (await auth());
 
   if (!session?.session_token) {
     throw new Error('Authentication required');

@@ -26,14 +26,6 @@ interface FormData {
   website: string;
 }
 
-// Define our Auth0-specific user properties that might be available
-interface ExtendedUser {
-  given_name?: string;
-  family_name?: string;
-  name?: string | null;
-  email?: string | null;
-}
-
 interface OrganizationDetailsStepProps {
   formData: FormData;
   updateFormData: (data: Partial<FormData>) => void;
@@ -58,29 +50,20 @@ export default function OrganizationDetailsStep({
     website: '',
   });
 
-  // Prefill form with user data from session
   useEffect(() => {
     if (sessionStatus === 'loading') return;
 
-    // Only attempt to prefill once and if the user session exists
     if (session?.user && !hasAttemptedPrefill) {
       try {
         const data: Partial<FormData> = {};
 
-        // Log the user object to check what fields are actually available
-        console.log('Session user data:', session.user);
+        const extendedUser = session.user
 
-        // Access potential Auth0 properties
-        const extendedUser = session.user as unknown as ExtendedUser;
-
-        // Helper function to check if a string looks like an email
         const looksLikeEmail = (str: string): boolean => {
           return str.includes('@') && str.includes('.');
         };
 
-        // Only prefill firstName if it's currently empty
         if (!formData.firstName) {
-          // First try to use given_name for firstName if available
           if (extendedUser.given_name) {
             data.firstName = extendedUser.given_name;
             console.log('Using given_name for firstName:', data.firstName);
@@ -100,14 +83,11 @@ export default function OrganizationDetailsStep({
           }
         }
 
-        // Only prefill lastName if it's currently empty
         if (!formData.lastName) {
-          // First try to use family_name for lastName if available
           if (extendedUser.family_name) {
             data.lastName = extendedUser.family_name;
             console.log('Using family_name for lastName:', data.lastName);
           }
-          // Fall back to name parsing if family_name is not available, but only if name doesn't look like an email
           else if (session.user.name && !looksLikeEmail(session.user.name)) {
             const nameParts = session.user.name.split(' ');
             if (nameParts.length > 1) {
@@ -122,12 +102,10 @@ export default function OrganizationDetailsStep({
           }
         }
 
-        // Update form data with the user info
         if (Object.keys(data).length > 0) {
           updateFormData(data);
         }
 
-        // Mark that we've attempted prefilling
         setHasAttemptedPrefill(true);
       } catch (error) {
         console.error('Error processing user session data:', error);
@@ -135,7 +113,6 @@ export default function OrganizationDetailsStep({
       }
     }
 
-    // Always set loading to false when done
     setLoading(false);
   }, [
     session,
@@ -183,9 +160,6 @@ export default function OrganizationDetailsStep({
     try {
       setIsSubmitting(true);
 
-      // Store form data in sessionStorage without updating user profile
-      // This allows other components to access the user's name information
-      try {
         const userData = {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -194,13 +168,6 @@ export default function OrganizationDetailsStep({
           website: formData.website || '',
         };
         sessionStorage.setItem('onboardingUserData', JSON.stringify(userData));
-      } catch (storageError) {
-        console.error(
-          'Error storing user data in session storage:',
-          storageError
-        );
-      }
-
       // Proceed to next step without updating user profile
       onNext();
     } catch (error) {
@@ -215,7 +182,6 @@ export default function OrganizationDetailsStep({
     const { name, value } = e.target;
     updateFormData({ [name]: value });
 
-    // Clear error once the user types
     if (errors[name as keyof typeof errors]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -224,7 +190,6 @@ export default function OrganizationDetailsStep({
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    // Normalize URL when user finishes editing the website field
     if (name === 'website' && value.trim()) {
       const normalized = normalizeUrl(value);
       if (normalized !== value) {

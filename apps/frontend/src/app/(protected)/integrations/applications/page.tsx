@@ -16,7 +16,6 @@ export default function IntegrationsPage() {
       </Box>
 
       <Stack spacing={3}>
-        {/* Add Application Card */}
         <Paper
           sx={{
             p: 3,

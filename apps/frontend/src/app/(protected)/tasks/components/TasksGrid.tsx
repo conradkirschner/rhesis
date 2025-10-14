@@ -35,11 +35,10 @@ import {
 } from '@/api-client/@tanstack/react-query.gen';
 
 interface TasksGridProps {
-  sessionToken: string;
   onRefresh?: () => void;
 }
 
-export default function TasksGrid({ sessionToken, onRefresh }: TasksGridProps) {
+export default function TasksGrid({ onRefresh }: TasksGridProps) {
   const router = useRouter();
   const notifications = useNotifications();
 
@@ -51,12 +50,6 @@ export default function TasksGrid({ sessionToken, onRefresh }: TasksGridProps) {
   const [filterModel, setFilterModel] = React.useState<GridFilterModel>({ items: [] });
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
-
-  // ---- Derived inputs for the query ----
-  const headers = React.useMemo(
-      () => ({ Authorization: `Bearer ${sessionToken}` }),
-      [sessionToken]
-  );
 
   const skip = React.useMemo(
       () => paginationModel.page * paginationModel.pageSize,
@@ -71,14 +64,12 @@ export default function TasksGrid({ sessionToken, onRefresh }: TasksGridProps) {
   // ---- List tasks (paginated) ----
   const tasksQuery = useQuery({
     ...listTasksTasksGetOptions({
-      headers,
       query: {
         skip,
         limit: paginationModel.pageSize,
         $filter: oDataFilter,
       },
     }),
-    enabled: Boolean(sessionToken),
     placeholderData: (prev) => prev, // v5 replacement for keepPreviousData
     staleTime: 60_000,
   });
@@ -90,7 +81,7 @@ export default function TasksGrid({ sessionToken, onRefresh }: TasksGridProps) {
 
   // ---- Delete mutation ----
   const deleteTaskMutation = useMutation({
-    ...deleteTaskTasksTaskIdDeleteMutation({ headers }),
+    ...deleteTaskTasksTaskIdDeleteMutation(),
   });
 
   const handleDeleteSelected = React.useCallback(() => {

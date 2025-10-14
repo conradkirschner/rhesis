@@ -31,7 +31,6 @@ export default function TasksPage() {
     );
   }
 
-  // Handle no session state
   if (!session?.session_token) {
     return (
       <PageContainer
@@ -59,7 +58,6 @@ export default function TasksPage() {
       {/* Tasks Grid Section */}
       <Paper sx={{ p: 3 }}>
         <TasksGrid
-          sessionToken={session.session_token}
           onRefresh={handleRefresh}
           key={`grid-${refreshKey}`}
         />

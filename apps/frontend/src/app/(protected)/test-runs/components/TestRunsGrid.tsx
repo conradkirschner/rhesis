@@ -32,11 +32,10 @@ import {
 } from '@tanstack/react-query';
 
 type TestRunsTableProps = {
-  sessionToken: string;
   onRefresh?: () => void;
 };
 
-function TestRunsTable({ sessionToken, onRefresh }: TestRunsTableProps) {
+function TestRunsTable({ onRefresh }: TestRunsTableProps) {
   const isMounted = useRef(true);
   const router = useRouter();
   const notifications = useNotifications();
@@ -69,11 +68,7 @@ function TestRunsTable({ sessionToken, onRefresh }: TestRunsTableProps) {
         sort_by: 'created_at',
         sort_order: 'desc',
       },
-      // if your generator allows, you can pass headers/baseUrl here too
-      // headers: { Authorization: `Bearer ${sessionToken}` },
-      // baseUrl: process.env.NEXT_PUBLIC_BACKEND_URL,
     }),
-    enabled: Boolean(sessionToken),
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
@@ -374,7 +369,6 @@ function TestRunsTable({ sessionToken, onRefresh }: TestRunsTableProps) {
         <TestRunDrawer
             open={isDrawerOpen}
             onCloseAction={handleDrawerClose}
-            sessionToken={sessionToken}
             onSuccessAction={handleDrawerSuccess}
         />
 

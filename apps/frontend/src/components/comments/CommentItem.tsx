@@ -54,7 +54,6 @@ export function CommentItem({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load tasks via TanStack Query
   const tasksQuery = useTasksByCommentId(comment.id, { limit: 50 });
   const associatedTasks = tasksQuery.data?.data ?? [];
   const isLoadingTasks = tasksQuery.isLoading;
@@ -100,8 +99,8 @@ export function CommentItem({
 
   const handleCancelDelete = () => setShowDeleteModal(false);
 
-  const handleEmojiClick = (emojiData: EmojiClickData) => {
-    onReact(comment.id, emojiData.emoji);
+  const handleEmojiClick =async (emojiData: EmojiClickData) => {
+    await onReact(comment.id, emojiData.emoji);
     setEmojiAnchorEl(null);
   };
 

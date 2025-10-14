@@ -26,14 +26,10 @@ export default function DashboardPage() {
 
   return (
     <PageContainer>
-      {/* Charts Section */}
       <DashboardCharts />
 
-      {/* DataGrids Section */}
 
       <Grid container spacing={3} sx={{ mt: 2 }}>
-        {/* First row of DataGrids */}
-
         <Grid item xs={12} md={6}>
           <Paper elevation={2} sx={{ p: 2, height: '100%' }}>
             <Typography variant="h6" sx={{ mb: 2 }}>
@@ -54,7 +50,6 @@ export default function DashboardPage() {
           </Paper>
         </Grid>
 
-        {/* Second row of DataGrids */}
         <Grid item xs={12} md={6}>
           <Paper elevation={2} sx={{ p: 2, height: '100%' }}>
             <Typography variant="h6" sx={{ mb: 2 }}>

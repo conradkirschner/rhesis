@@ -111,7 +111,6 @@ export default function TestSetDetailsSection({
     },
   });
 
-  // ---- Download mutation
   const downloadMutation = useMutation({
     mutationKey: ['test-sets', testSet.id, 'download'],
     mutationFn: async () => {
@@ -146,7 +145,6 @@ export default function TestSetDetailsSection({
     },
   });
 
-  // ---- Handlers
   const handleEditDescription = useCallback(() => setIsEditingDescription(true), []);
   const handleEditTitle = useCallback(() => setIsEditingTitle(true), []);
   const handleCancelEdit = useCallback(() => {

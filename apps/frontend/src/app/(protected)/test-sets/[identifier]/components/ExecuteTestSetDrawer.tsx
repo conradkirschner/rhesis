@@ -28,7 +28,7 @@ import type {
   Project,
   Endpoint,
   EndpointEnvironment,
-  TestSetExecutionRequest,
+  TestSetExecutionRequest, ProjectDetail, EndpointDetail,
 } from '@/api-client/types.gen';
 
 import {
@@ -105,20 +105,11 @@ export default function ExecuteTestSetDrawer({
     }
   }, [open]);
 
-  // Extract arrays regardless of whether the API returns `T[]` or `{ data: T[] }`
-  const projectsList: Project[] = useMemo(() => {
-    const raw = projectsQuery.data as Project[] | { data?: Project[] } | undefined;
-    if (!raw) return [];
-    return Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
-  }, [projectsQuery.data]);
+  const projectsList: ProjectDetail[] = projectsQuery.data?.data??[]
 
-  const endpointsList: Endpoint[] = useMemo(() => {
-    const raw = endpointsQuery.data as Endpoint[] | { data?: Endpoint[] } | undefined;
-    if (!raw) return [];
-    return Array.isArray(raw) ? raw : Array.isArray(raw.data) ? raw.data : [];
-  }, [endpointsQuery.data]);
+  const endpointsList: EndpointDetail[] = endpointsQuery.data?.data ?? []
 
-  // Filter endpoints by selected project
+  // Move filter to separate query
   const filteredEndpoints = useMemo(() => {
     if (!selectedProject) return [];
     return endpointsList.filter(ep => (ep.project_id ?? null) === selectedProject);
@@ -137,7 +128,6 @@ export default function ExecuteTestSetDrawer({
   const handleExecute = () => {
     if (!selectedEndpoint) return;
 
-    // Variables shape matches the generated mutation
     executeMutation.mutate({
       path: { test_set_identifier: testSetId, endpoint_id: selectedEndpoint },
       body: { execution_mode: executionMode },
@@ -165,7 +155,7 @@ export default function ExecuteTestSetDrawer({
               </Typography>
 
               <FormControl fullWidth>
-                <Autocomplete<Project, false, false, false>
+                <Autocomplete
                     options={projectsList.filter(p => Boolean(p.id) && Boolean(p.name?.trim()))}
                     value={projectsList.find(p => p.id === selectedProject) ?? null}
                     onChange={(_, newValue) => {
@@ -177,7 +167,7 @@ export default function ExecuteTestSetDrawer({
                       setSelectedProject(newValue.id);
                       setSelectedEndpoint(null);
                     }}
-                    getOptionLabel={option => option.name}
+                    getOptionLabel={option => option.name ?? 'Unnamed Project'}
                     renderOption={(props, option) => {
                       return (
                           <Box component="li"  {...props} key={option.id}>
@@ -202,11 +192,11 @@ export default function ExecuteTestSetDrawer({
               </FormControl>
 
               <FormControl fullWidth>
-                <Autocomplete<Endpoint, false, false, false>
+                <Autocomplete
                     options={filteredEndpoints.filter(e => Boolean(e.id) && Boolean(e.name?.trim()))}
                     value={filteredEndpoints.find(e => e.id === selectedEndpoint) ?? null}
                     onChange={(_, newValue) => setSelectedEndpoint(newValue ? newValue.id : null)}
-                    getOptionLabel={option => option.name}
+                    getOptionLabel={option => option.name ??'Unnamed Endpoint'}
                     disabled={!selectedProject}
                     renderInput={params => (
                         <TextField

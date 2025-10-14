@@ -11,10 +11,8 @@ import {
 } from '@mui/material';
 import { Save as SaveIcon } from '@mui/icons-material';
 
-/** Generated types */
 import type { Organization } from '@/api-client/types.gen';
 
-/** Generated TanStack Query */
 import { useMutation } from '@tanstack/react-query';
 import { updateOrganizationOrganizationsOrganizationIdPutMutation } from '@/api-client/@tanstack/react-query.gen';
 
@@ -39,7 +37,6 @@ export default function ContactInformationForm({
   const [error, setError] = useState<string | null>(null);
 
 
-  // Generated mutation
   const updateOrgMutation = useMutation(
       updateOrganizationOrganizationsOrganizationIdPutMutation()
   );
@@ -62,7 +59,6 @@ export default function ContactInformationForm({
       await updateOrgMutation.mutateAsync({
         path: { organization_id: organization.id },
         body: {
-          // Send nulls for empty strings, to match common OpenAPI update shapes
           email: formData.email.trim() === '' ? null : formData.email.trim(),
           phone: formData.phone.trim() === '' ? null : formData.phone.trim(),
           address:

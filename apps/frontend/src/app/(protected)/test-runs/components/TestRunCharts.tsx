@@ -56,7 +56,6 @@ export default function TestRunCharts() {
         staleTime: 60_000,
     });
 
-    /* -------- Aggregate loading / error -------- */
     const isLoading =
         statusQuery.isLoading ||
         resultQuery.isLoading ||
@@ -68,7 +67,6 @@ export default function TestRunCharts() {
 
 
 
-    /* -------- Data mappers (typed casts at the edge) -------- */
     const statusData = useMemo(() => {
         const data = statusQuery.data as unknown as TestRunStatsStatus | undefined;
         const dist = data?.status_distribution ?? [];

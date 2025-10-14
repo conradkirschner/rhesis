@@ -43,12 +43,10 @@ import SchoolIcon from '@mui/icons-material/School';
 import ScienceIcon from '@mui/icons-material/Science';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 
-// Standardized error messages
 const ERROR_MESSAGES = {
   required: (field: string) => `${field} is required`,
 };
 
-// Standardized spacing values
 const SPACING = {
   sectionTop: 3,
   betweenSections: 4,
@@ -77,7 +75,6 @@ interface ProjectDetailsStepProps {
   userId: string;
 }
 
-// Available icons for selection
 const PROJECT_ICONS = [
   { name: 'SmartToy', component: SmartToyIcon, label: 'AI Assistant' },
   { name: 'Psychology', component: PsychologyIcon, label: 'AI Brain' },
@@ -101,7 +98,6 @@ const PROJECT_ICONS = [
   { name: 'AccountTree', component: AccountTreeIcon, label: 'Workflow' },
 ] as const;
 
-// IconSelector component
 const IconSelector = ({
                         selectedIcon,
                         onChange,
@@ -150,14 +146,12 @@ export default function ProjectDetailsStep({
   });
   const [attemptedSubmit, setAttemptedSubmit] = React.useState(false);
 
-  // Initialize formData.owner_id if not set
   React.useEffect(() => {
     if (!formData.owner_id) {
       updateFormData({ owner_id: userId });
     }
   }, [formData.owner_id, userId, updateFormData]);
 
-  // In this step we limit owner selection to current user (no legacy UsersClient, no network here)
   const owners = React.useMemo(
       () => [
         {

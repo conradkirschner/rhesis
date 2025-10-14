@@ -59,7 +59,6 @@ export default function TestRunsPage() {
       <Paper sx={{ width: '100%', mb: 2, mt: 4 }}>
         <Box sx={{ p: 2 }}>
           <TestRunsGrid
-            sessionToken={session.session_token}
             onRefresh={handleRefresh}
             key={`grid-${refreshKey}`}
           />

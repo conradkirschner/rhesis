@@ -134,11 +134,8 @@ export default function ProjectContent({ project }: { project: ProjectView }) {
   const icon = meta?.icon ?? null;
   const tags = meta?.tags ?? [];
 
-  // Dates (prefer API date; meta.createdAt as optional override/camel)
-  // @todo update api to have created_at types
-  // const createdAtStr = api.created_at ?? meta?.createdAt ?? null;
-  // const createdAtDate = createdAtStr ? new Date(createdAtStr) : null;
-  const createdAtDate = new Date();
+  const createdAtStr = api.created_at ?? meta?.createdAt ?? null;
+  const createdAtDate = createdAtStr ? new Date(createdAtStr) : null;
 
   const iconNode = getProjectIcon(icon, useCase);
 

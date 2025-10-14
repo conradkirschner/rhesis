@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-python';
-// Additional Prism components for better Python highlighting
 import 'prismjs/plugins/line-numbers/prism-line-numbers.css';
 import 'prismjs/plugins/line-numbers/prism-line-numbers.js';
 import { Paper, IconButton, Snackbar, useTheme } from '@mui/material';

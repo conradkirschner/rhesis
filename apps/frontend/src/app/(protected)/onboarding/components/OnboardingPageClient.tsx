@@ -13,7 +13,6 @@ import {
 import OrganizationDetailsStep from './OrganizationDetailsStep';
 import InviteTeamStep from './InviteTeamStep';
 import FinishStep from './FinishStep';
-import { UUID } from 'crypto';
 import { useNotifications } from '@/components/common/NotificationContext';
 import { useMutation } from '@tanstack/react-query';
 
@@ -49,8 +48,7 @@ interface FormData {
 }
 
 interface OnboardingPageClientProps {
-  sessionToken: string; // not needed for mutations; kept to match your current prop shape
-  userId: UUID;
+  userId: string;
 }
 
 const steps = ['Organization Details', 'Invite Team', 'Finish'];

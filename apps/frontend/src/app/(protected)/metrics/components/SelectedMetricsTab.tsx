@@ -16,18 +16,15 @@ import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/components/common/NotificationContext';
 import MetricCard from './MetricCard';
 import SectionEditDrawer from './DimensionDrawer';
-import type { UUID } from 'crypto';
 import { useMutation } from '@tanstack/react-query';
 
-/** Generated types */
 import type {
-  Behavior as ApiBehavior,
-  Metric,
-  RhesisBackendAppUtilsSchemaFactoryMetricDetail1 as MetricDetail1,
-  RhesisBackendAppUtilsSchemaFactoryMetricDetail2 as MetricDetail2,
+    Behavior as ApiBehavior,
+    Metric, RhesisBackendAppUtilsSchemaFactoryBehaviorDetail1,
+    RhesisBackendAppUtilsSchemaFactoryMetricDetail1 as MetricDetail1,
+    RhesisBackendAppUtilsSchemaFactoryMetricDetail2 as MetricDetail2,
 } from '@/api-client/types.gen';
 
-/** Generated mutations */
 import {
   createBehaviorBehaviorsPostMutation,
   updateBehaviorBehaviorsBehaviorIdPutMutation,
@@ -40,25 +37,24 @@ type BehaviorWithMetricIds = ApiBehavior & { metrics?: Array<Pick<Metric, 'id'>>
 
 interface BehaviorMetricsState {
   [behaviorId: string]: {
-    metrics: MetricDetail[]; // <-- detail shape with metric_type/backend_type
+    metrics: MetricDetail[];
     isLoading: boolean;
     error: string | null;
   };
 }
 
 interface SelectedMetricsTabProps {
-  organizationId: UUID;
+  organizationId: string;
   behaviorsWithMetrics: BehaviorWithMetricIds[];
   behaviorMetrics: BehaviorMetricsState;
   isLoading: boolean;
   error: string | null;
-  setBehaviors: React.Dispatch<React.SetStateAction<ApiBehavior[]>>;
+  setBehaviors: React.Dispatch<React.SetStateAction<RhesisBackendAppUtilsSchemaFactoryBehaviorDetail1[]>>;
   setBehaviorsWithMetrics: React.Dispatch<React.SetStateAction<BehaviorWithMetricIds[]>>;
   setBehaviorMetrics: React.Dispatch<React.SetStateAction<BehaviorMetricsState>>;
   onTabChange: () => void;
 }
 
-// Strict union for MetricCard.type
 function toMetricKind(
     t: string | null | undefined,
 ): 'custom-prompt' | 'api-call' | 'custom-code' | 'grading' | undefined {
@@ -85,7 +81,7 @@ export default function SelectedMetricsTab({
 
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [editingSection, setEditingSection] = React.useState<{
-    key: UUID | null;
+    key: string | null;
     title: string;
     description: string;
   } | null>(null);
@@ -101,7 +97,7 @@ export default function SelectedMetricsTab({
       removeBehaviorFromMetricMetricsMetricIdBehaviorsBehaviorIdDeleteMutation(),
   );
 
-  const handleEditSection = (key: UUID, title: string, description: string) => {
+  const handleEditSection = (key: string, title: string, description: string) => {
     setEditingSection({ key, title, description });
     setIsNewSection(false);
     setDrawerOpen(true);
@@ -113,7 +109,7 @@ export default function SelectedMetricsTab({
     setDrawerOpen(true);
   };
 
-  const handleSaveSection = async (title: string, description: string, organization_id: UUID) => {
+  const handleSaveSection = async (title: string, description: string, organization_id: string) => {
     try {
       setDrawerLoading(true);
       setDrawerError(undefined);
@@ -123,7 +119,7 @@ export default function SelectedMetricsTab({
           body: { name: title, description: description || null, organization_id },
         });
 
-        setBehaviors((prev) => [...prev, created as ApiBehavior]);
+        setBehaviors((prev) => [...prev, created]);
         setBehaviorMetrics((prev) => ({
           ...prev,
           [(created).id]: { metrics: [], isLoading: false, error: null },
@@ -237,7 +233,6 @@ export default function SelectedMetricsTab({
   };
 
   const renderSection = (behavior: BehaviorWithMetricIds) => {
-    // pull full detail objects (with metric_type/backend_type) from the state map
     const detailed: MetricDetail[] = behaviorMetrics[behavior.id ?? '']?.metrics ?? [];
 
     return (
@@ -260,7 +255,7 @@ export default function SelectedMetricsTab({
               {behavior.name}
             </Typography>
             <IconButton
-                onClick={() => handleEditSection(behavior.id as UUID, behavior.name ?? '', behavior.description ?? '')}
+                onClick={() => handleEditSection(behavior.id as string, behavior.name ?? '', behavior.description ?? '')}
                 size="small"
                 sx={{ color: theme.palette.primary.main, '&:hover': { backgroundColor: theme.palette.action.hover } }}
             >
