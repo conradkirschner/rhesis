@@ -79,17 +79,11 @@ const nextConfig = {
   async rewrites() {
     // Use BACKEND_URL for server-side calls (container-to-container)
     // Use NEXT_PUBLIC_API_BASE_URL for client-side calls (browser-to-host)
-    const backendUrl = process.env.BACKEND_URL || 'http://backend:8080';
     return [
       // Exclude NextAuth.js routes from being proxied (keep them local)
       {
         source: '/api/auth/:path*',
         destination: '/api/auth/:path*',
-      },
-      // Proxy all other API calls to backend
-      {
-        source: '/api/:path*',
-        destination: `${backendUrl}/:path*`,
       },
     ];
   },

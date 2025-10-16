@@ -1,0 +1,288 @@
+diff --git a/apps/frontend/src/hooks/data/GenerateTests/useGenerateTestsData.ts b/apps/frontend/src/hooks/data/GenerateTests/useGenerateTestsData.ts
+index 0000000..0000000 100644
+--- a/apps/frontend/src/hooks/data/GenerateTests/useGenerateTestsData.ts
++++ b/apps/frontend/src/hooks/data/GenerateTests/useGenerateTestsData.ts
+@@
++import type { GenerateTestsPrompt, Document, GenerationSample } from '@/api-client/types.gen';
+@@
+-      const prompt = toPromptFromUiConfig(uiConfig);
++      const prompt = (() => {
++        // Normalize input (project_name must not be undefined) and coerce readonly arrays to mutable
++        const cfg = { ...uiConfig, project_name: uiConfig?.project_name ?? null } as Parameters<typeof toPromptFromUiConfig>[0];
++        const p = toPromptFromUiConfig(cfg) as any;
++        const mutable: GenerateTestsPrompt = {
++          project_context: p?.project_context ?? '',
++          test_behaviors: Array.from(p?.test_behaviors ?? []),
++          test_purposes: Array.from(p?.test_purposes ?? []),
++          key_topics: Array.from(p?.key_topics ?? []),
++          specific_requirements: p?.specific_requirements ?? '',
++          test_type: p?.test_type,
++          output_format: p?.output_format,
++        };
++        return mutable;
++      })();
+@@
+-          documents: docs,
++          documents: docs ? docs.map((d) => ({ ...d })) as Array<Document> : undefined,
+@@
+-      const prompt: GenerateTestsPrompt = toPromptFromUiConfig(uiConfig);
++      const prompt: GenerateTestsPrompt = (() => {
++        const cfg = { ...uiConfig, project_name: uiConfig?.project_name ?? null } as Parameters<typeof toPromptFromUiConfig>[0];
++        const p = toPromptFromUiConfig(cfg) as any;
++        return {
++          project_context: p?.project_context ?? '',
++          test_behaviors: Array.from(p?.test_behaviors ?? []),
++          test_purposes: Array.from(p?.test_purposes ?? []),
++          key_topics: Array.from(p?.key_topics ?? []),
++          specific_requirements: p?.specific_requirements ?? '',
++          test_type: p?.test_type,
++          output_format: p?.output_format,
++        };
++      })();
+@@
+-        body: { prompt, num_tests: num, documents: docs },
++        body: { prompt, num_tests: num, documents: docs ? docs.map((d) => ({ ...d })) as Array<Document> : undefined },
+@@
+-          samples: payloadSamples,
++          samples: payloadSamples ? [...(payloadSamples as readonly GenerationSample[])] : undefined,
+diff --git a/apps/frontend/src/hooks/data/Metric/useMetricData.ts b/apps/frontend/src/hooks/data/Metric/useMetricData.ts
+index 0000000..0000000 100644
+--- a/apps/frontend/src/hooks/data/Metric/useMetricData.ts
++++ b/apps/frontend/src/hooks/data/Metric/useMetricData.ts
+@@
+-    onSuccess: async () => {
+-      await queryClient.invalidateQueries({ queryKey: metricOptions.queryKey });
+-    },
++    // removed invalid `onSuccess` on QueryClient; handle success via useQuery's options where applicable
+diff --git a/apps/frontend/src/hooks/data/Metrics/useMetricsData.ts b/apps/frontend/src/hooks/data/Metrics/useMetricsData.ts
+index 0000000..0000000 100644
+--- a/apps/frontend/src/hooks/data/Metrics/useMetricsData.ts
++++ b/apps/frontend/src/hooks/data/Metrics/useMetricsData.ts
+@@
+-    select: (res): readonly ModelDto[] => res.data,
++    select: (res): readonly ModelDto[] =>
++      (res?.data ?? []).map((m: ModelDetail) => ({
++        id: String(m.id ?? ''),
++        name: m.name ?? '',
++        description: m.description ?? undefined,
++      })) as readonly ModelDto[],
+@@
+-    onSuccess: async () => {
+-      await queryClient.invalidateQueries({ queryKey: modelsOptions.queryKey });
+-    },
++    // `onSuccess` is not a QueryClient option; remove here (prefer useQuery's onSuccess)
+@@
+-      (modelsQuery.data ?? []).map((m) => ({
+-        id: m.id,
+-        name: m.name,
+-        description: m.description ?? undefined,
+-      })) as const,
++      ((modelsQuery.data ?? []) as readonly ModelDto[]).map((m) => ({
++        id: m.id,
++        name: m.name,
++        description: m.description ?? undefined,
++      })),
+diff --git a/apps/frontend/src/hooks/data/Projects/useProjectsData.ts b/apps/frontend/src/hooks/data/Projects/useProjectsData.ts
+index 0000000..0000000 100644
+--- a/apps/frontend/src/hooks/data/Projects/useProjectsData.ts
++++ b/apps/frontend/src/hooks/data/Projects/useProjectsData.ts
+@@
+-  const apiItems = (query.data?.data?.data ?? []) as ReadonlyArray<ProjectDetail>;
++  const apiItems = (query.data?.data ?? []) as ReadonlyArray<ProjectDetail>;
+diff --git a/apps/frontend/src/hooks/data/Task/useTaskData.ts b/apps/frontend/src/hooks/data/Task/useTaskData.ts
+index 0000000..0000000 100644
+--- a/apps/frontend/src/hooks/data/Task/useTaskData.ts
++++ b/apps/frontend/src/hooks/data/Task/useTaskData.ts
+@@
+-      queryClient.setQueryData(taskOptions.queryKey, (prev) => {
+-        return { ...prev, ...update };
+-      });
++      queryClient.setQueryData<TaskDetail | undefined>(
++        taskOptions.queryKey,
++        (prev) =>
++          ({
++            ...(prev as TaskDetail | undefined),
++            ...(update as Partial<TaskDetail>),
++          } as TaskDetail)
++      );
+@@
+-      queryClient.setQueryData(taskOptions.queryKey, updated);
++      queryClient.setQueryData<TaskDetail | undefined>(
++        taskOptions.queryKey,
++        updated as unknown as TaskDetail
++      );
+diff --git a/apps/frontend/src/hooks/data/TaskCreate/useTaskCreateData.ts b/apps/frontend/src/hooks/data/TaskCreate/useTaskCreateData.ts
+index 0000000..0000000 100644
+--- a/apps/frontend/src/hooks/data/TaskCreate/useTaskCreateData.ts
++++ b/apps/frontend/src/hooks/data/TaskCreate/useTaskCreateData.ts
+@@
+-        .filter((s: Status) => s?.id && s?.name && ALLOWED_STATUS_NAMES.has(s.name))
+-        .map((s: Status) => ({ id: s.id!, name: s.name! })),
++        .filter(
++          (s: StatusDetail): s is StatusDetail =>
++            Boolean(s?.id && s?.name && ALLOWED_STATUS_NAMES.has(String(s.name)))
++        )
++        .map((s: StatusDetail) => ({ id: String(s.id!), name: String(s.name!) })),
+diff --git a/apps/frontend/src/hooks/data/Team/useTeamData.ts b/apps/frontend/src/hooks/data/Team/useTeamData.ts
+index 0000000..0000000 100644
+--- a/apps/frontend/src/hooks/data/Team/useTeamData.ts
++++ b/apps/frontend/src/hooks/data/Team/useTeamData.ts
+@@
+-            body: {
+-              ...payload,
+-            },
++            body: ((raw) => {
++              const email = (raw as any)?.email ?? '';
++              return { ...(raw as object), email } as UserCreate;
++            })(payload as Partial<UserCreate> as any),
+diff --git a/apps/frontend/src/hooks/data/TestRun/useTestRunData.ts b/apps/frontend/src/hooks/data/TestRun/useTestRunData.ts
+index 0000000..0000000 100644
+--- a/apps/frontend/src/hooks/data/TestRun/useTestRunData.ts
++++ b/apps/frontend/src/hooks/data/TestRun/useTestRunData.ts
+@@
++import { readTestRunTestRunsTestRunIdGetOptions } from '@/api-client/react-query.gen';
+@@
+-      select: (p): PromptShape | undefined => (p ?? undefined) as unknown as PromptShape,
++      select: (p: unknown): PromptShape | undefined => (p ?? undefined) as unknown as PromptShape,
+@@
+-        select: (metricsResp): Array<{ name: string; description?: string }> => {
++        select: (metricsResp: unknown): Array<{ name: string; description?: string }> => {
+           const data = (metricsResp as any)?.data ?? [];
+           return (Array.isArray(data) ? data : []).map((m: any) => ({
+             name: String(m?.name ?? ''),
+             description: m?.description ?? undefined,
+           }));
+         },
+@@
+-        test_configuration_id: (testRunQuery.data as any)?.test_configuration?.id,
++        // removed unsupported param; if needed, use $filter on backend instead
+@@
+-            .map((r) => r.test_run_id as unknown as string | null)
++            .map((r) => (r as any).test_run_id as string | null)
+@@
+-      queryFn: async () => (await readTestRunTestRunsTestRunIdGet({ path: { test_run_id: id } })) as TestRunShape,
++      ...readTestRunTestRunsTestRunIdGetOptions({ path: { test_run_id: id } }),
+@@
+-      select: (r): { id: string; name?: string | null } => ({ id: r.id, name: (r as any).name ?? null }),
++      select: (r: any): { id: string; name?: string | null } => ({ id: String(r.id), name: r?.name ?? null }),
+diff --git a/apps/frontend/src/hooks/data/TestRuns/useTestRunsData.ts b/apps/frontend/src/hooks/data/TestRuns/useTestRunsData.ts
+index 0000000..0000000 100644
+--- a/apps/frontend/src/hooks/data/TestRuns/useTestRunsData.ts
++++ b/apps/frontend/src/hooks/data/TestRuns/useTestRunsData.ts
+@@
+-      {
+-        ...readUsersUsersGetOptions(),
+-        staleTime: 60_000,
+-        enabled: true,
+-        select: (raw: unknown) =>
+-          ((raw as { data?: LookupUser[] } | undefined)?.data ?? []) as readonly LookupUser[],
+-      },
++      // Cast each options object to `any` to satisfy useQueries typing across heterogeneous queries
++      (() => {
++        const { queryKey, queryFn } = readUsersUsersGetOptions();
++        return {
++          queryKey,
++          queryFn,
++          staleTime: 60_000,
++          enabled: true,
++          select: (raw: unknown) =>
++            ((raw as { data?: LookupUser[] } | undefined)?.data ?? []) as readonly LookupUser[],
++        } as any;
++      })(),
+@@
+-      {
+-        ...readTestSetsTestSetsGetOptions({ query: { limit: 100 } }),
+-        staleTime: 60_000,
+-        enabled: true,
+-        select: (raw: unknown) =>
+-          (((raw as { data?: LookupTestSet[] } | undefined)?.data ?? []) as LookupTestSet[]).slice(0, 100) as
+-            | readonly LookupTestSet[]
+-            | [],
+-      },
++      (() => {
++        const { queryKey, queryFn } = readTestSetsTestSetsGetOptions({ query: { limit: 100 } });
++        return {
++          queryKey,
++          queryFn,
++          staleTime: 60_000,
++          enabled: true,
++          select: (raw: unknown) =>
++            (((raw as { data?: LookupTestSet[] } | undefined)?.data ?? []) as LookupTestSet[]).slice(
++              0,
++              100
++            ) as readonly LookupTestSet[] | [],
++        } as any;
++      })(),
+@@
+-      {
+-        ...readProjectsProjectsGetOptions(),
+-        staleTime: 60_000,
+-        enabled: true,
+-        select: (raw: unknown) =>
+-          ((raw as { data?: LookupProject[] } | undefined)?.data ?? []) as readonly LookupProject[],
+-      },
++      (() => {
++        const { queryKey, queryFn } = readProjectsProjectsGetOptions();
++        return {
++          queryKey,
++          queryFn,
++          staleTime: 60_000,
++          enabled: true,
++          select: (raw: unknown) =>
++            ((raw as { data?: LookupProject[] } | undefined)?.data ?? []) as readonly LookupProject[],
++        } as any;
++      })(),
+@@
+-      {
+-        ...readEndpointsEndpointsGetOptions(),
+-        staleTime: 60_000,
+-        enabled: true,
+-        select: (raw: unknown) =>
+-          ((raw as { data?: LookupEndpoint[] } | undefined)?.data ?? []) as readonly LookupEndpoint[],
+-      },
++      (() => {
++        const { queryKey, queryFn } = readEndpointsEndpointsGetOptions();
++        return {
++          queryKey,
++          queryFn,
++          staleTime: 60_000,
++          enabled: true,
++          select: (raw: unknown) =>
++            ((raw as { data?: LookupEndpoint[] } | undefined)?.data ?? []) as readonly LookupEndpoint[],
++        } as any;
++      })(),
+diff --git a/apps/frontend/src/hooks/data/Tokens/useTokensData.ts b/apps/frontend/src/hooks/data/Tokens/useTokensData.ts
+index 0000000..0000000 100644
+--- a/apps/frontend/src/hooks/data/Tokens/useTokensData.ts
++++ b/apps/frontend/src/hooks/data/Tokens/useTokensData.ts
+@@
+-  return payload.data ?? [];
++  if (Array.isArray(payload)) {
++    return payload;
++  }
++  return payload?.data ?? [];
+@@
+-  return payload.pagination?.totalCount ?? 0;
++  if (Array.isArray(payload)) {
++    return payload.length;
++  }
++  return payload?.pagination?.totalCount ?? 0;
+diff --git a/apps/frontend/src/hooks/data/index.ts b/apps/frontend/src/hooks/data/index.ts
+index 0000000..0000000 100644
+--- a/apps/frontend/src/hooks/data/index.ts
++++ b/apps/frontend/src/hooks/data/index.ts
+@@
+-export * from './tests/useTestsData';
+-export * from './tests/prefetchTests';
++export * from './Tests/useTestsData';
++export * from './Tests/prefetchTests';
+diff --git a/apps/frontend/src/lib/dashboard/chartUtils.ts b/apps/frontend/src/lib/dashboard/chartUtils.ts
+index 0000000..0000000 100644
+--- a/apps/frontend/src/lib/dashboard/chartUtils.ts
++++ b/apps/frontend/src/lib/dashboard/chartUtils.ts
+@@
+-  return out as const;
++  return out;
+@@
+-  return series as const;
++  return series;

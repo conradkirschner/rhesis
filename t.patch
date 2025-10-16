@@ -1,0 +1,50 @@
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/GenerateTests/useGenerateTestsData.ts
+@@
++import type { GenerateTestsPrompt, Document, GenerationSample } from '@/api-client/types.gen';
+@@
+-      const prompt = toPromptFromUiConfig(uiConfig);
++      // Ensure `project_name` is never `undefined` and normalize readonly arrays to mutable
++      const __uiSafeConfig = { ...uiConfig, project_name: uiConfig.project_name ?? null } as any;
++      const __basePrompt = toPromptFromUiConfig(__uiSafeConfig) as any;
++      const prompt: GenerateTestsPrompt = {
++        project_context: __basePrompt.project_context ?? '',
++        test_behaviors: Array.from(__basePrompt.test_behaviors ?? []),
++        test_purposes: Array.from(__basePrompt.test_purposes ?? []),
++        key_topics: Array.from(__basePrompt.key_topics ?? []),
++        specific_requirements: __basePrompt.specific_requirements ?? '',
++        test_type: __basePrompt.test_type,
++        output_format: __basePrompt.output_format,
++      };
+@@
+-          prompt,
++          prompt,
+@@
+-          documents: docs,
++          // API expects a mutable Array<Document>
++          documents: docs ? docs.map((d) => ({ ...d })) as Array<Document> : undefined,
+@@
+-      const prompt: GenerateTestsPrompt = toPromptFromUiConfig(uiConfig);
++      const __uiSafeConfig2 = { ...uiConfig, project_name: uiConfig.project_name ?? null } as any;
++      const __basePrompt2 = toPromptFromUiConfig(__uiSafeConfig2) as any;
++      const prompt: GenerateTestsPrompt = {
++        project_context: __basePrompt2.project_context ?? '',
++        test_behaviors: Array.from(__basePrompt2.test_behaviors ?? []),
++        test_purposes: Array.from(__basePrompt2.test_purposes ?? []),
++        key_topics: Array.from(__basePrompt2.key_topics ?? []),
++        specific_requirements: __basePrompt2.specific_requirements ?? '',
++        test_type: __basePrompt2.test_type,
++        output_format: __basePrompt2.output_format,
++      };
+@@
+-        body: { prompt, num_tests: num, documents: docs },
++        body: {
++          prompt,
++          num_tests: num,
++          documents: docs ? docs.map((d) => ({ ...d })) as Array<Document> : undefined,
++        },
+@@
+-          samples: payloadSamples,
++          // generated client expects a mutable array
++          samples: payloadSamples ? [...(payloadSamples as readonly GenerationSample[])] : undefined,
+*** End Patch

@@ -16,7 +16,7 @@ export default function HeyApiAuthProvider({ children, initialToken }: Props) {
     // 1) Prime immediately on mount, before queries run
     useLayoutEffect(() => {
         if (effectiveToken) {
-            setHeyApiAuthToken(effectiveToken);
+            setHeyApiAuthToken();
             client.setConfig({ auth: () => effectiveToken });
         }
     }, [effectiveToken]);
@@ -24,7 +24,7 @@ export default function HeyApiAuthProvider({ children, initialToken }: Props) {
     // 2) Also react to future session changes (e.g., refresh)
     useEffect(() => {
         if (!effectiveToken) {
-            setHeyApiAuthToken(undefined);
+            setHeyApiAuthToken();
             client.setConfig({ auth: undefined });
         }
     }, [effectiveToken]);

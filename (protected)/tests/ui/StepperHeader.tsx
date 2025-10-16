@@ -1,0 +1,22 @@
+'use client';
+
+import * as React from 'react';
+import { Box, Typography } from '@mui/material';
+
+type Props = {
+  readonly title: string;
+  readonly subtitle?: string;
+};
+
+export default function StepperHeader({ title, subtitle }: Props) {
+  return (
+    <Box sx={{ px: 2, py: 1 }}>
+      <Typography variant="h6">{title}</Typography>
+      {subtitle ? (
+        <Typography variant="body2" color="text.secondary">
+          {subtitle}
+        </Typography>
+      ) : null}
+    </Box>
+  );
+}

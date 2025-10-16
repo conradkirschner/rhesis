@@ -4,24 +4,32 @@
  * Avoid server-only imports here.
  */
 import type { CreateClientConfig } from './client.gen';
+import {getSessionToken} from "@/api-client/auth.server";
 
 let currentToken: string | undefined;
-export function setHeyApiAuthToken(token?: string) {
-  currentToken = token;
+export function setHeyApiAuthToken() {
+  getSessionToken().then((token) => {
+    currentToken = token;
+  })
+}
+export async function getToken() {
+  const token = await getSessionToken()
+  console.log("findme", token);
+  return token;
 }
 
 export const createClientConfig: CreateClientConfig = (config) => {
   const baseUrl =
-      process.env.NEXT_PUBLIC_API_BASE_URL ??
-      process.env.API_BASE_URL ??
+      process.env.NEXT_PUBLIC_APP_URL ??
+      process.env.FRONTEND_URL ??
       '';
 
   return {
     ...config,
-    baseUrl,
+    baseUrl: baseUrl+ '/api' ,
     // Hey API attaches this token only to endpoints that require auth
     // (you can also override later via client.setConfig).
-    auth: () => currentToken,
+    auth: () => getToken(),
   };
 };
 

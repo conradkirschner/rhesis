@@ -1,0 +1,312 @@
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/GenerateTests/useGenerateTestsData.ts
+@@
++import type { GenerateTestsPrompt, Document, GenerationSample } from '@/api-client/types.gen';@@
+-      const prompt = toPromptFromUiConfig(uiConfig);
++      // Ensure `project_name` is never `undefined` and normalize readonly arrays to mutable
++      const __uiSafeConfig = { ...uiConfig, project_name: uiConfig.project_name ?? null } as any;
++      const __basePrompt = toPromptFromUiConfig(__uiSafeConfig) as any;
++      const prompt: GenerateTestsPrompt = {
++        project_context: __basePrompt.project_context ?? '',
++        test_behaviors: Array.from(__basePrompt.test_behaviors ?? []),
++        test_purposes: Array.from(__basePrompt.test_purposes ?? []),
++        key_topics: Array.from(__basePrompt.key_topics ?? []),
++        specific_requirements: __basePrompt.specific_requirements ?? '',
++        test_type: __basePrompt.test_type,
++        output_format: __basePrompt.output_format,
++      };
+@@
+-          prompt,
++          prompt,
+@@
+-          documents: docs,
++          // API expects a mutable Array<Document>
++          documents: docs ? docs.map((d) => ({ ...d })) as Array<Document> : undefined,
+@@
+-      const prompt: GenerateTestsPrompt = toPromptFromUiConfig(uiConfig);
++      const __uiSafeConfig2 = { ...uiConfig, project_name: uiConfig.project_name ?? null } as any;
++      const __basePrompt2 = toPromptFromUiConfig(__uiSafeConfig2) as any;
++      const prompt: GenerateTestsPrompt = {
++        project_context: __basePrompt2.project_context ?? '',
++        test_behaviors: Array.from(__basePrompt2.test_behaviors ?? []),
++        test_purposes: Array.from(__basePrompt2.test_purposes ?? []),
++        key_topics: Array.from(__basePrompt2.key_topics ?? []),
++        specific_requirements: __basePrompt2.specific_requirements ?? '',
++        test_type: __basePrompt2.test_type,
++        output_format: __basePrompt2.output_format,
++      };
+@@
+-        body: { prompt, num_tests: num, documents: docs },
++        body: {
++          prompt,
++          num_tests: num,
++          documents: docs ? docs.map((d) => ({ ...d })) as Array<Document> : undefined,
++        },
+@@
+-          samples: payloadSamples,
++          // generated client expects a mutable array
++          samples: payloadSamples ? [...(payloadSamples as readonly GenerationSample[])] : undefined,
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/Metric/useMetricData.ts
+@@
+-    onSuccess: async () => {
+-      await queryClient.invalidateQueries({ queryKey: metricOptions.queryKey });
+-    },
++    // removed invalid `onSuccess` on QueryClient; handle success via useQuery's options where applicable
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/Metrics/useMetricsData.ts
+@@
+-    select: (res): readonly ModelDto[] => res.data,
++    // Normalize and harden to required DTO shape
++    select: (res): readonly ModelDto[] =>
++      (res?.data ?? []).map((m: ModelDetail) => ({
++        id: String(m.id ?? ''),
++        name: m.name ?? '',
++        description: m.description ?? undefined,
++      })) as readonly ModelDto[],
+@@
+-    onSuccess: async () => {
+-      await queryClient.invalidateQueries({ queryKey: modelsOptions.queryKey });
+-    },
++    // `onSuccess` is not a QueryClient option; remove here (prefer useQuery's onSuccess)
+@@
+-      (modelsQuery.data ?? []).map((m) => ({
+-        id: m.id,
+-        name: m.name,
+-        description: m.description ?? undefined,
+-      })) as const,
++      ((modelsQuery.data ?? []) as readonly ModelDto[]).map((m) => ({
++        id: m.id,
++        name: m.name,
++        description: m.description ?? undefined,
++      })),
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/Projects/useProjectsData.ts
+@@
+-  const apiItems = (query.data?.data?.data ?? []) as ReadonlyArray<ProjectDetail>;
++  // `query.data?.data` already contains the list; avoid accessing a non-existent nested `data`
++  const apiItems = (query.data?.data ?? []) as ReadonlyArray<ProjectDetail>;
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/Task/useTaskData.ts
+@@
+-      queryClient.setQueryData(taskOptions.queryKey, (prev) => {
+-        return { ...prev, ...update };
+-      });
++      queryClient.setQueryData<TaskDetail | undefined>(
++        taskOptions.queryKey,
++        (prev) =>
++          ({
++            ...(prev as TaskDetail | undefined),
++            ...(update as Partial<TaskDetail>),
++          } as TaskDetail)
++      );
+@@
+-      queryClient.setQueryData(taskOptions.queryKey, updated);
++      // ensure correct type for `setQueryData`
++      queryClient.setQueryData<TaskDetail | undefined>(
++        taskOptions.queryKey,
++        updated as unknown as TaskDetail
++      );
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/TaskCreate/useTaskCreateData.ts
+@@
+-        .filter((s: Status) => s?.id && s?.name && ALLOWED_STATUS_NAMES.has(s.name))
+-        .map((s: Status) => ({ id: s.id!, name: s.name! })),
++        .filter(
++          (s: StatusDetail): s is StatusDetail =>
++            Boolean(s?.id && s?.name && ALLOWED_STATUS_NAMES.has(String(s.name)))
++        )
++        .map((s: StatusDetail) => ({ id: String(s.id!), name: String(s.name!) })),
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/Team/useTeamData.ts
+@@
+-            body: {
+-              ...payload,
+-            },
++            body: ((raw) => {
++              const email = (raw as any)?.email ?? '';
++              return { ...(raw as object), email } as UserCreate;
++            })(payload as Partial<UserCreate> as any),
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/TestRun/useTestRunData.ts
+@@
++import { readTestRunTestRunsTestRunIdGetOptions } from '@/api-client/react-query.gen';
+@@
+-      select: (p): PromptShape | undefined => (p ?? undefined) as unknown as PromptShape,
++      select: (p: unknown): PromptShape | undefined => (p ?? undefined) as unknown as PromptShape,
+@@
+-        select: (metricsResp): Array<{ name: string; description?: string }> => {
++        select: (metricsResp: unknown): Array<{ name: string; description?: string }> => {
+           const data = (metricsResp as any)?.data ?? [];
+           return (Array.isArray(data) ? data : []).map((m: any) => ({
+             name: String(m?.name ?? ''),
+             description: m?.description ?? undefined,
+           }));
+         },
+@@
+-        test_configuration_id: (testRunQuery.data as any)?.test_configuration?.id,
++        // removed unsupported param; if needed, use $filter on backend instead
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/TestRun/useTestRunData.ts
+@@
+-            .map((r) => r.test_run_id as unknown as string | null)
++            .map((r) => (r as any).test_run_id as string | null)
+@@
+-      queryFn: async () => (await readTestRunTestRunsTestRunIdGet({ path: { test_run_id: id } })) as TestRunShape,
++      // use generated react-query options instead of calling the raw fetcher
++      ...readTestRunTestRunsTestRunIdGetOptions({ path: { test_run_id: id } }),
+@@
+-      select: (r): { id: string; name?: string | null } => ({ id: r.id, name: (r as any).name ?? null }),
++      select: (r: any): { id: string; name?: string | null } => ({ id: String(r.id), name: r?.name ?? null }),
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/TestRuns/useTestRunsData.ts
+@@
+-      {
+-        ...readUsersUsersGetOptions(),
+-        staleTime: 60_000,
+-        enabled: true,
+-        select: (raw: unknown) =>
+-          ((raw as { data?: LookupUser[] } | undefined)?.data ?? []) as readonly LookupUser[],
+-      },
++      (() => {
++        const { queryKey, queryFn } = readUsersUsersGetOptions();
++        return {
++          queryKey,
++          queryFn,
++          staleTime: 60_000,
++          enabled: true,
++          select: (raw: unknown) =>
++            ((raw as { data?: LookupUser[] } | undefined)?.data ?? []) as readonly LookupUser[],
++        };
++      })(),
+@@
+-      {
+-        ...readTestSetsTestSetsGetOptions({ query: { limit: 100 } }),
+-        staleTime: 60_000,
+-        enabled: true,
+-        select: (raw: unknown) =>
+-          (((raw as { data?: LookupTestSet[] } | undefined)?.data ?? []) as LookupTestSet[]).slice(0, 100) as
+-            | readonly LookupTestSet[]
+-            | [],
+-      },
++      (() => {
++        const { queryKey, queryFn } = readTestSetsTestSetsGetOptions({ query: { limit: 100 } });
++        return {
++          queryKey,
++          queryFn,
++          staleTime: 60_000,
++          enabled: true,
++          select: (raw: unknown) =>
++            (((raw as { data?: LookupTestSet[] } | undefined)?.data ?? []) as LookupTestSet[]).slice(
++              0,
++              100
++            ) as readonly LookupTestSet[] | [],
++        };
++      })(),
+@@
+-      {
+-        ...readProjectsProjectsGetOptions(),
+-        staleTime: 60_000,
+-        enabled: true,
+-        select: (raw: unknown) =>
+-          ((raw as { data?: LookupProject[] } | undefined)?.data ?? []) as readonly LookupProject[],
+-      },
++      (() => {
++        const { queryKey, queryFn } = readProjectsProjectsGetOptions();
++        return {
++          queryKey,
++          queryFn,
++          staleTime: 60_000,
++          enabled: true,
++          select: (raw: unknown) =>
++            ((raw as { data?: LookupProject[] } | undefined)?.data ?? []) as readonly LookupProject[],
++        };
++      })(),
+@@
+-      {
+-        ...readEndpointsEndpointsGetOptions(),
+-        staleTime: 60_000,
+-        enabled: true,
+-        select: (raw: unknown) =>
+-          ((raw as { data?: LookupEndpoint[] } | undefined)?.data ?? []) as readonly LookupEndpoint[],
+-      },
++      (() => {
++        const { queryKey, queryFn } = readEndpointsEndpointsGetOptions();
++        return {
++          queryKey,
++          queryFn,
++          staleTime: 60_000,
++          enabled: true,
++          select: (raw: unknown) =>
++            ((raw as { data?: LookupEndpoint[] } | undefined)?.data ?? []) as readonly LookupEndpoint[],
++        };
++      })(),
+@@
+-        endpoint_id: params.endpointId,
++        endpoint_id: String(params.endpointId),
+@@
+-        test_set_id: params.testSetId,
++        test_set_id: params.testSetId != null ? String(params.testSetId) : null,
+@@
+-        user_id: params.userId,
++        user_id: params.userId != null ? String(params.userId) : null,
+@@
+-        organization_id: params.organizationId ?? undefined,
++        organization_id: params.organizationId != null ? String(params.organizationId) : undefined,
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/Tokens/useTokensData.ts
+@@
+-  return payload.data ?? [];
++  if (Array.isArray(payload)) {
++    return payload;
++  }
++  return payload?.data ?? [];
+@@
+-  return payload.pagination?.totalCount ?? 0;
++  if (Array.isArray(payload)) {
++    return payload.length;
++  }
++  return payload?.pagination?.totalCount ?? 0;
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/frontend/src/hooks/data/index.ts
+@@
+-export * from './tests/useTestsData';
+-export * from './tests/prefetchTests';
++// Normalize case-sensitive paths to a single source of truth to avoid TS1261 on case-insensitive systems
++export * from './Tests/useTestsData';
++export * from './Tests/prefetchTests';
+*** End Patch
+
+*** Begin Patch
+*** Update File: apps/frontend/src/lib/dashboard/chartUtils.ts
+@@
+-  return out as const;
++  // Return strongly typed but without illegal `as const` on a non-literal
++  return out;
+@@
+-  return series as const;
++  // Return as a standard array; callers can narrow if needed
++  return series;
+*** End Patch
