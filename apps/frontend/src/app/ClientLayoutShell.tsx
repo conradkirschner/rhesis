@@ -1,4 +1,3 @@
-// app/ClientLayoutShell.tsx
 'use client';
 
 import { ReactNode } from 'react';
@@ -6,7 +5,6 @@ import { HydrationBoundary, type DehydratedState } from '@tanstack/react-query';
 import { SessionProvider } from 'next-auth/react';
 import type { Session } from 'next-auth';
 import { ClientLayoutShell as _Inner } from './ClientLayoutShell.impl';
-import QueryProvider from "@/app/query-provider";
 
 export function ClientLayoutShell({
                                       session,

@@ -21,15 +21,17 @@ import ActionBar from '../ui/ActionBar';
 import InlineLoader from '../ui/InlineLoader';
 import ErrorBanner from '../ui/ErrorBanner';
 import StepMain from '../ui/steps/StepMain';
+import { useSession } from 'next-auth/react';
 
 type Props = {
   identifier: string;
-  sessionToken: string;
-  currentUser: { id: string; name: string; picture?: string };
 };
 
-export default function TestSetContainer({ identifier, sessionToken, currentUser }: Props) {
+export default function TestSetContainer({ identifier }: Props) {
   const router = useRouter();
+  const session = useSession();
+  const sessionToken = session.data?.session_token;
+  const currentUser = session.data?.user;
   const notifications = useNotifications();
 
   const [pagination, setPagination] = useState<{ page: number; pageSize: number }>({
@@ -161,6 +163,10 @@ export default function TestSetContainer({ identifier, sessionToken, currentUser
         })) as unknown as UiExecuteDrawerProps['endpoints'],
   };
 
+  if (!currentUser) return <div>loading</div>
+  if (!currentUser.id) return <div>loading</div>
+  if (!currentUser.name) return <div>loading</div>
+  if (!currentUser.picture) return <div>loading</div>
   const stepMainProps: UiStepMainProps = {
     charts: chartsProps,
     details: detailsProps,
