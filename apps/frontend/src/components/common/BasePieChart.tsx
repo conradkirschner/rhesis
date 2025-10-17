@@ -55,7 +55,7 @@ interface DataItem {
 }
 
 export interface BasePieChartProps {
-  data: DataItem[];
+  data: readonly DataItem[];
   title?: string;
   colors?: string[];
   colorPalette?: 'pie' | 'status' | 'line';
@@ -394,7 +394,7 @@ export default function BasePieChart({
             height={chartDimensions.adjustedHeight}
           >
             <Pie
-              data={data}
+              data={[...data]}
               cx="50%"
               cy={`${chartDimensions.cyPercentage}%`}
               innerRadius={innerRadius}

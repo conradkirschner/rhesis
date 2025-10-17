@@ -55,7 +55,7 @@ export interface TaggableEntity {
 
 export interface BaseTagProps
     extends Omit<TextFieldProps, 'onChange' | 'value' | 'defaultValue'> {
-  value: string[];
+  value: readonly string[];
   onChange: (value: string[]) => void;
 
   validate?: (value: string) => boolean;
@@ -120,7 +120,7 @@ export default function BaseTag({
                                 }: BaseTagProps) {
   const [inputValue, setInputValue] = useState<string>('');
   const [focused, setFocused] = useState<boolean>(false);
-  const [localTags, setLocalTags] = useState<string[]>(value);
+  const [localTags, setLocalTags] = useState<string[]>([...value]);
   const [tagObjectsMap, setTagObjectsMap] = useState<Map<string, Tag>>(
       new Map(),
   );
@@ -130,7 +130,7 @@ export default function BaseTag({
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    setLocalTags(value);
+    setLocalTags([...value]);
   }, [value]);
 
   useEffect(() => {

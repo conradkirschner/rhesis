@@ -9,6 +9,7 @@ import {
   deleteUserUsersUserIdDeleteMutation,
   readUsersUsersGetOptions,
 } from '@/api-client/@tanstack/react-query.gen';
+import type { UserCreate } from '@/api-client/types.gen';
 
 type Member = {
   readonly id: string;
@@ -95,7 +96,7 @@ export function useTeamData(params: UseTeamDataParams) {
               organization_id: organizationId,
               is_active: true,
               send_invite: true,
-            } as Record<string, unknown>,
+            } as UserCreate,
           });
           return { email, ok: true };
         } catch (e) {

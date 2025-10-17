@@ -36,7 +36,7 @@ const nextConfig = {
   // ===== DEVELOPMENT-SPECIFIC ANTI-CACHING =====
   // These are the key additions to fix your caching issues
   generateEtags: !isDev, // Disable ETags in development
-
+  output: 'standalone',
   // Compiler optimizations
   compiler: {
     // Remove console.log in production only

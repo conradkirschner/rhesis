@@ -1,0 +1,214 @@
+// src/app/(protected)/endpoints/new/components/EndpointsContainer.tsx
+'use client';
+
+import React from 'react';
+import { useRouter } from 'next/navigation';
+import { useEndpointsData } from '@/hooks/data';
+import type {
+  EndpointEnvironment,
+  EndpointProtocol,
+  HttpMethod,
+} from '@/domain/endpoints/types';
+import FeaturePageFrame from '../ui/FeaturePageFrame';
+import StepperHeader from '../ui/StepperHeader';
+import ActionBar from '../ui/ActionBar';
+import InlineLoader from '../ui/InlineLoader';
+import ErrorBanner from '../ui/ErrorBanner';
+import StepBasicInformation from '../ui/steps/StepBasicInformation';
+import StepRequestSettings from '../ui/steps/StepRequestSettings';
+import StepResponseSettings from '../ui/steps/StepResponseSettings';
+import StepTestConnection from '../ui/steps/StepTestConnection';
+import type {
+  UiActionBarProps,
+  UiStepperHeaderProps,
+  UiStepBasicInformationProps,
+  UiStepRequestSettingsProps,
+  UiStepResponseSettingsProps,
+  UiStepTestConnectionProps,
+  UiBasicKeys,
+  UiBasicState,
+} from '../ui/types';
+
+type FormState = {
+  readonly name: string;
+  readonly description: string;
+  readonly protocol: EndpointProtocol;
+  readonly url: string;
+  readonly environment: EndpointEnvironment;
+  readonly config_source: 'manual';
+  readonly response_format: 'json';
+  readonly method: HttpMethod;
+  readonly endpoint_path: string;
+  readonly project_id: string;
+  readonly request_headers?: string;
+  readonly request_body_template?: string;
+  readonly response_mappings?: string;
+};
+
+const ENVIRONMENTS: readonly EndpointEnvironment[] = ['production', 'staging', 'development'] as const;
+const PROTOCOLS: readonly EndpointProtocol[] = ['REST'] as const;
+const METHODS: readonly HttpMethod[] = ['POST'] as const;
+
+export default function EndpointsContainer() {
+  const router = useRouter();
+
+  // Provide required params (we mainly need projects in this screen)
+  const {
+    projects,
+    isLoadingProjects,
+    projectsError,
+    createEndpoint,
+    isCreating,
+    createError,
+  } = useEndpointsData({ page: 0, pageSize: 10, enabled: true });
+
+  const [step, setStep] = React.useState(0);
+  const [urlError, setUrlError] = React.useState<string | null>(null);
+  const [testResponse, setTestResponse] = React.useState<string>('');
+  const [isTesting, setIsTesting] = React.useState(false);
+
+  const [form, setForm] = React.useState<FormState>({
+    name: '',
+    description: '',
+    protocol: 'REST',
+    url: '',
+    environment: 'development',
+    config_source: 'manual',
+    response_format: 'json',
+    method: 'POST',
+    endpoint_path: '',
+    project_id: '',
+  });
+
+  function validateUrl(val: string): boolean {
+    try {
+      new URL(val);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // --- Adapters matching UI prop signatures ---
+  function onBasicChange<K extends UiBasicKeys>(key: K, value: UiBasicState[K]) {
+    setForm((prev) => ({ ...prev, [key]: value as unknown as FormState[K] }));
+  }
+
+  function onRequestChange<K extends 'request_headers' | 'request_body_template'>(
+      key: K,
+      value: string,
+  ) {
+    setForm((prev) => ({ ...prev, [key]: value as unknown as FormState[K] }));
+  }
+
+  function onResponseChange<K extends 'response_mappings'>(key: K, value: string) {
+    setForm((prev) => ({ ...prev, [key]: value as unknown as FormState[K] }));
+  }
+
+  async function onSubmit() {
+    if (!form.url || !validateUrl(form.url)) {
+      setUrlError('Please enter a valid URL');
+      setStep(0);
+      return;
+    }
+    setUrlError(null);
+    if (!form.project_id) {
+      setStep(0);
+      return;
+    }
+    await createEndpoint(form);
+    router.push('/endpoints');
+  }
+
+  async function onTest() {
+    setIsTesting(true);
+    await new Promise((r) => setTimeout(r, 600));
+    setTestResponse(
+        JSON.stringify(
+            {
+              success: true,
+              message: 'Response from endpoint (sample)',
+              data: { output: 'Sample response data' },
+            },
+            null,
+            2,
+        ),
+    );
+    setIsTesting(false);
+  }
+
+  const labels = ['Basic Information', 'Request Settings', 'Response Settings', 'Test Connection'] as const;
+
+  const headerProps = {
+    value: step,
+    onChange: setStep,
+    labels,
+    'data-test-id': 'endpoint-stepper',
+  } satisfies UiStepperHeaderProps;
+
+  const actionBarProps = {
+    onCancel: () => router.push('/endpoints'),
+    onSubmit,
+    submitting: isCreating,
+    disabled: projects.length === 0 && !isLoadingProjects,
+    submitLabel: 'Create Endpoint',
+    'data-test-id': 'endpoint-action-bar',
+  } satisfies UiActionBarProps;
+
+  const basicProps = {
+    name: form.name,
+    description: form.description,
+    url: form.url,
+    urlError,
+    protocol: form.protocol,
+    method: form.method,
+    environment: form.environment,
+    environments: ENVIRONMENTS,
+    protocols: PROTOCOLS,
+    methods: METHODS,
+    projects,
+    projectId: form.project_id,
+    onChange: onBasicChange,
+  } satisfies UiStepBasicInformationProps;
+
+  const requestProps = {
+    request_headers: form.request_headers ?? '',
+    request_body_template: form.request_body_template ?? '',
+    onChange: onRequestChange,
+  } satisfies UiStepRequestSettingsProps;
+
+  const responseProps = {
+    response_mappings: form.response_mappings ?? '',
+    onChange: onResponseChange,
+  } satisfies UiStepResponseSettingsProps;
+
+  const testProps = {
+    isTesting,
+    response: testResponse,
+    onTest,
+  } satisfies UiStepTestConnectionProps;
+
+  const StepMap = [
+    <StepBasicInformation key="basic" {...basicProps} />,
+    <StepRequestSettings key="request" {...requestProps} />,
+    <StepResponseSettings key="response" {...responseProps} />,
+    <StepTestConnection key="test" {...testProps} />,
+  ] as const;
+
+  return (
+      <FeaturePageFrame
+          title="Create New Endpoint"
+          breadcrumbs={[
+            { title: 'Endpoints', path: '/endpoints' },
+            { title: 'Create New Endpoint' },
+          ]}
+      >
+        {isLoadingProjects && <InlineLoader label="Loading projects…" />}
+        {!!projectsError && <ErrorBanner message="Failed to load projects." />}
+        {!!createError && <ErrorBanner message="Failed to create endpoint." />}
+        <StepperHeader {...headerProps} />
+        {StepMap[step]}
+        <ActionBar {...actionBarProps} />
+      </FeaturePageFrame>
+  );
+}

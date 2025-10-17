@@ -1,8 +1,8 @@
+// src/hooks/data/testRuns/useTestRunsData.ts
 import { useMemo } from 'react';
 import {
   keepPreviousData,
   useMutation,
-  useQueries,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
@@ -20,7 +20,7 @@ import {
 
 type Id = string;
 
-type ListItem = {
+export type ListItem = {
   id: Id;
   name?: string | null;
   test_configuration?: {
@@ -43,13 +43,13 @@ type ListItem = {
 };
 
 type Stats =
-  | {
-      status_distribution?: readonly { status: string; count: number }[];
-      result_distribution?: { passed: number; failed: number; pending: number };
-      most_run_test_sets?: readonly { test_set_name: string; run_count: number }[];
-      top_executors?: readonly { executor_name: string; run_count: number }[];
-    }
-  | undefined;
+    | {
+  status_distribution?: readonly { status: string; count: number }[];
+  result_distribution?: { passed: number; failed: number; pending: number };
+  most_run_test_sets?: readonly { test_set_name: string; run_count: number }[];
+  top_executors?: readonly { executor_name: string; run_count: number }[];
+}
+    | undefined;
 
 type LookupUser = {
   id: Id;
@@ -61,9 +61,7 @@ type LookupUser = {
 };
 
 type LookupProject = { id: Id; name: string; organization_id?: Id | null };
-
 type LookupTestSet = { id: Id; name: string };
-
 type LookupEndpoint = {
   id: Id;
   name: string;
@@ -85,6 +83,7 @@ export function useTestRunsData(params: UseTestRunsDataParams) {
   const skip = page * pageSize;
   const limit = pageSize;
 
+  // List
   const listQuery = useQuery({
     ...readTestRunsTestRunsGetOptions({
       query: { skip, limit, sort_by: 'created_at', sort_order: 'desc' },
@@ -94,94 +93,96 @@ export function useTestRunsData(params: UseTestRunsDataParams) {
     select: (raw): { rows: readonly ListItem[]; total: number } => {
       const rows = (raw as { data?: readonly ListItem[] } | undefined)?.data ?? [];
       const total =
-        (raw as { pagination?: { totalCount?: number } } | undefined)?.pagination
-          ?.totalCount ?? 0;
+          (raw as { pagination?: { totalCount?: number } } | undefined)?.pagination
+              ?.totalCount ?? 0;
       return { rows, total };
     },
   });
 
-  const [statusQ, resultsQ, testSetsQ, executorsQ] = useQueries({
-    queries: [
-      {
-        ...generateTestRunStatsTestRunsStatsGetOptions({
-          query: { mode: 'status', top: 5, months: 6 },
-        }),
-        staleTime: 60_000,
-      },
-      {
-        ...generateTestRunStatsTestRunsStatsGetOptions({
-          query: { mode: 'results', top: 5, months: 6 },
-        }),
-        staleTime: 60_000,
-      },
-      {
-        ...generateTestRunStatsTestRunsStatsGetOptions({
-          query: { mode: 'test_sets', top: 5, months: 6 },
-        }),
-        staleTime: 60_000,
-      },
-      {
-        ...generateTestRunStatsTestRunsStatsGetOptions({
-          query: { mode: 'executors', top: 5, months: 6 },
-        }),
-        staleTime: 60_000,
-      },
-    ],
+  // ----- Stats (was useQueries → now four useQuery calls) -----
+  const statusQ = useQuery({
+    ...generateTestRunStatsTestRunsStatsGetOptions({
+      query: { mode: 'status', top: 5, months: 6 },
+    }),
+    staleTime: 60_000,
+  });
+
+  const resultsQ = useQuery({
+    ...generateTestRunStatsTestRunsStatsGetOptions({
+      query: { mode: 'results', top: 5, months: 6 },
+    }),
+    staleTime: 60_000,
+  });
+
+  const testSetsQ = useQuery({
+    ...generateTestRunStatsTestRunsStatsGetOptions({
+      query: { mode: 'test_sets', top: 5, months: 6 },
+    }),
+    staleTime: 60_000,
+  });
+
+  const executorsQ = useQuery({
+    ...generateTestRunStatsTestRunsStatsGetOptions({
+      query: { mode: 'executors', top: 5, months: 6 },
+    }),
+    staleTime: 60_000,
   });
 
   const stats: Stats = useMemo(
-    () => ({
-      status_distribution:
-        ((statusQ.data as { status_distribution?: { status: string; count: number }[] } | undefined)
-          ?.status_distribution ?? []) as readonly { status: string; count: number }[],
-      result_distribution: (resultsQ.data as { result_distribution?: { passed: number; failed: number; pending: number } } | undefined)
-        ?.result_distribution ?? { passed: 0, failed: 0, pending: 0 },
-      most_run_test_sets:
-        ((testSetsQ.data as { most_run_test_sets?: { test_set_name: string; run_count: number }[] } | undefined)
-          ?.most_run_test_sets ?? []) as readonly { test_set_name: string; run_count: number }[],
-      top_executors:
-        ((executorsQ.data as { top_executors?: { executor_name: string; run_count: number }[] } | undefined)
-          ?.top_executors ?? []) as readonly { executor_name: string; run_count: number }[],
-    }),
-    [statusQ.data, resultsQ.data, testSetsQ.data, executorsQ.data],
+      () => ({
+        status_distribution:
+            ((statusQ.data as { status_distribution?: { status: string; count: number }[] } | undefined)
+                ?.status_distribution ?? []) as readonly { status: string; count: number }[],
+        result_distribution:
+            (resultsQ.data as { result_distribution?: { passed: number; failed: number; pending: number } } | undefined)
+                ?.result_distribution ?? { passed: 0, failed: 0, pending: 0 },
+        most_run_test_sets:
+            ((testSetsQ.data as { most_run_test_sets?: { test_set_name: string; run_count: number }[] } | undefined)
+                ?.most_run_test_sets ?? []) as readonly { test_set_name: string; run_count: number }[],
+        top_executors:
+            ((executorsQ.data as { top_executors?: { executor_name: string; run_count: number }[] } | undefined)
+                ?.top_executors ?? []) as readonly { executor_name: string; run_count: number }[],
+      }),
+      [statusQ.data, resultsQ.data, testSetsQ.data, executorsQ.data],
   );
 
-  const [usersQ, testSetsLookupQ, projectsQ, endpointsQ] = useQueries({
-    queries: [
-      {
-        ...readUsersUsersGetOptions(),
-        staleTime: 300_000,
-        enabled: Boolean(enableLookups),
-        select: (raw): readonly LookupUser[] =>
-          ((raw as { data?: LookupUser[] } | undefined)?.data ?? []) as readonly LookupUser[],
-      },
-      {
-        ...readTestSetsTestSetsGetOptions({ query: { limit: 100 } }),
-        staleTime: 300_000,
-        enabled: Boolean(enableLookups),
-        select: (raw): readonly LookupTestSet[] =>
-          ((raw as { data?: LookupTestSet[] } | undefined)?.data ??
-            []) as readonly LookupTestSet[],
-      },
-      {
-        ...readProjectsProjectsGetOptions(),
-        staleTime: 300_000,
-        enabled: Boolean(enableLookups),
-        select: (raw): readonly LookupProject[] =>
-          ((raw as { data?: LookupProject[] } | undefined)?.data ??
-            []) as readonly LookupProject[],
-      },
-      {
-        ...readEndpointsEndpointsGetOptions(),
-        staleTime: 300_000,
-        enabled: Boolean(enableLookups),
-        select: (raw): readonly LookupEndpoint[] =>
-          ((raw as { data?: LookupEndpoint[] } | undefined)?.data ??
-            []) as readonly LookupEndpoint[],
-      },
-    ],
+  // ----- Lookups (was useQueries → now four useQuery calls) -----
+  const usersQ = useQuery({
+    ...readUsersUsersGetOptions(),
+    staleTime: 300_000,
+    enabled: Boolean(enableLookups),
+    select: (raw): readonly LookupUser[] =>
+        ((raw as { data?: LookupUser[] } | undefined)?.data ?? []) as readonly LookupUser[],
   });
 
+  const testSetsLookupQ = useQuery({
+    ...readTestSetsTestSetsGetOptions({ query: { limit: 100 } }),
+    staleTime: 300_000,
+    enabled: Boolean(enableLookups),
+    select: (raw): readonly LookupTestSet[] =>
+        ((raw as { data?: LookupTestSet[] } | undefined)?.data ??
+            []) as readonly LookupTestSet[],
+  });
+
+  const projectsQ = useQuery({
+    ...readProjectsProjectsGetOptions(),
+    staleTime: 300_000,
+    enabled: Boolean(enableLookups),
+    select: (raw): readonly LookupProject[] =>
+        ((raw as { data?: LookupProject[] } | undefined)?.data ??
+            []) as readonly LookupProject[],
+  });
+
+  const endpointsQ = useQuery({
+    ...readEndpointsEndpointsGetOptions(),
+    staleTime: 300_000,
+    enabled: Boolean(enableLookups),
+    select: (raw): readonly LookupEndpoint[] =>
+        ((raw as { data?: LookupEndpoint[] } | undefined)?.data ??
+            []) as readonly LookupEndpoint[],
+  });
+
+  // Mutations
   const deleteMutation = useMutation({
     ...deleteTestRunTestRunsTestRunIdDeleteMutation(),
   });
@@ -196,15 +197,15 @@ export function useTestRunsData(params: UseTestRunsDataParams) {
 
   const deleteMany = async (ids: readonly Id[]) => {
     await Promise.all(
-      ids.map((id) =>
-        deleteMutation.mutateAsync({
-          path: { test_run_id: String(id) },
-        }),
-      ),
+        ids.map((id) =>
+            deleteMutation.mutateAsync({
+              path: { test_run_id: String(id) },
+            }),
+        ),
     );
   };
 
-  const createAndExecute = async (params: {
+  const createAndExecute = async (p: {
     endpointId: Id;
     testSetId: Id;
     userId: Id;
@@ -212,43 +213,45 @@ export function useTestRunsData(params: UseTestRunsDataParams) {
   }) => {
     const created = await createConfigMutation.mutateAsync({
       body: {
-        endpoint_id: params.endpointId,
-        test_set_id: params.testSetId,
-        user_id: params.userId,
-        organization_id: params.organizationId ?? undefined,
+        endpoint_id: p.endpointId,
+        test_set_id: p.testSetId,
+        user_id: p.userId,
+        organization_id: p.organizationId ?? undefined,
       },
     });
 
     const createdId = (created as { id?: Id } | undefined)?.id;
-    if (!createdId) {
-      throw new Error('Missing configuration id');
-    }
+    if (!createdId) throw new Error('Missing configuration id');
 
     await executeConfigMutation.mutateAsync({
       path: { test_configuration_id: String(createdId) },
     });
   };
 
+  // Precise invalidations (queryKey retains generator _id objects)
   const invalidateList = async () => {
     await queryClient.invalidateQueries({
       predicate: ({ queryKey }) =>
-        Array.isArray(queryKey) &&
-        queryKey.some(
-          (q) => typeof q === 'object' && q !== null && (q as { _id?: string })._id === 'readTestRunsTestRunsGet',
-        ),
+          Array.isArray(queryKey) &&
+          queryKey.some(
+              (q) =>
+                  typeof q === 'object' &&
+                  q !== null &&
+                  (q as { _id?: string })._id === 'readTestRunsTestRunsGet',
+          ),
     });
   };
 
   const invalidateStats = async () => {
     await queryClient.invalidateQueries({
       predicate: ({ queryKey }) =>
-        Array.isArray(queryKey) &&
-        queryKey.some(
-          (q) =>
-            typeof q === 'object' &&
-            q !== null &&
-            (q as { _id?: string })._id === 'generateTestRunStatsTestRunsStatsGet',
-        ),
+          Array.isArray(queryKey) &&
+          queryKey.some(
+              (q) =>
+                  typeof q === 'object' &&
+                  q !== null &&
+                  (q as { _id?: string })._id === 'generateTestRunStatsTestRunsStatsGet',
+          ),
     });
   };
 
@@ -261,25 +264,40 @@ export function useTestRunsData(params: UseTestRunsDataParams) {
     },
     stats: {
       data: stats,
-      isLoading: statusQ.isLoading || resultsQ.isLoading || testSetsQ.isLoading || executorsQ.isLoading,
+      isLoading:
+          statusQ.isLoading ||
+          resultsQ.isLoading ||
+          testSetsQ.isLoading ||
+          executorsQ.isLoading,
       error:
-        ((statusQ.error || resultsQ.error || testSetsQ.error || executorsQ.error) as Error | undefined)
-          ?.message ?? undefined,
+          ((statusQ.error ||
+              resultsQ.error ||
+              testSetsQ.error ||
+              executorsQ.error) as Error | undefined)?.message ?? undefined,
     },
     lookups: {
       users: (usersQ.data ?? []) as readonly LookupUser[],
       testSets: (testSetsLookupQ.data ?? []) as readonly LookupTestSet[],
       projects: (projectsQ.data ?? []) as readonly LookupProject[],
       endpoints: (endpointsQ.data ?? []) as readonly LookupEndpoint[],
-      isLoading: usersQ.isLoading || testSetsLookupQ.isLoading || projectsQ.isLoading || endpointsQ.isLoading,
+      isLoading:
+          usersQ.isLoading ||
+          testSetsLookupQ.isLoading ||
+          projectsQ.isLoading ||
+          endpointsQ.isLoading,
       error:
-        ((usersQ.error || testSetsLookupQ.error || projectsQ.error || endpointsQ.error) as Error | undefined)
-          ?.message ?? undefined,
+          ((usersQ.error ||
+              testSetsLookupQ.error ||
+              projectsQ.error ||
+              endpointsQ.error) as Error | undefined)?.message ?? undefined,
     },
     mutate: {
       deleteMany,
       createAndExecute,
-      isPending: deleteMutation.isPending || createConfigMutation.isPending || executeConfigMutation.isPending,
+      isPending:
+          deleteMutation.isPending ||
+          createConfigMutation.isPending ||
+          executeConfigMutation.isPending,
     },
     invalidate: {
       list: invalidateList,

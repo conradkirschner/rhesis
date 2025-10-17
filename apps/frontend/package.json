@@ -46,6 +46,7 @@
     "dayjs": "^1.11.13",
     "emoji-picker-react": "^4.13.3",
     "invariant": "^2.2.4",
+    "ioredis": "^5.8.1",
     "lucide-react": "^0.475.0",
     "next": "^15.5.4",
     "next-auth": "5.0.0-beta.25",

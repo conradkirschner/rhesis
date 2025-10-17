@@ -10,7 +10,7 @@ import type {
   TaskCreate,
   Status,
   User,
-  TypeLookup,
+  TypeLookup, StatusDetail,
 } from '@/api-client/types.gen';
 
 const ALLOWED_STATUS_NAMES = new Set(['Open', 'In Progress', 'Completed', 'Cancelled']);
@@ -73,8 +73,8 @@ export function useTaskCreateData() {
   const statuses: readonly StatusItem[] = useMemo(
     () =>
       (statusesQ.data?.data ?? [])
-        .filter((s: Status) => s?.id && s?.name && ALLOWED_STATUS_NAMES.has(s.name))
-        .map((s: Status) => ({ id: s.id!, name: s.name! })),
+        .filter((s: StatusDetail) => s?.id && s?.name && ALLOWED_STATUS_NAMES.has(s.name))
+        .map((s: StatusDetail) => ({ id: s.id!, name: s.name! })),
     [statusesQ.data?.data],
   );
 

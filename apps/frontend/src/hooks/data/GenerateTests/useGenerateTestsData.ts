@@ -122,7 +122,7 @@ export function useGenerateTestsData() {
   );
 
   const generateSamples = useCallback(
-    async (uiConfig: SdkTestSetGenerationConfig, num: number, docs: ReadonlyArray<{ name: string; description: string; content: string }>) => {
+    async (uiConfig: SdkTestSetGenerationConfig, num: number, docs: Array<{ name: string; description: string; content: string }>) => {
       const prompt = toPromptFromUiConfig(uiConfig);
       const res = await generateTestsMut.mutateAsync({
         body: {
@@ -150,7 +150,7 @@ export function useGenerateTestsData() {
     async (
       startFrom: number,
       uiConfig: SdkTestSetGenerationConfig,
-      docs: ReadonlyArray<{ name: string; description: string; content: string }>,
+      docs: Array<{ name: string; description: string; content: string }>,
       num = 5,
     ) => {
       const prompt: GenerateTestsPrompt = toPromptFromUiConfig(uiConfig);
@@ -207,7 +207,7 @@ export function useGenerateTestsData() {
 
   const createTestSet = useCallback(
     async (config: SdkTestSetGenerationConfig, samples: ReadonlyArray<HookSample>) => {
-      const payloadSamples: ReadonlyArray<GenerationSample> = samples.map((s) => ({
+      const payloadSamples:Array<GenerationSample> = samples.map((s) => ({
         id: s.id,
         text: s.text,
         behavior: s.behavior,

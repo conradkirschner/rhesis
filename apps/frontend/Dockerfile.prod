@@ -1,0 +1,84 @@
+# Dockerfile
+
+# ---------- Base ----------
+FROM node:22-alpine AS base
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN apk add --no-cache libc6-compat curl
+
+# ---------- Dependencies for build (dev+prod) ----------
+FROM base AS deps
+COPY package.json package-lock.json ./
+RUN npm ci --legacy-peer-deps
+
+# ---------- Build ----------
+FROM deps AS builder
+# Build-time PUBLIC envs (inlined by Next.js)
+ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_AUTH0_DOMAIN
+ARG NEXT_PUBLIC_AUTH0_CLIENT_ID
+ARG FRONTEND_ENV=production
+ARG NEXTAUTH_SECRET="opt-out"
+
+# Make PUBLIC vars available to Next.js at build-time
+ENV NODE_ENV=production \
+    FRONTEND_ENV=${FRONTEND_ENV} \
+    NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
+    NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL} \
+    NEXT_PUBLIC_AUTH0_DOMAIN=${NEXT_PUBLIC_AUTH0_DOMAIN} \
+    NEXT_PUBLIC_AUTH0_CLIENT_ID=${NEXT_PUBLIC_AUTH0_CLIENT_ID} \
+    NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+
+# Copy source
+COPY . .
+
+# Ensure no accidental .env files leak into the build context
+RUN find . -name ".env*" -type f -delete
+
+# Build the Next.js app
+RUN npm run build
+
+# ---------- Production-only dependencies (omit dev deps) ----------
+FROM base AS prod-deps
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --legacy-peer-deps
+
+# ---------- Runtime ----------
+FROM base AS runner
+ENV NODE_ENV=production \
+    PORT=3000
+
+# Accept ALL runtime env vars used in the dev container. These default to empty and
+# should be provided via `docker run -e ...` or your orchestrator (Compose, K8s, etc.).
+# Public (also present at runtime for client-side reading if needed)
+ENV NEXT_PUBLIC_API_BASE_URL="" \
+    NEXT_PUBLIC_APP_URL="" \
+    NEXT_PUBLIC_AUTH0_DOMAIN="" \
+    NEXT_PUBLIC_AUTH0_CLIENT_ID=""
+
+# Private / server-only
+ENV BACKEND_URL="sample" \
+    NEXTAUTH_SECRET="sample" \
+    AUTH_SECRET="sample" \
+    GOOGLE_CLIENT_ID="sample" \
+    GOOGLE_CLIENT_SECRET="sample" \
+    FRONTEND_ENV="production"
+
+# Use the non-root 'node' user provided by the base image
+USER node
+
+# Copy runtime artifacts
+COPY --chown=node:node --from=prod-deps /app/node_modules ./node_modules
+COPY --chown=node:node --from=builder   /app/.next          ./.next
+COPY --chown=node:node --from=builder   /app/public         ./public
+COPY --chown=node:node --from=builder   /app/package.json   ./package.json
+COPY --chown=node:node --from=builder   /app/next.config.mjs ./next.config.mjs
+
+EXPOSE 3000
+
+# Simple healthcheck (uses overridable PORT env)
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD curl -f http://127.0.0.1:${PORT}/ || exit 1
+
+CMD ["npm", "run", "start"]

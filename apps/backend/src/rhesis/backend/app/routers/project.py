@@ -24,7 +24,7 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=schemas.Project)
+@router.post("", response_model=schemas.Project)
 @handle_database_exceptions(
     entity_name="project", custom_unique_message="Project with this name already exists"
 )
