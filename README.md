@@ -1,3 +1,13 @@
+# This is a learning Example Project for future Agentic AI Code Refactoring Strategies - as sample it was taken RhesisAI
+
+## Scope
+- The Project should be same from feature set, without deep UI changes.  
+- It should evaluate valid LLM refactoring strategies, so steps between refactorings are valid (e.g. File Separation, Merging back later)
+## No Scope
+- Since it is an evaluation project, git commit structure is not in scope  
+- Possibility to merge back, this will be thrown away after evaluation and rebuild with knowledge of agentic coding (Hardfork)
+- Clean Code - Refactoring Steps can create code mess - which is fine, final result should be well written
+
 # Rhesis: Open-Source Gen AI Testing ![Rhesis AI_Logo_RGB_Favicon](https://github.com/user-attachments/assets/ff43ca6a-ffde-4aff-9ff9-eec3897d0d02)
 
 <p align="center">
